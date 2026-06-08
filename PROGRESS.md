@@ -11,12 +11,12 @@
   - Execution: Via `python scripts/apply_supabase_schema.py` with psycopg
   - Result: "Schema applied successfully"
 
-- **W1-DB-02: Neo4j Schema** ⚠ DEFERRED
+- **W1-DB-02: Neo4j Schema** ✓ COMPLETE
   - Schema defined in `infra/neo4j/schema.cypher` (constraints + indexes)
   - Constraints: chunk_hash UNIQUE, sao/cung/thien_can/dia_chi/ngu_hanh canonical_name UNIQUE
   - Indexes: chunkVector (768 dims, cosine), chunkFulltext (on text, title, keywords)
-  - Issue: Connection routing failed ("Unable to retrieve routing information")
-  - Status: Ready to retry after connection verification
+  - Execution: Via `python scripts/apply_neo4j_schema.py` bằng giao thức `neo4j+ssc://`
+  - Result: "Neo4j schema applied successfully" (Áp dụng thành công 7 constraints và 2 indexes)
 
 ### Backend API (W1-API)
 - **W1-API-01: FastAPI Skeleton** ✓ COMPLETE
@@ -82,16 +82,15 @@
 
 ## ✗ Week 1 Deferred / Outstanding Tasks
 
-1. **Neo4j Connection Issue** (W1-DB-02): Connection routing failed; retry needed after credential verification
-2. **Full End-to-End Test**: Backend ↔ Frontend communication not tested together
-3. **Supabase Seed Data**: Auth users must be created via Supabase UI (not via seed script)
+1. **Full End-to-End Test**: Backend ↔ Frontend communication not tested together
+2. **Supabase Seed Data**: Auth users must be created via Supabase UI (not via seed script)
 
 ## Summary Stats
 
 | Component | Status | Details |
 |-----------|--------|---------|
 | Supabase Schema | ✓ | 7 tables, triggers, RLS, indexes applied |
-| Neo4j Schema | ⚠ | Defined, not applied (connection issue) |
+| Neo4j Schema | ✓ | Applied successfully (7 constraints, 2 indexes) |
 | Backend API | ✓ | FastAPI running, health endpoint functional |
 | Frontend | ✓ | Next.js build successful, 6 routes optimized |
 | Environment | ✓ | .env, requirements.txt, package.json configured |
