@@ -51,17 +51,7 @@
   - Backend ready: Service role key configured for admin operations
   - RLS policies: Enforce user-scoped data access
 
-### Data Preparation (W1-DATA)
-- **W1-DATA-01: PDF Ingestion** ✓ COMPLETE
-  - Script: `scripts/ingest_pdf.py`
-  - PDFs Processed: 7 files total
-    - TUVI domain: 4 PDFs → 2,039 chunks
-    - BATU domain: 3 PDFs → 2,477 chunks
-  - Total: 4,516 chunks extracted
-  - Format: JSON with metadata (hash, domain, source, page number)
-  - Output: `data/ingested/` directory
-  - Chunking: 250 words max per chunk with paragraph-aware splitting
-  - Verification: 4,516 JSON files created with proper structure
+
 
 ### Infrastructure & Configuration
 - **Environment Setup** ✓ COMPLETE
@@ -90,12 +80,11 @@
   - Initial commit: All project files committed
   - Status: Ready for feature branch workflow
 
-## ✗ Week 1 Deferred Tasks
+## ✗ Week 1 Deferred / Outstanding Tasks
 
-1. **Neo4j Connection Issue**: Routing error encountered; retry needed after credential verification
-2. **Chunk Embeddings**: Creating embeddings (768 dims) and ingesting to Neo4j deferred to Week 2
-3. **Full End-to-End Test**: Backend ↔ Frontend communication not tested (both services created but not running together)
-4. **Supabase Seed Data**: Auth users must be created via Supabase UI due to auth.users table management
+1. **Neo4j Connection Issue** (W1-DB-02): Connection routing failed; retry needed after credential verification
+2. **Full End-to-End Test**: Backend ↔ Frontend communication not tested together
+3. **Supabase Seed Data**: Auth users must be created via Supabase UI (not via seed script)
 
 ## Summary Stats
 
@@ -105,7 +94,6 @@
 | Neo4j Schema | ⚠ | Defined, not applied (connection issue) |
 | Backend API | ✓ | FastAPI running, health endpoint functional |
 | Frontend | ✓ | Next.js build successful, 6 routes optimized |
-| PDF Ingestion | ✓ | 4,516 chunks extracted and stored |
 | Environment | ✓ | .env, requirements.txt, package.json configured |
 | Git | ✓ | Repository initialized and committed |
 
@@ -115,7 +103,6 @@
 - [x] Backend framework (FastAPI) set up with config system
 - [x] Frontend framework (Next.js) set up with auth pages
 - [x] Supabase PostgreSQL schema applied and verified
-- [x] PDF ingestion pipeline executed (4,516 chunks)
 - [x] Environment variables fully populated with real credentials
 - [x] Python venv created with all dependencies
 - [x] Node.js packages installed and frontend built
@@ -123,11 +110,14 @@
 - [x] Backend module loads successfully (AnyUrl type fix applied)
 - [x] Frontend builds without TypeScript errors
 
-## Next: Week 2 Tasks
+## Next: Week 2 Tasks (Engine & Visualization)
 
-1. **Chunk Embeddings (W2-DATA-01)**: Generate 768-dim embeddings for 4,516 chunks
-2. **Neo4j Data Ingestion (W2-DB-01)**: Create knowledge graph with chunk nodes
-3. **LLM Integration (W2-LLM-01)**: Integrate Gemini API for inference
-4. **RAG Pipeline (W2-API-01)**: Implement retrieval-augmented generation endpoint
-5. **Frontend-Backend Integration (W2-FE-01)**: Test end-to-end API communication
-6. **Supabase Auth Testing (W2-AUTH-01)**: Create test user via UI and verify login/register
+According to PLAN.md, Week 2 focuses on Tử Vi and Bát Tự engines:
+
+1. **W2-ENGINE-01**: Tích hợp engine Tử Vi (`lasotuvi`) - POST /chart/tuvi endpoint
+2. **W2-ENGINE-02**: Unit test độ chính xác engine Tử Vi (5+ golden test cases)
+3. **W2-ENGINE-03**: Tích hợp engine Bát Tự (`alvamind`) - Next.js API route
+4. **W2-ENGINE-04**: Luồng tạo và lưu chart end-to-end (form → engine → DB → redirect)
+5. **W2-VIZ-01**: Bảng Tử Vi 12 cung (SVG/D3 visualization)
+6. **W2-VIZ-02**: Bảng Bát Tự cơ bản (4 trụ layout)
+7. **W2-DASH-01**: Dashboard danh sách chart đã lưu
