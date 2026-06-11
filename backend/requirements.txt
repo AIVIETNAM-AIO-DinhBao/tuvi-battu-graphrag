@@ -9,3 +9,7 @@ requests
 supabase
 pymupdf
 psycopg[binary]
+
+# Tử Vi Engine
+lasotuvi
+pyvnlunar

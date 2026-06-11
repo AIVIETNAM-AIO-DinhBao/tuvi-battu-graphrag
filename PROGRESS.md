@@ -1,122 +1,171 @@
-# Progress Report - Week 1 Completion
+# Progress Report - Week 1 & Week 2 (Partial)
 
 ## ✓ Week 1 Completed Tasks
 
 ### Database Infrastructure (W1-DB)
 - **W1-DB-01: Supabase Schema** ✓ COMPLETE
-  - Applied 7 tables: profiles, la_so, chat_sessions, source_chunks, and supporting tables
-  - Triggers: `update_updated_at()` function applied to profiles, la_so, chat_sessions
-  - RLS: Security policies enabled for self-owned record access
-  - Indexes: Created on user_id, chunk_hash, domain for query optimization
-  - Execution: Via `python scripts/apply_supabase_schema.py` with psycopg
-  - Result: "Schema applied successfully"
-
 - **W1-DB-02: Neo4j Schema** ✓ COMPLETE
-  - Schema defined in `infra/neo4j/schema.cypher` (constraints + indexes)
-  - Constraints: chunk_hash UNIQUE, sao/cung/thien_can/dia_chi/ngu_hanh canonical_name UNIQUE
-  - Indexes: chunkVector (768 dims, cosine), chunkFulltext (on text, title, keywords)
-  - Execution: Via `python scripts/apply_neo4j_schema.py` bằng giao thức `neo4j+ssc://`
-  - Result: "Neo4j schema applied successfully" (Áp dụng thành công 7 constraints và 2 indexes)
 
 ### Backend API (W1-API)
 - **W1-API-01: FastAPI Skeleton** ✓ COMPLETE
-  - Framework: FastAPI with uvicorn, CORS middleware configured
-  - Config System: Pydantic v2 BaseSettings with environment variable management
-  - Endpoints:
-    - `GET /health` → `{"status": "ok"}`
-    - `POST /chart/tuvi` → 501 stub
-    - `POST /chat` → Langfuse logging + 501 stub
-  - Clients: Supabase, Neo4j, Langfuse factory functions in `app/clients.py`
-  - Fix Applied: Converted AnyUrl to string type in config for Supabase client compatibility
-  - Verification: Backend module loads successfully `python -c "from app.main import app"`
 
 ### Frontend (W1-FE)
 - **W1-FE-01: Next.js Auth Skeleton** ✓ COMPLETE
-  - Framework: Next.js 15.1.3 with React 18.2, TypeScript 5.0.4
-  - Pages:
-    - `/` (landing) - Navigation to login/register
-    - `/login` - Email/password auth with Supabase
-    - `/register` - User signup
-    - `/dashboard` - Protected route (checks session)
-    - `/chart/[id]` - Dynamic chart detail page
-  - Auth: Supabase JWT integration with supabaseClient singleton
-  - Build: TypeScript compilation successful, all routes prerendered
-  - Verification: `npm run build` completed successfully with 6 routes optimized
 
 ### Authentication (W1-AUTH)
 - **W1-AUTH-01: Supabase Auth Setup** ✓ COMPLETE
-  - Supabase Auth enabled with email/password provider
-  - JWT tokens configured with 1-year expiry (exp: 2096396166)
-  - Frontend integration: supabaseClient authenticated requests
-  - Backend ready: Service role key configured for admin operations
-  - RLS policies: Enforce user-scoped data access
 
+## ✓ Week 2 Completed Tasks (Partial)
 
+### W2-ENGINE-01: Tích hợp Tử Vi Engine ✓ COMPLETE
+- **Dependencies**: Added `lasotuvi` and `pyvnlunar` to requirements.txt
+- **Service Layer**: Created `app/services/tuvi_calculator.py`
+  - `TuViCalculator` class with normalized output schema
+  - Error handling: `InvalidDateError`, `CalculationError`
+  - Input validation and parsing
+  - Extraction methods for palaces and stars
+- **API Models**: Created `app/models/chart.py`
+  - `TuViChartRequest` - Request validation with Pydantic
+  - `TuViChartResponse` - Structured response model
+  - `ChartErrorResponse` - Error responses
+- **API Router**: Created `app/routers/chart.py`
+  - `POST /chart/tuvi` endpoint
+  - `GET /chart/tuvi/test` test endpoint
+  - Comprehensive error handling
+- **Main App**: Updated `app/main.py` to include chart router
+- **Documentation**: Created `backend/docs/chart-schema.md`
+  - Complete Tử Vi schema documentation
+  - Palace and star definitions
+  - Examples and validation rules
 
-### Infrastructure & Configuration
-- **Environment Setup** ✓ COMPLETE
-  - Root `.env`: All credentials populated (Supabase, Neo4j, Langfuse, Gemini)
-  - Backend `.env`: Copy of root for local testing
-  - Frontend `.env.local`: Supabase URL, ANON_KEY, API_BASE_URL configured
-  - `.env.example`: Template with empty placeholders for security
-  - `.gitignore`: .env, node_modules/, .venv/ configured
+**Status**: Implementation complete, needs dependency installation and testing
 
-- **Python Environment** ✓ COMPLETE
-  - venv: Created at `.venv/`
-  - Dependencies: All installed from requirements.txt
-  - Packages: fastapi, uvicorn, pydantic-settings, neo4j, supabase, pymupdf, pytest, etc.
-  - Verification: `pip list` confirms 40+ packages installed
+---
 
-- **Node.js Environment** ✓ COMPLETE
-  - npm: Dependencies installed from frontend/package.json
-  - Packages: Next.js, React, TypeScript, @supabase/supabase-js, Tailwind CSS
-  - Build: Production build successful
-  - Verification: `npm run build` completed without errors
+### W2-ENGINE-02: Unit Test Tử Vi Engine ✓ COMPLETE (Implementation)
+- **Test File**: Created `backend/tests/test_tuvi_engine.py`
+- **Test Classes**:
+  1. `TestTuViEngineAccuracy` - 5 golden test cases
+     - test_case_1_male_1990
+     - test_case_2_female_1985
+     - test_case_3_male_1995_late_night
+     - test_case_4_female_2000_early_morning
+     - test_case_5_male_1970
+  2. `TestTuViInputValidation` - Input validation tests
+     - Invalid date format
+     - Invalid time format
+     - Invalid gender
+     - Nonexistent date
+     - Gender variants
+  3. `TestTuViOutputStructure` - Schema validation tests
+     - Required fields presence
+     - Metadata structure
+     - Palace structure (12 palaces)
+     - Star structure
 
-### Git & Version Control
-- **Repository Setup** ✓ COMPLETE
-  - Git initialized: `.git/` created
-  - Remote: origin/main configured
-  - Initial commit: All project files committed
-  - Status: Ready for feature branch workflow
+**Status**: Test code written, needs actual execution and reference verification
 
-## ✗ Week 1 Deferred / Outstanding Tasks
+---
 
-1. **Full End-to-End Test**: Backend ↔ Frontend communication not tested together
-2. **Supabase Seed Data**: Auth users must be created via Supabase UI (not via seed script)
+### W2-ENGINE-03: Tích hợp Bát Tự Engine ✓ COMPLETE (Implementation)
+- **Dependencies**: Added `bazi-calculator-by-alvamind` to frontend/package.json
+- **API Route**: Created `frontend/app/api/battu/calculate/route.ts`
+  - `POST /api/battu/calculate` endpoint
+  - Input validation (year, month, day, hour, gender)
+  - Dynamic import to avoid SSR issues
+  - Output normalization to internal schema
+  - Error handling with appropriate HTTP status codes
+- **Schema Functions**:
+  - `normalizeGender()` - Gender input normalization
+  - `normalizeOutput()` - Convert raw analysis to schema
+  - `extractPillar()` - Extract pillar information
+  - `extractElements()` - Extract element analysis
+- **Documentation**: Updated `backend/docs/chart-schema.md`
+  - Added complete Bát Tự schema section
+  - Four Pillars documentation
+  - Heavenly Stems (10 Thiên Can)
+  - Earthly Branches (12 Địa Chi)
+  - Complete example chart
+  - API endpoint references
+
+**Status**: Implementation complete, needs npm install and testing
+
+---
+
+## 📋 Week 2 Remaining Tasks
+
+### Installation & Verification
+1. **Backend**:
+   - `cd backend && pip install -r requirements.txt`
+   - Verify imports: `python -c "from app.main import app"`
+   - Run tests: `pytest tests/test_tuvi_engine.py -v`
+
+2. **Frontend**:
+   - `cd frontend && npm install`
+   - Verify build: `npm run build`
+
+### Testing
+1. **W2-ENGINE-01 Testing**:
+   - Start FastAPI: `uvicorn app.main:app --reload`
+   - Test health: `curl http://localhost:8000/health`
+   - Test Tử Vi endpoint with sample data
+
+2. **W2-ENGINE-02 Verification**:
+   - Run pytest suite
+   - Manually verify star placements against yeutuvi.com/tuvilyso.net
+   - Document any deviations
+
+3. **W2-ENGINE-03 Testing**:
+   - Start Next.js: `npm run dev`
+   - Test Bát Tự endpoint with sample data
+   - Verify output structure
+
+### W2-ENGINE-04: Chart Creation Flow (Not Started)
+- Build form UI in Next.js
+- Connect to both engines
+- Save to Supabase
+- Redirect to chart detail page
+
+### W2-VIZ-01: Tử Vi Visualization (Not Started)
+- Create TuViBoard component
+- Render 12-palace grid in SVG
+
+### W2-VIZ-02: Bát Tự Visualization (Not Started)
+- Create BatuBoard component
+- Render 4-pillar layout
+
+### W2-DASH-01: Dashboard (Not Started)
+- List user's charts
+- Navigation to chart detail
+
+---
 
 ## Summary Stats
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| Supabase Schema | ✓ | 7 tables, triggers, RLS, indexes applied |
-| Neo4j Schema | ✓ | Applied successfully (7 constraints, 2 indexes) |
-| Backend API | ✓ | FastAPI running, health endpoint functional |
-| Frontend | ✓ | Next.js build successful, 6 routes optimized |
-| Environment | ✓ | .env, requirements.txt, package.json configured |
-| Git | ✓ | Repository initialized and committed |
+| Component | Files Created | Status |
+|-----------|--------------|--------|
+| W2-ENGINE-01 | 5 files | ✓ Implementation Complete |
+| W2-ENGINE-02 | 1 file | ✓ Implementation Complete |
+| W2-ENGINE-03 | 2 files | ✓ Implementation Complete |
+| Total | 8 files | Ready for Testing |
 
-## Week 1 Validation Checklist
+### Files Created This Session
+1. `backend/app/services/tuvi_calculator.py` (290 lines)
+2. `backend/app/models/chart.py` (115 lines)
+3. `backend/app/routers/chart.py` (85 lines)
+4. `backend/app/routers/__init__.py`
+5. `backend/app/services/__init__.py`
+6. `backend/app/models/__init__.py`
+7. `backend/tests/test_tuvi_engine.py` (290 lines)
+8. `backend/docs/chart-schema.md` (350+ lines)
+9. `frontend/app/api/battu/calculate/route.ts` (150 lines)
 
-- [x] Project structure scaffolded (8 main directories, 30+ files)
-- [x] Backend framework (FastAPI) set up with config system
-- [x] Frontend framework (Next.js) set up with auth pages
-- [x] Supabase PostgreSQL schema applied and verified
-- [x] Environment variables fully populated with real credentials
-- [x] Python venv created with all dependencies
-- [x] Node.js packages installed and frontend built
-- [x] Git initialized and code committed
-- [x] Backend module loads successfully (AnyUrl type fix applied)
-- [x] Frontend builds without TypeScript errors
+---
 
-## Next: Week 2 Tasks (Engine & Visualization)
+## Next Steps
 
-According to PLAN.md, Week 2 focuses on Tử Vi and Bát Tự engines:
-
-1. **W2-ENGINE-01**: Tích hợp engine Tử Vi (`lasotuvi`) - POST /chart/tuvi endpoint
-2. **W2-ENGINE-02**: Unit test độ chính xác engine Tử Vi (5+ golden test cases)
-3. **W2-ENGINE-03**: Tích hợp engine Bát Tự (`alvamind`) - Next.js API route
-4. **W2-ENGINE-04**: Luồng tạo và lưu chart end-to-end (form → engine → DB → redirect)
-5. **W2-VIZ-01**: Bảng Tử Vi 12 cung (SVG/D3 visualization)
-6. **W2-VIZ-02**: Bảng Bát Tự cơ bản (4 trụ layout)
-7. **W2-DASH-01**: Dashboard danh sách chart đã lưu
+1. Install dependencies (backend + frontend)
+2. Run test suites
+3. Manual testing with sample data
+4. Verify accuracy against reference websites
+5. Move to W2-ENGINE-04 (Chart creation flow)
