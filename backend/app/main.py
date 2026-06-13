@@ -6,11 +6,13 @@ from fastapi.responses import JSONResponse
 from app.clients import get_neo4j_driver, get_langfuse_client, get_supabase_client
 from app.config import settings
 from app.routers import chart
+from app.routers import lasotuvi_routes
 
 app = FastAPI(title="TuVi-BatTu GraphRAG - FastAPI Backend")
 
 # Include routers
 app.include_router(chart.router)
+app.include_router(lasotuvi_routes.router)
 
 app.add_middleware(
     CORSMiddleware,

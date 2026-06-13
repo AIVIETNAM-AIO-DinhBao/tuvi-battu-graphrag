@@ -16,5 +16,11 @@ dependencies = [
   "pytest",
   "requests",
   "supabase",
-  "pymupdf"
+  "pymupdf",
+  "ephem>=3.7.6.0"
+]
+
+[project.optional-dependencies]
+tuvi = [
+  "ephem>=3.7.6.0"
 ]

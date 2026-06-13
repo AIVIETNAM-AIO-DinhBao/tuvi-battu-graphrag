@@ -17,28 +17,75 @@
 
 ## ✓ Week 2 Completed Tasks (Partial)
 
-### W2-ENGINE-01: Tích hợp Tử Vi Engine ✓ COMPLETE
-- **Dependencies**: Added `lasotuvi` and `vnlunar` to requirements.txt
-- **Service Layer**: Created `app/services/tuvi_calculator.py`
-  - `TuViCalculator` class with normalized output schema
-  - Error handling: `InvalidDateError`, `CalculationError`
-  - Input validation and parsing
-  - Extraction methods for palaces and stars
-- **API Models**: Created `app/models/chart.py`
-  - `TuViChartRequest` - Request validation with Pydantic
-  - `TuViChartResponse` - Structured response model
-  - `ChartErrorResponse` - Error responses
-- **API Router**: Created `app/routers/chart.py`
-  - `POST /chart/tuvi` endpoint
-  - `GET /chart/tuvi/test` test endpoint
-  - Comprehensive error handling
-- **Main App**: Updated `app/main.py` to include chart router
-- **Documentation**: Created `backend/docs/chart-schema.md`
-  - Complete Tử Vi schema documentation
-  - Palace and star definitions
-  - Examples and validation rules
+### W2-ENGINE-01: Tích hợp Tử Vi Engine ✓ COMPLETE (REFACTORED)
+**Date**: 2026-06-13
 
-**Status**: Implementation complete, needs dependency installation and testing
+#### Implementation Summary
+Đã refactor lại hoàn toàn implementation với lasotuvi engine từ doanguyen/lasotuvi package.
+
+#### Files Created/Modified
+1. **Dependencies**:
+   - Updated `backend/requirements.txt` - Added ephem, note about lasotuvi installation
+   - Updated `backend/pyproject.toml` - Added ephem to dependencies
+   - Created `backend/setup_lasotuvi.sh` - Automated installation script
+
+2. **Service Layer**:
+   - Created `backend/app/services/lasotuvi_service.py` (300+ lines)
+     - `LasoTuviService` class with static methods
+     - `generate_la_so()` - Main generation method
+     - `validate_input()` - Input validation
+     - `_parse_dia_ban()` - Parse lasotuvi output to structured format
+     - Helper methods: `get_cung_info()`, `get_sao_in_cung()`, `format_for_output()`
+
+3. **Data Models**:
+   - Created `backend/app/models/lasotuvi_models.py` (180+ lines)
+     - `SaoInfo` - Star information model
+     - `CungInfo` - Palace (cung) information model
+     - `LaSoTuViResponse` - Complete birth chart response
+     - `GenerateLaSoRequest` - Request validation with Pydantic
+     - `ErrorResponse` - Standard error response
+     - `HealthResponse` - Health check response
+
+4. **API Routes**:
+   - Created `backend/app/routers/lasotuvi_routes.py` (200+ lines)
+     - `GET /lasotuvi/health` - Health check endpoint
+     - `POST /lasotuvi/generate` - Generate birth chart (JSON body)
+     - `GET /lasotuvi/generate` - Generate birth chart (query params)
+     - Comprehensive error handling (400, 500)
+
+5. **Main App**:
+   - Updated `backend/app/main.py` - Added lasotuvi_routes router
+
+6. **Testing**:
+   - Created `backend/tests/test_lasotuvi_service.py` (200+ lines)
+     - `TestLasoTuviServiceValidation` - Input validation tests
+     - `TestLasoTuviServiceGenerate` - Generation tests
+     - `TestLasoTuviServiceHelpers` - Helper method tests
+     - `TestLasoTuviServiceEdgeCases` - Edge case tests
+
+7. **Documentation**:
+   - Created `backend/LASOTUVI_SETUP.md` - Complete installation guide
+     - Problem explanation (outdated dependencies)
+     - Two installation methods (script vs manual)
+     - Verification steps
+     - Usage examples
+     - Troubleshooting
+   - Created `backend/LASOTUVI_USAGE.md` - Complete API usage guide
+     - API endpoints documentation
+     - Request/response examples
+     - cURL examples
+     - Python integration examples
+     - React/TypeScript examples
+     - Use cases
+
+#### Key Technical Details
+- **Installation**: Requires `pip install --no-deps lasotuvi` to avoid outdated dependencies
+- **Critical Note**: Must pass `diaBan` CLASS (not instance) to `lapDiaBan()`
+- **Hour Format**: Uses 1-12 (địa chi), not 0-23
+- **Gender**: 1=Nam (male), -1=Nữ (female)
+- **Palace Index**: Starts from 1 (no index 0)
+
+**Status**: ✓ COMPLETE - Implementation, testing, and documentation all finished
 
 ---
 
@@ -142,23 +189,29 @@
 
 ## Summary Stats
 
-| Component | Files Created | Status |
-|-----------|--------------|--------|
-| W2-ENGINE-01 | 5 files | ✓ Implementation Complete |
+| Component | Files Created/Modified | Status |
+|-----------|----------------------|--------|
+| W2-ENGINE-01 (Refactored) | 10 files | ✓ Complete |
 | W2-ENGINE-02 | 1 file | ✓ Implementation Complete |
 | W2-ENGINE-03 | 2 files | ✓ Implementation Complete |
-| Total | 8 files | Ready for Testing |
+| Total | 13 files | Ready for Testing |
 
-### Files Created This Session
-1. `backend/app/services/tuvi_calculator.py` (290 lines)
-2. `backend/app/models/chart.py` (115 lines)
-3. `backend/app/routers/chart.py` (85 lines)
-4. `backend/app/routers/__init__.py`
-5. `backend/app/services/__init__.py`
-6. `backend/app/models/__init__.py`
-7. `backend/tests/test_tuvi_engine.py` (290 lines)
-8. `backend/docs/chart-schema.md` (350+ lines)
-9. `frontend/app/api/battu/calculate/route.ts` (150 lines)
+### Files Created/Modified - Lasotuvi Integration (2026-06-13)
+1. `backend/requirements.txt` - Updated
+2. `backend/pyproject.toml` - Updated
+3. `backend/setup_lasotuvi.sh` - Created (installation script)
+4. `backend/app/services/lasotuvi_service.py` - Created (300+ lines)
+5. `backend/app/models/lasotuvi_models.py` - Created (180+ lines)
+6. `backend/app/routers/lasotuvi_routes.py` - Created (200+ lines)
+7. `backend/app/main.py` - Updated (added lasotuvi routes)
+8. `backend/tests/test_lasotuvi_service.py` - Created (200+ lines)
+9. `backend/LASOTUVI_SETUP.md` - Created (installation guide)
+10. `backend/LASOTUVI_USAGE.md` - Created (API usage guide)
+
+### Previous Files (Earlier Sessions)
+11. `backend/tests/test_tuvi_engine.py` (290 lines)
+12. `backend/docs/chart-schema.md` (350+ lines)
+13. `frontend/app/api/battu/calculate/route.ts` (150 lines)
 
 ---
 

@@ -11,5 +11,6 @@ pymupdf
 psycopg[binary]
 
 # Tử Vi Engine
-lasotuvi
+# Install lasotuvi with: pip install --no-deps lasotuvi
+ephem>=3.7.6.0
 vnlunar
