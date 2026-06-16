@@ -37,6 +37,7 @@
     - [Day 1 — 17/06](#day-1--1706)
     - [Day 2 — 18/06](#day-2--1806)
     - [Day 3 — 19/06](#day-3--1906)
+    - [Day 3 — 19/06](#day-3--1906-1)
     - [Day 4 — 20/06](#day-4--2006)
     - [Day 5 — 21/06](#day-5--2106)
     - [Day 6 — 22/06](#day-6--2206)
@@ -400,55 +401,57 @@ CHUNK MAPPING
 **Mục tiêu:** Khóa workspace benchmark, file structure, ownership.
 
 **A làm:**
-- GD-SETUP-01
-- GD-SETUP-02
-- GD-SETUP-03
-- GD-CTRL-01
+- GD-SETUP-01, GD-SETUP-02, GD-SETUP-03, GD-CTRL-01
+- GD-PDF-01 (Bắt đầu kiểm kê PDF)
 
 **B làm:**
 - rà lại tên file 4 sách, metadata gốc
+- hỗ trợ GD-PDF-01
 
 **C làm:**
-- tạo skeleton scripts folder
-- chuẩn bị helper script nếu cần
+- tạo skeleton scripts
+- GD-PDF-02 (Bắt đầu extract text)
 
 **Output cuối ngày:**
 - folder benchmark hoàn chỉnh
-- guideline và schema đã đặt đúng chỗ
-- daily tracker hoạt động
-
-**A đánh giá:**
-- tree thư mục có đúng không
-- guideline có đúng file mới nhất không
-- schema JSON có parse được không
-- ai sở hữu file nào đã rõ chưa
+- danh sách file nguồn chuẩn
 
 ### Day 2 — 18/06
 
-**Mục tiêu:** Khóa source registry + chart schema.
+**Mục tiêu:** Hoàn tất Source Prep, bắt đầu Source Registry.
 
 **A làm:**
+- GD-PDF-07, GD-PDF-09, GD-PDF-10 (Freeze corpus)
 - GD-SRC-01
+
+**B làm:**
+- GD-PDF-05, GD-PDF-06
+- GD-SRC-02
+
+**C làm:**
+- GD-PDF-03, GD-PDF-04, GD-PDF-08
+
+**Output cuối ngày:**
+- corpus locked
+- source_registry.json
+
+### Day 3 — 19/06
+
+**Mục tiêu:** Chốt Source registry + bắt đầu Chart engine.
+
+**A làm:**
 - GD-SRC-03
 - GD-CHART-01
 
 **B làm:**
-- GD-SRC-02
-- bắt đầu GD-SRC-04
+- GD-SRC-04, GD-SRC-05
 
 **C làm:**
-- chuẩn bị export chart từ engine
+- GD-CHART-02, GD-CHART-03
 
 **Output cuối ngày:**
-- source_registry.json
-- format section_id, span_id, chunk_id
-- chart_repr_schema.json
-
-**A đánh giá:**
-- 4 doc_id duy nhất
-- schema chart có đủ field bắt buộc
-- format ID không mơ hồ
-
+- source_sections_index.json
+- chart_registry draft
 ### Day 3 — 19/06
 
 **Mục tiêu:** Export 10 chart + source sections index draft.
@@ -848,8 +851,18 @@ Branches:
 - `benchmark/c-tooling`
 
 Rule:
-- file chung phải rebase trước khi merge
-- `golden_v1_release.jsonl` chỉ A commit/freeze cuối
+```
+git add .
+git commit -m "message"
+git fetch origin
+git rebase origin/benchmark
+
+# Nếu bị conflict, sửa file bị lỗi rồi chạy 2 lệnh sau:
+# git add .
+# git rebase --continue
+
+git push --force-with-lease origin <tên-nhánh-của-bạn>
+```
 
 ---
 
