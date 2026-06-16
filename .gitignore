@@ -1,4 +1,22 @@
+# Dependencies
 node_modules/
-.env
-__pycache__/
 .venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Python cache/test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+
+# Next.js build/cache artifacts
+frontend/.next/
+frontend/out/
+
+# TypeScript incremental build cache
+frontend/tsconfig.tsbuildinfo

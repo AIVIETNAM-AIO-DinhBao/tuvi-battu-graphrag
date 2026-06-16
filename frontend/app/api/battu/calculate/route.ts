@@ -3,6 +3,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  BATU_SUPPORTED_YEAR_MAX,
+  BATU_SUPPORTED_YEAR_MIN,
+  BaziCalculator,
+  type GenderType
+} from '../../../../lib/battu/calculator';
 
 interface BatTuRequest {
   year: number;
@@ -30,9 +36,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Validate ranges
-    if (year < 1900 || year > 2100) {
+    if (year < BATU_SUPPORTED_YEAR_MIN || year > BATU_SUPPORTED_YEAR_MAX) {
       return NextResponse.json(
-        { error: 'Invalid year', detail: 'Year must be between 1900 and 2100' },
+        {
+          error: 'Invalid year',
+          detail: `Year must be between ${BATU_SUPPORTED_YEAR_MIN} and ${BATU_SUPPORTED_YEAR_MAX}`
+        },
         { status: 400 }
       );
     }
@@ -47,6 +56,13 @@ export async function POST(request: NextRequest) {
     if (day < 1 || day > 31) {
       return NextResponse.json(
         { error: 'Invalid day' },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidGregorianDate(year, month, day)) {
+      return NextResponse.json(
+        { error: 'Invalid date', detail: 'The supplied Gregorian date does not exist' },
         { status: 400 }
       );
     }
@@ -69,11 +85,8 @@ export async function POST(request: NextRequest) {
     
     console.log(`Calculating Bát Tự for ${year}-${month}-${day} ${hour}:00`);
     
-    // Dynamic import to avoid SSR issues
-    const { BaziCalculator } = await import('bazi-calculator-by-alvamind');
-    
     // Calculate chart
-    const calculator = new (BaziCalculator as any)(year, month, day, hour, normalizedGender === 'male' ? 0 : 1);
+    const calculator = new BaziCalculator(year, month, day, hour, normalizedGender);
     const rawAnalysis = calculator.getCompleteAnalysis();
     
     // Normalize output
@@ -94,11 +107,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function normalizeGender(gender: string): string | null {
+function normalizeGender(gender: string): GenderType | null {
   const g = gender.toLowerCase().trim();
   if (['male', 'nam', '0'].includes(g)) return 'male';
   if (['female', 'nữ', 'nu', '1'].includes(g)) return 'female';
   return null;
+}
+
+function isValidGregorianDate(year: number, month: number, day: number): boolean {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
 }
 
 function normalizeOutput(
@@ -135,19 +157,22 @@ function normalizeOutput(
 }
 
 function extractPillar(rawAnalysis: any, pillarType: string) {
-  const pillar = rawAnalysis?.pillars?.[pillarType] || rawAnalysis?.[pillarType];
+  const mainPillars = rawAnalysis?.mainPillars || rawAnalysis?.pillars || {};
+  const pillarKey = pillarType === 'hour' ? 'time' : pillarType;
+  const pillar = mainPillars?.[pillarKey] || rawAnalysis?.[pillarType];
   return {
-    thien_can: pillar?.heavenlyStem || pillar?.stem || '',
-    dia_chi: pillar?.earthlyBranch || pillar?.branch || '',
+    thien_can: pillar?.heavenlyStem || pillar?.stem || pillar?.chinese?.[0] || '',
+    dia_chi: pillar?.earthlyBranch || pillar?.branch?.name || pillar?.chinese?.[1] || '',
     nap_am: pillar?.napAm || pillar?.nayin || '',
     hidden_stems: pillar?.hiddenStems || []
   };
 }
 
 function extractElements(rawAnalysis: any) {
+  const basicAnalysis = rawAnalysis?.basicAnalysis || {};
   return {
-    day_master: rawAnalysis?.dayMaster || '',
-    elements_count: rawAnalysis?.elementsCount || {},
+    day_master: basicAnalysis?.dayMaster || rawAnalysis?.dayMaster || '',
+    elements_count: basicAnalysis?.fiveFactors || rawAnalysis?.elementsCount || {},
     strength: rawAnalysis?.strength || '',
     favorable_elements: rawAnalysis?.favorableElements || [],
     unfavorable_elements: rawAnalysis?.unfavorableElements || []
