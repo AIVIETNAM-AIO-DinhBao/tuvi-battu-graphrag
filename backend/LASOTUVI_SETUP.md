@@ -25,11 +25,24 @@ Bạn sẽ gặp lỗi do các dependencies lỗi thời:
 
 ### Option 1: Sử dụng setup script (Khuyến nghị)
 
+Windows PowerShell:
+
+```powershell
+cd tuvi-battu-graphrag\backend
+.\setup_lasotuvi.ps1
+```
+
+Linux/macOS/WSL:
+
 ```bash
 cd tuvi-battu-graphrag/backend
 chmod +x setup_lasotuvi.sh
 ./setup_lasotuvi.sh
 ```
+
+Náº¿u cháº¡y `bash setup_lasotuvi.sh` trÃªn Windows vÃ  gáº·p lá»—i
+`execvpe(/bin/bash) failed: No such file or directory`, mÃ¡y khÃ´ng cÃ³ WSL/bash.
+HÃ£y dÃ¹ng script PowerShell á»Ÿ trÃªn.
 
 Script này sẽ:
 1. Kiểm tra Python version

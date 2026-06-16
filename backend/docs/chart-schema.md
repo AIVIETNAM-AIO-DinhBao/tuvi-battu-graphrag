@@ -214,4 +214,120 @@ When chart calculation fails, the API returns:
 
 HTTP status codes:
 - 400: Invalid input (bad date, time, or gender)
-- 500: Calculation error (engine failure)I
+- 500: Calculation error (engine failure)
+
+---
+
+## Locked Contract for W2-ENGINE-04
+
+This section is the source of truth for the create-chart flow between the UI,
+chart engines, and Supabase `la_so` storage.
+
+### UI Form Input
+
+The chart creation form must collect and keep this canonical shape:
+
+```typescript
+type ChartSystem = "TUVI" | "BATU" | "TUVI_BATU";
+
+interface CreateChartFormInput {
+  label: string;
+  birth_date: string;   // YYYY-MM-DD
+  birth_time: string;   // HH:MM, 24-hour local time
+  gender: "male" | "female";
+  chart_system: ChartSystem;
+}
+```
+
+Notes:
+
+- The UI may display Vietnamese labels, but stored/submitted `gender` should be
+  normalized to `"male"` or `"female"`.
+- `BATU` and `TUVI_BATU` currently support years `1930-2048`, matching the
+  local Bazi date mapping data.
+
+### Engine Endpoints
+
+Frontend create-chart flow must call these public endpoints:
+
+```text
+TUVI: POST <FASTAPI_BASE_URL>/chart/tuvi
+BATU: POST /api/battu/calculate
+```
+
+`POST /lasotuvi/generate` remains a low-level diagnostic endpoint for the raw
+lasotuvi wrapper. It should not be used by the create-chart UI.
+
+`POST /chart/tuvi` request:
+
+```json
+{
+  "label": "My chart",
+  "birth_date": "1990-01-15",
+  "birth_time": "14:30",
+  "gender": "male"
+}
+```
+
+`POST /api/battu/calculate` request:
+
+```json
+{
+  "year": 1990,
+  "month": 1,
+  "day": 15,
+  "hour": 14,
+  "gender": "male",
+  "label": "My chart"
+}
+```
+
+The frontend adapter must derive Bát Tự `year`, `month`, `day`, and `hour` from
+`birth_date` and `birth_time`.
+
+### Supabase `la_so` Row
+
+After successful engine calculation, insert exactly one row into `la_so`:
+
+```typescript
+interface LaSoInsert {
+  user_id: string;
+  label: string;
+  birth_date: string; // YYYY-MM-DD
+  birth_time: string; // HH:MM
+  gender: "male" | "female";
+  chart_system: "TUVI" | "BATU" | "TUVI_BATU";
+  chart_data: TuViChartData | BatuChartData | TuViBatuChartData;
+  chart_version: "1.0";
+}
+```
+
+### `chart_data` Format
+
+For a single-system chart, store the normalized engine response directly:
+
+```typescript
+// chart_system = "TUVI"
+chart_data = TuViChartResponse;
+
+// chart_system = "BATU"
+chart_data = BatuChartResponse;
+```
+
+For combined charts, store both normalized responses under stable keys:
+
+```json
+{
+  "tuvi": {
+    "chart_type": "TUVI",
+    "version": "1.0"
+  },
+  "batu": {
+    "chart_type": "BATU",
+    "version": "1.0"
+  }
+}
+```
+
+If either engine fails for `TUVI_BATU`, the create-chart flow should not insert
+the `la_so` row. Show the engine error and let the user retry.
