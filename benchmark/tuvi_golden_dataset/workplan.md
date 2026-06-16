@@ -25,10 +25,11 @@
   - [5. Cấu trúc thư mục chuẩn](#5-cấu-trúc-thư-mục-chuẩn)
   - [6. Mã việc và breakdown công việc](#6-mã-việc-và-breakdown-công-việc)
     - [6.1. Nhóm SETUP / CONTROL](#61-nhóm-setup--control)
-    - [6.2. Nhóm SOURCE / CORPUS](#62-nhóm-source--corpus)
-    - [6.3. Nhóm CHART / ENGINE](#63-nhóm-chart--engine)
-    - [6.4. Nhóm QUESTION DESIGN](#64-nhóm-question-design)
-    - [6.5. Nhóm GOLD SECTION SELECTION](#65-nhóm-gold-section-selection)
+    - [6.2. Nhóm SOURCE PREPARATION / PDF PROCESSING](#62-nhóm-source-preparation--pdf-processing)
+    - [6.3. Nhóm SOURCE / CORPUS](#63-nhóm-source--corpus)
+    - [6.4. Nhóm CHART / ENGINE](#64-nhóm-chart--engine)
+    - [6.5. Nhóm QUESTION DESIGN](#65-nhóm-question-design)
+    - [6.6. Nhóm GOLD SECTION SELECTION](#66-nhóm-gold-section-selection)
     - [6.6. Nhóm GOLD ANSWER / ANNOTATION](#66-nhóm-gold-answer--annotation)
     - [6.7. Nhóm REVIEW / RELEASE](#67-nhóm-review--release)
   - [7. Dependency tổng quát](#7-dependency-tổng-quát)
@@ -210,9 +211,29 @@ benchmark/
     │   └── CHART-010.json
     ├── corpus/
     │   ├── TVKL/
+    │   │   ├── TVKL_raw_pages.json
+    │   │   ├── TVKL_clean_pages.json
+    │   │   ├── TVKL_page_map.json
+    │   │   ├── TVKL_sections.jsonl
+    │   │   └── TVKL_clean.md
     │   ├── TVNL/
+    │   │   ├── TVNL_raw_pages.json
+    │   │   ├── TVNL_clean_pages.json
+    │   │   ├── TVNL_page_map.json
+    │   │   ├── TVNL_sections.jsonl
+    │   │   └── TVNL_clean.md
     │   ├── TVHS/
+    │   │   ├── TVHS_raw_pages.json
+    │   │   ├── TVHS_clean_pages.json
+    │   │   ├── TVHS_page_map.json
+    │   │   ├── TVHS_sections.jsonl
+    │   │   └── TVHS_clean.md
     │   └── TVGM/
+    │       ├── TVGM_raw_pages.json
+    │       ├── TVGM_clean_pages.json
+    │       ├── TVGM_page_map.json
+    │       ├── TVGM_sections.jsonl
+    │       └── TVGM_clean.md
     ├── samples/
     │   ├── question_slots.csv
     │   ├── sample_plan.csv
@@ -259,17 +280,39 @@ benchmark/
 | GD-CTRL-01 | Tạo tracker tiến độ hằng ngày | A | — | GD-SETUP-01 | reports/daily_status.md |
 | GD-CTRL-02 | Tạo bảng ownership file | A | B | GD-SETUP-02 | reports/file_ownership.md |
 
-### 6.2. Nhóm SOURCE / CORPUS
+### 6.2. Nhóm SOURCE PREPARATION / PDF PROCESSING
+
+**Mục tiêu:** Chuyển 4 PDF Tử Vi từ trạng thái "file nguồn thô" sang trạng thái canonical corpus sạch, có thể dùng ổn định cho annotation, span selection, và chunk mapping.
+
+**Nguyên tắc:**
+- Không annotate trực tiếp trên PDF thô
+- gold_context_spans phải lấy từ bản corpus cleaned
+- PDF chỉ là nguồn gốc để đối chiếu lại khi cần audit
 
 | Mã việc | Tên việc | Owner | Phụ | Depends on | Output |
 |---------|----------|-------|-----|------------|--------|
-| GD-SRC-01 | Chốt 4 doc_id chuẩn | A | B | GD-SETUP-03 | source_registry.json |
+| GD-PDF-01 | Kiểm kê 4 PDF nguồn và xác nhận doc_id | A | B | GD-SETUP-03 | danh sách file nguồn chuẩn |
+| GD-PDF-02 | Extract text theo trang từ 4 PDF | C | B | GD-PDF-01 | raw_pages_*.json |
+| GD-PDF-03 | Kiểm tra PDF nào text-based, PDF nào OCR lỗi nặng | C | A | GD-PDF-02 | pdf_quality_report.md |
+| GD-PDF-04 | Normalize text: Unicode, whitespace, line breaks, bỏ header/footer lặp | C | B | GD-PDF-02 | clean_pages_*.json |
+| GD-PDF-05 | Chuẩn hóa page map: page_pdf và nếu có thì page_book | B | C | GD-PDF-04 | page_map_*.json |
+| GD-PDF-06 | Tách section sơ bộ theo heading/chương/mục | B | C | GD-PDF-04 | sections_*.jsonl |
+| GD-PDF-07 | Gán section_id chuẩn cho toàn bộ corpus | A | B | GD-PDF-06 | source_sections_index.json |
+| GD-PDF-08 | Tạo file corpus dễ tra cứu cho annotator | C | B | GD-PDF-07 | corpus/{doc_id}/{doc_id}_clean.md |
+| GD-PDF-09 | Spot-check 10–20 section ngẫu nhiên / sách | A | B | GD-PDF-08 | source_prep_audit.md |
+| GD-PDF-10 | Freeze canonical corpus v1 | A | — | GD-PDF-09 | corpus locked |
+
+### 6.3. Nhóm SOURCE / CORPUS
+
+| Mã việc | Tên việc | Owner | Phụ | Depends on | Output |
+|---------|----------|-------|-----|------------|--------|
+| GD-SRC-01 | Chốt 4 doc_id chuẩn | A | B | GD-PDF-10 | source_registry.json |
 | GD-SRC-02 | Chuẩn hóa metadata từng sách | B | A | GD-SRC-01 | title, filename, doc_id, note |
 | GD-SRC-03 | Chốt format section_id, span_id, chunk_id | A | B | GD-SRC-01 | quy ước ID trong guideline |
 | GD-SRC-04 | Tạo section index khung cho 4 sách | B | C | GD-SRC-02 | source_sections_index.json |
 | GD-SRC-05 | Kiểm tra consistency page numbering | B | A | GD-SRC-04 | report |
 
-### 6.3. Nhóm CHART / ENGINE
+### 6.4. Nhóm CHART / ENGINE
 
 | Mã việc | Tên việc | Owner | Phụ | Depends on | Output |
 |---------|----------|-------|-----|------------|--------|
@@ -280,7 +323,7 @@ benchmark/
 | GD-CHART-05 | Review chéo 10 chart | A | C | GD-CHART-04 | audit report |
 | GD-CHART-06 | Freeze chart registry | A | — | GD-CHART-05 | chart_registry.json locked |
 
-### 6.4. Nhóm QUESTION DESIGN
+### 6.5. Nhóm QUESTION DESIGN
 
 | Mã việc | Tên việc | Owner | Phụ | Depends on | Output |
 |---------|----------|-------|-----|------------|--------|
@@ -290,7 +333,7 @@ benchmark/
 | GD-QA-04 | Generate candidate questions bằng LLM | C | A | GD-QA-03 | drafts_questions.jsonl |
 | GD-QA-05 | Human chọn/sửa câu hỏi final | A/B/C | — | GD-QA-04 | 100 câu hỏi final |
 
-### 6.5. Nhóm GOLD SECTION SELECTION
+### 6.6. Nhóm GOLD SECTION SELECTION
 
 | Mã việc | Tên việc | Owner | Phụ | Depends on | Output |
 |---------|----------|-------|-----|------------|--------|
