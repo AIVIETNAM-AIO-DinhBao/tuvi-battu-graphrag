@@ -191,7 +191,7 @@ Nếu thiếu 1 trong 4, mọi sample tạo ra rất dễ lệch format và ph�
 ```text
 benchmark/
 └── tuvi_golden_dataset/
-    ├── WORKPLAN_2026-06-17_2026-06-27.md
+    ├── workplan.md
     ├── README.md
     ├── guideline/
     │   ├── data-guideline.md
@@ -406,11 +406,11 @@ CHUNK MAPPING
 
 **B làm:**
 - rà lại tên file 4 sách, metadata gốc
-- hỗ trợ GD-PDF-01
+- GD-PDF-02 (extract TVGM & TVHS)
 
 **C làm:**
 - tạo skeleton scripts
-- GD-PDF-02 (Bắt đầu extract text)
+- GD-PDF-02 (extract TVKL & TVNL)
 
 **Output cuối ngày:**
 - folder benchmark hoàn chỉnh
