@@ -1,0 +1,58 @@
+[
+  {
+    "doc_id": "TVKL",
+    "title": "Tử Vi Khảo Luận",
+    "file_name": "Tử Vi Khảo Luận.pdf",
+    "domain": "tu_vi",
+    "citation_short": "TVKL",
+    "id_convention": {
+      "section_id_preferred": "TVKL_CH{chapter_no}_SEC{section_no}",
+      "section_id_fallback": "TVKL_P{start_page}_{end_page}_SEC{running_no}",
+      "span_id": "{section_id}_SP{span_no}",
+      "chunk_id": "TVKL_CK_{running_no}"
+    },
+    "notes": "Nguồn pháp điển nền tảng cho tinh đẩu, vận hạn, cách/phú. File gốc nằm tại data/tuvi/Tử Vi Khảo Luận.pdf."
+  },
+  {
+    "doc_id": "TVNL",
+    "title": "Tử Vi Nghiệm Lý Toàn Thư",
+    "file_name": "Tử Vi Nghiệm Lý, Lý Mệnh Học.pdf",
+    "domain": "tu_vi",
+    "citation_short": "TVNL",
+    "id_convention": {
+      "section_id_preferred": "TVNL_CH{chapter_no}_SEC{section_no}",
+      "section_id_fallback": "TVNL_P{start_page}_{end_page}_SEC{running_no}",
+      "span_id": "{section_id}_SP{span_no}",
+      "chunk_id": "TVNL_CK_{running_no}"
+    },
+    "notes": "Nguồn pháp điển về logic nghiệm lý, 3 vòng và Tứ Hóa. Tên file gốc giữ nguyên theo PDF: data/tuvi/Tử Vi Nghiệm Lý, Lý Mệnh Học.pdf."
+  },
+  {
+    "doc_id": "TVHS",
+    "title": "Tử Vi Hàm Số",
+    "file_name": "Tử Vi Hàm Số.pdf",
+    "domain": "tu_vi",
+    "citation_short": "TVHS",
+    "id_convention": {
+      "section_id_preferred": "TVHS_CH{chapter_no}_SEC{section_no}",
+      "section_id_fallback": "TVHS_P{start_page}_{end_page}_SEC{running_no}",
+      "span_id": "{section_id}_SP{span_no}",
+      "chunk_id": "TVHS_CK_{running_no}"
+    },
+    "notes": "Nguồn pháp điển mạnh về hệ thống 12 cung và cấu trúc luận giải. File gốc nằm tại data/tuvi/Tử Vi Hàm Số.pdf."
+  },
+  {
+    "doc_id": "TVGM",
+    "title": "Tử Vi Giảng Minh",
+    "file_name": "Tử Vi Giảng Minh.pdf",
+    "domain": "tu_vi",
+    "citation_short": "TVGM",
+    "id_convention": {
+      "section_id_preferred": "TVGM_CH{chapter_no}_SEC{section_no}",
+      "section_id_fallback": "TVGM_P{start_page}_{end_page}_SEC{running_no}",
+      "span_id": "{section_id}_SP{span_no}",
+      "chunk_id": "TVGM_CK_{running_no}"
+    },
+    "notes": "Nguồn pháp điển về nguyên tắc đầu, an sao và giải đoán. File gốc nằm tại data/tuvi/Tử Vi Giảng Minh.pdf."
+  }
+]
