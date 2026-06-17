@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Pydantic models for Lasotuvi Tử Vi birth chart data
+Pydantic models for Lasotuvi Tu Vi birth chart data.
 """
 
 from typing import Optional, List, Dict, Any
@@ -8,58 +8,85 @@ from pydantic import BaseModel, Field, validator
 
 
 class SaoInfo(BaseModel):
-    """Information about a star (sao) in Tử Vi"""
-    saoTen: str = Field(..., description="Tên sao")
-    saoDacTinh: Optional[str] = Field(None, description="Đặc tính của sao (Mãnh, Vượng, Đắc, Bình, Hãm)")
-    saoID: Optional[int] = Field(None, description="ID của sao")
+    """Information about a star (sao) in Tu Vi."""
+
+    saoTen: str = Field(..., description="Star name")
+    saoDacTinh: Optional[str] = Field(None, description="Star brightness/state")
+    saoDacTinhCode: Optional[str] = Field(None, description="Brightness code: M, V, D, B, H")
+    saoNhom: Optional[str] = Field(None, description="Star group/category")
+    saoTinhChat: Optional[str] = Field(None, description="Star quality: cat_tinh or sat_tinh")
+    saoColor: Optional[str] = Field(None, description="Display color hint")
+    saoID: Optional[int] = Field(None, description="Star ID")
 
     class Config:
         schema_extra = {
             "example": {
-                "saoTen": "Tử vi",
-                "saoDacTinh": "Vượng",
-                "saoID": 1
+                "saoTen": "Tu vi",
+                "saoDacTinh": "Vuong",
+                "saoDacTinhCode": "V",
+                "saoNhom": "Chinh tinh",
+                "saoTinhChat": "cat_tinh",
+                "saoColor": "strong",
+                "saoID": 1,
             }
         }
 
 
 class CungInfo(BaseModel):
-    """Information about a cung (palace) in Tử Vi"""
-    cungSo: int = Field(..., ge=1, le=12, description="Số thứ tự cung (1-12)")
-    cungTen: str = Field(..., description="Tên cung (Tý, Sửu, Dần, ...)")
-    cungChu: str = Field(..., description="Cung chủ (Mệnh, Phụ mẫu, Phúc đức, ...)")
-    hanhCung: str = Field(..., description="Hành của cung (Kim, Mộc, Thủy, Hỏa, Thổ)")
-    amDuong: str = Field(..., description="Âm dương của cung (Âm hoặc Dương)")
-    daiHan: Optional[int] = Field(None, description="Đại hạn (tuổi)")
-    tieuHan: Optional[str] = Field(None, description="Tiểu hạn (cung)")
-    coThhan: bool = Field(..., description="Có cung Thân ký cư hay không")
-    cungSao: List[SaoInfo] = Field(..., description="Danh sách sao trong cung")
+    """Information about a cung (palace) in Tu Vi."""
+
+    cungSo: int = Field(..., ge=1, le=12, description="Palace number, 1-12")
+    cungTen: str = Field(..., description="Palace earthly-branch name")
+    diaChi: Optional[str] = Field(None, description="Earthly branch")
+    cungChu: str = Field(..., description="Palace role/name")
+    hanhCung: str = Field(..., description="Palace element")
+    amDuong: str = Field(..., description="Yin/yang of the palace")
+    daiHan: Optional[int] = Field(None, description="Major cycle age")
+    tuoiDaiHan: Optional[int] = Field(None, description="Displayed major cycle age")
+    tieuHan: Optional[str] = Field(None, description="Minor cycle marker")
+    luuNienDaiVan: Optional[Any] = Field(None, description="Annual major-cycle marker")
+    trangSinh: Optional[str] = Field(None, description="Trang sinh cycle state")
+    coThan: Optional[bool] = Field(None, description="Whether Than resides in this palace")
+    coThhan: bool = Field(..., description="Backward-compatible typo alias for coThan")
+    cungSao: List[SaoInfo] = Field(..., description="Stars in this palace")
 
     class Config:
         schema_extra = {
             "example": {
                 "cungSo": 5,
-                "cungTen": "Thìn",
-                "cungChu": "Quan lộc",
-                "hanhCung": "Thổ",
-                "amDuong": "Dương",
+                "cungTen": "Thin",
+                "diaChi": "Thin",
+                "cungChu": "Quan loc",
+                "hanhCung": "Tho",
+                "amDuong": "Duong",
                 "daiHan": 32,
-                "tieuHan": "Tý",
+                "tuoiDaiHan": 32,
+                "tieuHan": "Ty",
+                "trangSinh": "De vuong",
+                "coThan": False,
                 "coThhan": False,
                 "cungSao": [
-                    {"saoTen": "Thái dương", "saoDacTinh": "Mãnh", "saoID": 5},
-                    {"saoTen": "Văn xương", "saoDacTinh": "Đắc", "saoID": 57}
-                ]
+                    {
+                        "saoTen": "Thai duong",
+                        "saoDacTinh": "Mieu",
+                        "saoDacTinhCode": "M",
+                        "saoNhom": "Chinh tinh",
+                        "saoColor": "strong",
+                        "saoID": 5,
+                    }
+                ],
             }
         }
 
 
 class LaSoTuViResponse(BaseModel):
-    """Complete Tử Vi birth chart response"""
-    thongTinCanChi: Dict[str, Any] = Field(..., description="Thông tin Can Chi")
-    daiCung: Dict[str, Any] = Field(..., description="Thông tin đại cung (Mệnh, Thân)")
-    thapNhiCung: List[CungInfo] = Field(..., description="Thông tin 12 cung")
-    timestamp: Optional[str] = Field(None, description="Thời điểm sinh lá số")
+    """Complete Tu Vi birth chart response."""
+
+    thongTinCanChi: Dict[str, Any] = Field(..., description="Personal and can-chi information")
+    daiCung: Dict[str, Any] = Field(..., description="Menh and Than palace information")
+    thapNhiCung: List[CungInfo] = Field(..., description="The 12 palaces")
+    lunarDate: Optional[Dict[str, Any]] = Field(None, description="Lunar calendar date")
+    timestamp: Optional[str] = Field(None, description="Generation timestamp")
 
     class Config:
         schema_extra = {
@@ -69,74 +96,59 @@ class LaSoTuViResponse(BaseModel):
                     "thang": 10,
                     "nam": 1990,
                     "gio": 6,
-                    "gioiTinh": "Nam"
+                    "gioiTinh": "Nam",
                 },
                 "daiCung": {
-                    "cungMenh": {"index": 5, "tenCung": "Thìn"},
-                    "cungThan": {"index": 11, "tenCung": "Tuất"}
+                    "cungMenh": {"index": 5, "tenCung": "Thin"},
+                    "cungThan": {"index": 11, "tenCung": "Tuat"},
                 },
-                "thapNhiCung": [
-                    {
-                        "cungSo": 1,
-                        "cungTen": "Tý",
-                        "cungChu": "Mệnh",
-                        "hanhCung": "Thủy",
-                        "amDuong": "Dương",
-                        "daiHan": 22,
-                        "tieuHan": "Dần",
-                        "coThhan": False,
-                        "cungSao": [
-                            {"saoTen": "Tử vi", "saoDacTinh": "Mãnh", "saoID": 1}
-                        ]
-                    }
-                ],
-                "timestamp": "2024-01-15T10:30:00"
+                "thapNhiCung": [],
+                "timestamp": "2026-06-17T10:30:00",
             }
         }
 
 
 class GenerateLaSoRequest(BaseModel):
-    """Request body for generating Tử Vi birth chart"""
-    ngay: int = Field(..., ge=1, le=31, description="Ngày sinh (1-31)")
-    thang: int = Field(..., ge=1, le=12, description="Tháng sinh (1-12)")
-    nam: int = Field(..., ge=1900, le=2100, description="Năm sinh (1900-2100)")
-    gio: int = Field(..., ge=1, le=12, description="Giờ sinh (1=Tý, 12=Hợi)")
-    gioi_tinh: int = Field(..., description="Giới tính (1=Nam, -1=Nữ)")
-    duong_lich: bool = Field(True, description="True nếu là lịch Dương, False nếu là Âm lịch")
-    time_zone: int = Field(7, description="Múi giờ (mặc định 7 cho Việt Nam)")
+    """Request body for generating Tu Vi birth chart."""
+
+    ngay: int = Field(..., ge=1, le=31, description="Birth day, 1-31")
+    thang: int = Field(..., ge=1, le=12, description="Birth month, 1-12")
+    nam: int = Field(..., ge=1900, le=2100, description="Birth year, 1900-2100")
+    gio: int = Field(..., ge=1, le=12, description="Birth hour branch, 1=Ty, 12=Hoi")
+    gioi_tinh: int = Field(..., description="Gender: 1=male, -1=female")
+    duong_lich: bool = Field(True, description="True for Gregorian input, false for lunar input")
+    time_zone: int = Field(7, description="UTC offset")
 
     @validator('gio')
     def validate_gio(cls, v):
         if not 1 <= v <= 12:
-            raise ValueError('Giờ sinh phải từ 1-12 (1=Tý, 12=Hợi)')
+            raise ValueError('Gio sinh phai tu 1-12')
         return v
 
     @validator('gioi_tinh')
     def validate_gioi_tinh(cls, v):
         if v not in [1, -1]:
-            raise ValueError('Giới tính phải là 1 (Nam) hoặc -1 (Nữ)')
+            raise ValueError('Gioi tinh phai la 1 hoac -1')
         return v
 
     @validator('nam')
     def validate_nam(cls, v):
         if v < 1900 or v > 2100:
-            raise ValueError('Năm sinh phải từ 1900-2100')
+            raise ValueError('Nam sinh phai tu 1900-2100')
         return v
 
     @property
     def gioi_tinh_text(self) -> str:
-        """Return gender as text"""
-        return "Nam" if self.gioi_tinh == 1 else "Nữ"
+        return "Nam" if self.gioi_tinh == 1 else "Nu"
 
     @property
     def gio_text(self) -> str:
-        """Return hour as text"""
         gio_mapping = {
-            1: "Tý", 2: "Sửu", 3: "Dần", 4: "Mão",
-            5: "Thìn", 6: "Tỵ", 7: "Ngọ", 8: "Mùi",
-            9: "Thân", 10: "Dậu", 11: "Tuất", 12: "Hợi"
+            1: "Ty", 2: "Suu", 3: "Dan", 4: "Mao",
+            5: "Thin", 6: "Ty.", 7: "Ngo", 8: "Mui",
+            9: "Than", 10: "Dau", 11: "Tuat", 12: "Hoi",
         }
-        return gio_mapping.get(self.gio, f"Giờ {self.gio}")
+        return gio_mapping.get(self.gio, f"Gio {self.gio}")
 
     class Config:
         schema_extra = {
@@ -147,36 +159,21 @@ class GenerateLaSoRequest(BaseModel):
                 "gio": 6,
                 "gioi_tinh": 1,
                 "duong_lich": True,
-                "time_zone": 7
+                "time_zone": 7,
             }
         }
 
 
 class ErrorResponse(BaseModel):
-    """Standard error response"""
+    """Standard error response."""
+
     error: str = Field(..., description="Error message")
     details: Optional[str] = Field(None, description="Detailed error information")
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "error": "Ngày sinh không hợp lệ",
-                "details": "Ngày sinh phải trong khoảng 1-31"
-            }
-        }
-
 
 class HealthResponse(BaseModel):
-    """Health check response"""
+    """Health check response."""
+
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
     lasotuvi_available: bool = Field(..., description="Whether lasotuvi engine is available")
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "status": "healthy",
-                "version": "1.0.0",
-                "lasotuvi_available": True
-            }
-        }

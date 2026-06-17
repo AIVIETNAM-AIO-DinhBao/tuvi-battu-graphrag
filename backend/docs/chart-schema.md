@@ -331,3 +331,29 @@ For combined charts, store both normalized responses under stable keys:
 
 If either engine fails for `TUVI_BATU`, the create-chart flow should not insert
 the `la_so` row. Show the engine error and let the user retry.
+
+---
+
+## Extended Tu Vi Rendering Fields
+
+`POST /chart/tuvi` keeps the existing schema stable and adds optional rendering
+metadata for the 12-palace board:
+
+- `metadata.personal_info`: solar date, lunar date when available, birth hour
+  branch, gender, yin/yang gender, and year/month/day/hour can-chi fields.
+- `metadata.destiny_info`: birth-year nap am, cuc menh, chu menh, chu than,
+  can luong, lai nhan cung, than cu, and Menh/Than palace indexes.
+- `palaces[*].attributes.dia_chi`: palace earthly branch.
+- `palaces[*].attributes.trang_sinh`: Trang Sinh cycle state.
+- `palaces[*].attributes.dai_han_age`: displayed Dai Han age.
+- `palaces[*].attributes.tieu_han`: Tieu Han marker.
+- `palaces[*].attributes.luu_nien_dai_van`: annual major-cycle marker when the
+  upstream engine provides one.
+- `palaces[*].star_details`: stars as objects with `name`, `brightness`,
+  `brightness_code`, `category`, `color`, and `id`.
+- `palaces[*].star_groups`: stars grouped as `chinh_tinh`, `phu_tinh`, and
+  `khac` so the frontend can render major stars first.
+
+Brightness codes use `M`, `V`, `Đ`, `B`, and `H` for Mieu/Manh, Vuong, Dac,
+Binh, and Ham. The frontend still accepts older charts that only contain
+`palaces[*].stars` as strings.

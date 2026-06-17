@@ -16,14 +16,16 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(getLoginErrorMessage(error.message));
       return;
     }
 
@@ -40,6 +42,7 @@ export default function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             required
           />
         </label>
@@ -49,6 +52,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
             required
           />
         </label>
@@ -59,4 +63,12 @@ export default function LoginPage() {
       {error && <p style={{ color: "red" }}>{error}</p>}
     </main>
   );
+}
+
+function getLoginErrorMessage(message: string) {
+  if (message.toLowerCase().includes("invalid login credentials")) {
+    return "Email/mat khau khong dung, hoac tai khoan chua xac nhan email. Neu vua dang ky, hay mo email xac nhan tu Supabase truoc roi dang nhap lai.";
+  }
+
+  return message;
 }

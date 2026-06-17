@@ -9,16 +9,24 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    setNotice(null);
 
-    const { error } = await supabase.auth.signUp({
-      email,
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
       password,
+      options: {
+        emailRedirectTo:
+          typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined,
+      },
     });
 
     setLoading(false);
@@ -27,7 +35,14 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/dashboard");
+    if (data.session) {
+      router.push("/dashboard");
+      return;
+    }
+
+    setNotice(
+      "Tai khoan da duoc tao nhung can xac nhan email truoc khi dang nhap. Hay mo email xac nhan tu Supabase, roi quay lai dang nhap.",
+    );
   };
 
   return (
@@ -40,6 +55,7 @@ export default function RegisterPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             required
           />
         </label>
@@ -49,6 +65,8 @@ export default function RegisterPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            minLength={6}
             required
           />
         </label>
@@ -57,6 +75,7 @@ export default function RegisterPage() {
         </button>
       </form>
       {error && <p style={{ color: "red" }}>{error}</p>}
+      {notice && <p style={{ color: "#166534" }}>{notice}</p>}
     </main>
   );
 }

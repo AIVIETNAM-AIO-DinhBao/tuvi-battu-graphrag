@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChartSummaryCard, type ChartSummary } from "../../components/ChartSummaryCard";
 import { supabase } from "../../lib/supabaseClient";
 
 type ChartSystem = "TUVI" | "BATU" | "TUVI_BATU";
@@ -37,6 +38,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [charts, setCharts] = useState<ChartSummary[]>([]);
+  const [chartsLoading, setChartsLoading] = useState(false);
+  const [chartsError, setChartsError] = useState<string | null>(null);
   const [form, setForm] = useState<CreateChartFormState>(initialFormState);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,18 +51,59 @@ export default function DashboardPage() {
   );
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    let cancelled = false;
+
+    async function loadCharts(userId: string) {
+      setChartsLoading(true);
+      setChartsError(null);
+
+      const { data, error } = await supabase
+        .from("la_so")
+        .select("id,label,birth_date,birth_time,gender,chart_system,created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (cancelled) {
+        return;
+      }
+
+      if (error) {
+        setChartsError(`Khong the tai danh sach chart: ${error.message}`);
+        setCharts([]);
+      } else {
+        setCharts((data ?? []) as ChartSummary[]);
+      }
+
+      setChartsLoading(false);
+    }
+
+    async function loadDashboard() {
+      const { data } = await supabase.auth.getSession();
       if (!data.session) {
         router.push("/login");
         return;
       }
 
-      setUser({
+      const sessionUser = {
         id: data.session.user.id,
         email: data.session.user.email ?? undefined,
-      });
+      };
+
+      if (cancelled) {
+        return;
+      }
+
+      setUser(sessionUser);
       setLoading(false);
-    });
+
+      await loadCharts(sessionUser.id);
+    }
+
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const handleLogout = async () => {
@@ -71,6 +116,14 @@ export default function DashboardPage() {
     value: CreateChartFormState[K]
   ) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const scrollToCreateChart = () => {
+    document.getElementById("create-chart")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const openChart = (chartId: string) => {
+    router.push(`/chart/${chartId}`);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -149,12 +202,17 @@ export default function DashboardPage() {
           <h1>Dashboard</h1>
           <p>Xin chao, {userEmail ?? "Nguoi dung"}.</p>
         </div>
-        <button type="button" className="secondary-button" onClick={handleLogout}>
-          Dang xuat
-        </button>
+        <div className="header-actions">
+          <button type="button" className="secondary-button" onClick={scrollToCreateChart}>
+            Create new chart
+          </button>
+          <button type="button" className="secondary-button" onClick={handleLogout}>
+            Dang xuat
+          </button>
+        </div>
       </header>
 
-      <section className="panel">
+      <section className="panel" id="create-chart">
         <h2>Create new chart</h2>
         <form className="chart-form" onSubmit={handleSubmit}>
           <label>
@@ -237,9 +295,36 @@ export default function DashboardPage() {
       </section>
 
       <section className="panel">
-        <h2>Chart sample</h2>
-        <p>Trang chart co ban se hien thi metadata chart da luu.</p>
-        <a href="/chart/00000000-0000-0000-0000-000000000010">Xem chart vi du</a>
+        <div className="section-heading-row">
+          <div>
+            <h2>Charts</h2>
+            <p>{charts.length > 0 ? `${charts.length} chart da luu.` : "Danh sach chart cua ban."}</p>
+          </div>
+          <button type="button" className="secondary-button" onClick={scrollToCreateChart}>
+            Create new chart
+          </button>
+        </div>
+
+        {chartsLoading && <p className="form-note">Dang tai danh sach chart...</p>}
+        {chartsError && <p className="error-message">{chartsError}</p>}
+
+        {!chartsLoading && !chartsError && charts.length === 0 && (
+          <div className="empty-state">
+            <h3>Chua co chart nao</h3>
+            <p>Tao chart dau tien de xem bang Tu Vi hoac Bat Tu tai trang chi tiet.</p>
+            <button type="button" onClick={scrollToCreateChart}>
+              Create new chart
+            </button>
+          </div>
+        )}
+
+        {!chartsLoading && !chartsError && charts.length > 0 && (
+          <div className="chart-list-grid">
+            {charts.map((chart) => (
+              <ChartSummaryCard chart={chart} key={chart.id} onOpen={openChart} />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
