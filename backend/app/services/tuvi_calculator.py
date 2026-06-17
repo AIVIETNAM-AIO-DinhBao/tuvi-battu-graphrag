@@ -169,6 +169,8 @@ class TuViCalculator:
                 "birth_time": birth_time,
                 "gender": gender,
                 "calculated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "personal_info": raw_chart.get("personalInfo"),
+                "destiny_info": raw_chart.get("destinyInfo"),
             },
             "palaces": self._normalize_palaces(palace_data),
             "stars": self._normalize_stars(palace_data),
@@ -190,14 +192,19 @@ class TuViCalculator:
                     for star in palace_info.get("cungSao", [])
                     if star.get("saoTen")
                 ],
+                "star_details": self._normalize_palace_stars(palace_info.get("cungSao", [])),
+                "star_groups": self._group_palace_stars(palace_info.get("cungSao", [])),
                 "position": palace_info.get("cungSo"),
                 "attributes": {
-                    "dia_chi": palace_info.get("cungTen"),
+                    "dia_chi": palace_info.get("diaChi") or palace_info.get("cungTen"),
                     "element": palace_info.get("hanhCung"),
                     "yin_yang": palace_info.get("amDuong"),
                     "dai_han": palace_info.get("daiHan"),
+                    "dai_han_age": palace_info.get("tuoiDaiHan") or palace_info.get("daiHan"),
                     "tieu_han": palace_info.get("tieuHan"),
-                    "has_than": palace_info.get("coThhan"),
+                    "luu_nien_dai_van": palace_info.get("luuNienDaiVan"),
+                    "trang_sinh": palace_info.get("trangSinh"),
+                    "has_than": palace_info.get("coThan", palace_info.get("coThhan")),
                 },
             }
         return normalized
@@ -221,9 +228,65 @@ class TuViCalculator:
                     ),
                     "attributes": {
                         "id": star_info.get("saoID"),
+                        "brightness_code": star_info.get("saoDacTinhCode"),
+                        "color": star_info.get("saoColor"),
+                        "quality": star_info.get("saoTinhChat"),
                     },
                 }
         return normalized
+
+    def _normalize_palace_stars(self, stars: Any) -> list[Dict[str, Any]]:
+        normalized = []
+        for star_info in stars:
+            star_name = star_info.get("saoTen")
+            if not star_name:
+                continue
+            normalized.append({
+                "name": star_name,
+                "brightness": star_info.get("saoDacTinh"),
+                "brightness_code": star_info.get("saoDacTinhCode"),
+                "category": star_info.get("saoNhom") or (
+                    "ChÃ­nh Tinh" if star_name in self.MAJOR_STARS else "Phá»¥ Tinh"
+                ),
+                "color": star_info.get("saoColor"),
+                "quality": star_info.get("saoTinhChat"),
+                "id": star_info.get("saoID"),
+            })
+        return normalized
+
+    def _group_palace_stars(self, stars: Any) -> Dict[str, list[Dict[str, Any]]]:
+        groups = {
+            "chinh_tinh": [],
+            "phu_tinh": [],
+            "khac": [],
+        }
+        for star in self._normalize_palace_stars(stars):
+            category = self._strip_accents(str(star.get("category", ""))).lower()
+            if "chinh" in category:
+                groups["chinh_tinh"].append(star)
+            elif "phu" in category or "trung" in category or "bang" in category:
+                groups["phu_tinh"].append(star)
+            else:
+                groups["khac"].append(star)
+        return groups
+
+    def _strip_accents(self, value: str) -> str:
+        replacements = {
+            "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a",
+            "ă": "a", "ắ": "a", "ằ": "a", "ẳ": "a", "ẵ": "a", "ặ": "a",
+            "â": "a", "ấ": "a", "ầ": "a", "ẩ": "a", "ẫ": "a", "ậ": "a",
+            "é": "e", "è": "e", "ẻ": "e", "ẽ": "e", "ẹ": "e",
+            "ê": "e", "ế": "e", "ề": "e", "ể": "e", "ễ": "e", "ệ": "e",
+            "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i",
+            "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o",
+            "ô": "o", "ố": "o", "ồ": "o", "ổ": "o", "ỗ": "o", "ộ": "o",
+            "ơ": "o", "ớ": "o", "ờ": "o", "ở": "o", "ỡ": "o", "ợ": "o",
+            "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u",
+            "ư": "u", "ứ": "u", "ừ": "u", "ử": "u", "ữ": "u", "ự": "u",
+            "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y",
+            "đ": "d",
+        }
+        return "".join(replacements.get(char, char) for char in value)
 
     def _canonical_palace_name(self, palace_name: str) -> str:
         normalized_name = palace_name.strip().lower()

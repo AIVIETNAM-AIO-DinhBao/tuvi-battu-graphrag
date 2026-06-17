@@ -171,6 +171,62 @@ class TestLasoTuviServiceHelpers:
         assert formatted['thongTinCanChi']['nam'] == 1990
 
 
+class TestLasoTuViServiceExtendedMetadata:
+    """Test additive metadata helpers without requiring the lasotuvi package."""
+
+    def test_brightness_code_normalization(self):
+        assert LasoTuviService._brightness_code("Vượng") == "V"
+        assert LasoTuviService._brightness_code("Đắc") == "Đ"
+        assert LasoTuviService._brightness_code("Hãm") == "H"
+        assert LasoTuviService._brightness_code("Miếu") == "M"
+        assert LasoTuviService._brightness_code("Bình") == "B"
+
+    def test_year_can_chi_and_nap_am(self):
+        assert LasoTuviService._get_can_chi_year(1990) == "Canh Ngọ"
+        assert LasoTuviService._get_nap_am("Canh Ngọ") == "Lộ Bàng Thổ"
+
+    def test_star_category_accepts_string_ids(self):
+        assert LasoTuviService._star_category(None, "1") == "Chính tinh"
+
+    def test_lunar_date_fallback_converter(self):
+        lunar_date = LasoTuviService._convert_solar_to_lunar(15, 10, 1990, 7)
+
+        assert lunar_date["day"] == 27
+        assert lunar_date["month"] == 8
+        assert lunar_date["year"] == 1990
+        assert LasoTuviService._calculate_can_luong(1990, lunar_date, 6) == "4 luong 7 chi"
+
+    def test_star_quality_normalization(self):
+        assert LasoTuviService._star_quality("Địa Không") == "sat_tinh"
+        assert LasoTuviService._star_quality("Thiên Khôi") == "cat_tinh"
+
+    def test_format_for_output_includes_extended_metadata(self):
+        raw_chart = {
+            "ngay": 15,
+            "thang": 10,
+            "nam": 1990,
+            "gio": 6,
+            "gioiTinh": "Nam",
+            "duongLich": True,
+            "personalInfo": {"gender": "Nam"},
+            "destinyInfo": {"banMenh": "Lộ Bàng Thổ"},
+            "cungMenh": 5,
+            "cungThan": 11,
+            "tenCungMenh": "Thìn",
+            "tenCungThan": "Tuất",
+            "thapNhiCung": [],
+            "lunarDate": {"day": 27, "month": 8, "year": 1990},
+            "timestamp": "2026-06-17T00:00:00",
+        }
+
+        formatted = LasoTuviService.format_for_output(raw_chart)
+
+        assert formatted["thongTinCanChi"]["personalInfo"]["gender"] == "Nam"
+        assert formatted["thongTinCanChi"]["destinyInfo"]["banMenh"] == "Lộ Bàng Thổ"
+        assert formatted["lunarDate"]["year"] == 1990
+        assert formatted["timestamp"] == "2026-06-17T00:00:00"
+
+
 class TestLasoTuviServiceEdgeCases:
     """Test edge cases"""
 

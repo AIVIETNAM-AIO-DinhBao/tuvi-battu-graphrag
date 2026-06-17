@@ -52,6 +52,8 @@ class PalaceInfo(BaseModel):
     """Information about a palace (cung)"""
     name: str
     stars: List[str] = Field(default_factory=list)
+    star_details: List[Dict[str, Any]] = Field(default_factory=list)
+    star_groups: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
     position: Optional[int] = None
     attributes: Dict[str, Any] = Field(default_factory=dict)
 
