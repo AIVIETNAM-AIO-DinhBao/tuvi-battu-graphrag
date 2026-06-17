@@ -28,3 +28,147 @@ a:hover {
 button {
   cursor: pointer;
 }
+
+.page-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  margin: 0 0 0.35rem;
+}
+
+.page-header p {
+  color: #475569;
+  margin: 0;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+.chart-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.chart-form label {
+  color: #334155;
+  display: grid;
+  font-size: 0.95rem;
+  font-weight: 600;
+  gap: 0.4rem;
+}
+
+.chart-form input,
+.chart-form select {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #0f172a;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+}
+
+.chart-form input:disabled,
+.chart-form select:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-note {
+  color: #475569;
+  margin: 0;
+}
+
+button {
+  background: #2563eb;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.65rem 0.9rem;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #b91c1c;
+  margin-top: 1rem;
+  padding: 0.75rem;
+}
+
+.detail-list {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-list div {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.65rem;
+}
+
+.detail-list dt {
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.detail-list dd {
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.json-preview {
+  background: #0f172a;
+  border-radius: 8px;
+  color: #e2e8f0;
+  max-height: 28rem;
+  overflow: auto;
+  padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  main {
+    padding: 1rem;
+  }
+
+  .page-header,
+  .form-grid,
+  .detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    display: grid;
+  }
+}
