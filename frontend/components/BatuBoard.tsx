@@ -34,18 +34,18 @@ interface BatuBoardProps {
 }
 
 const PILLARS = [
-  ["year", "Nam"],
-  ["month", "Thang"],
-  ["day", "Ngay"],
-  ["hour", "Gio"],
+  ["year", "Năm"],
+  ["month", "Tháng"],
+  ["day", "Ngày"],
+  ["hour", "Giờ"],
 ] as const;
 
 const ELEMENT_LABELS: Record<string, string> = {
-  WOOD: "Moc",
-  FIRE: "Hoa",
-  EARTH: "Tho",
+  WOOD: "Mộc",
+  FIRE: "Hỏa",
+  EARTH: "Thổ",
   METAL: "Kim",
-  WATER: "Thuy",
+  WATER: "Thủy",
 };
 
 export function BatuBoard({ chart }: BatuBoardProps) {
@@ -54,8 +54,8 @@ export function BatuBoard({ chart }: BatuBoardProps) {
 
   if (!hasAnyPillar) {
     return (
-      <BoardMessage title="Khong the hien thi bang Bat Tu">
-        Du lieu chart hien co khong co thong tin bon tru.
+      <BoardMessage title="Không thể hiển thị bảng Bát Tự">
+        Dữ liệu chart hiện có không có thông tin bốn trụ.
       </BoardMessage>
     );
   }
@@ -67,8 +67,8 @@ export function BatuBoard({ chart }: BatuBoardProps) {
     <section className="visualizer-section" aria-labelledby="batu-board-title">
       <div className="visualizer-heading">
         <div>
-          <p className="eyebrow">Bat Tu</p>
-          <h3 id="batu-board-title">Bang bon tru</h3>
+          <p className="eyebrow">Bát Tự</p>
+          <h3 id="batu-board-title">Bảng bốn trụ</h3>
         </div>
         <p>
           {chart.metadata?.birth_date ?? "N/A"} - {chart.metadata?.birth_time ?? "N/A"}
@@ -89,11 +89,11 @@ export function BatuBoard({ chart }: BatuBoardProps) {
               </div>
               <dl>
                 <div>
-                  <dt>Nap am</dt>
+                  <dt>Nạp âm</dt>
                   <dd>{pillar?.nap_am || "N/A"}</dd>
                 </div>
                 <div>
-                  <dt>An can</dt>
+                  <dt>Ẩn can</dt>
                   <dd>{hiddenStems.length > 0 ? hiddenStems.join(", ") : "N/A"}</dd>
                 </div>
               </dl>
@@ -103,7 +103,7 @@ export function BatuBoard({ chart }: BatuBoardProps) {
       </div>
 
       {elementEntries.length > 0 && (
-        <div className="batu-elements" aria-label="Ngu hanh">
+        <div className="batu-elements" aria-label="Ngũ hành">
           {elementEntries.map(([element, value]) => (
             <div className="element-row" key={element}>
               <span>{ELEMENT_LABELS[element] ?? element}</span>

@@ -56,7 +56,8 @@ async def calculate_tuvi_chart(request: TuViChartRequest) -> TuViChartResponse:
             birth_date=request.birth_date,
             birth_time=request.birth_time,
             gender=request.gender,
-            label=request.label
+            label=request.label,
+            nam_xem_han=request.nam_xem_han,
         )
         
         logger.info("Tử Vi chart calculated successfully")

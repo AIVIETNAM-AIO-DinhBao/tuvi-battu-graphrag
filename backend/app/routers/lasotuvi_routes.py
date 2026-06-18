@@ -127,7 +127,8 @@ async def generate_la_so(request: GenerateLaSoRequest):
             gio=request.gio,
             gioi_tinh=request.gioi_tinh,
             duong_lich=request.duong_lich,
-            time_zone=request.time_zone
+            time_zone=request.time_zone,
+            nam_xem_han=request.nam_xem_han,
         )
         
         # Format for output
@@ -162,7 +163,8 @@ async def generate_la_so_get(
     gio: int,
     gioi_tinh: int,
     duong_lich: bool = True,
-    time_zone: int = 7
+    time_zone: int = 7,
+    nam_xem_han: int | None = None,
 ):
     """
     Generate Tử Vi birth chart using GET method
@@ -187,7 +189,8 @@ async def generate_la_so_get(
             gio=gio,
             gioi_tinh=gioi_tinh,
             duong_lich=duong_lich,
-            time_zone=time_zone
+            time_zone=time_zone,
+            nam_xem_han=nam_xem_han,
         )
         
         formatted_data = LasoTuviService.format_for_output(la_so_data)

@@ -17,6 +17,11 @@ class SaoInfo(BaseModel):
     saoTinhChat: Optional[str] = Field(None, description="Star quality: cat_tinh or sat_tinh")
     saoColor: Optional[str] = Field(None, description="Display color hint")
     saoID: Optional[int] = Field(None, description="Star ID")
+    isLuu: Optional[bool] = Field(False, description="Whether this is an annual transit star")
+    is_luu: Optional[bool] = Field(False, description="Snake-case alias for annual transit stars")
+    source: Optional[str] = Field(None, description="Star placement source")
+    namXemHan: Optional[int] = Field(None, description="Annual transit year")
+    nam_xem_han: Optional[int] = Field(None, description="Snake-case annual transit year")
 
     class Config:
         schema_extra = {
@@ -48,6 +53,9 @@ class CungInfo(BaseModel):
     trangSinh: Optional[str] = Field(None, description="Trang sinh cycle state")
     coThan: Optional[bool] = Field(None, description="Whether Than resides in this palace")
     coThhan: bool = Field(..., description="Backward-compatible typo alias for coThan")
+    tuanKhong: Optional[bool] = Field(False, description="Whether Tuan Khong affects this palace")
+    trietKhong: Optional[bool] = Field(False, description="Whether Triet Khong affects this palace")
+    khongVong: List[str] = Field(default_factory=list, description="Void markers affecting this palace")
     cungSao: List[SaoInfo] = Field(..., description="Stars in this palace")
 
     class Config:
@@ -118,6 +126,12 @@ class GenerateLaSoRequest(BaseModel):
     gioi_tinh: int = Field(..., description="Gender: 1=male, -1=female")
     duong_lich: bool = Field(True, description="True for Gregorian input, false for lunar input")
     time_zone: int = Field(7, description="UTC offset")
+    nam_xem_han: Optional[int] = Field(
+        None,
+        ge=1900,
+        le=2100,
+        description="Annual transit year. Defaults to the current Vietnam year."
+    )
 
     @validator('gio')
     def validate_gio(cls, v):
@@ -160,6 +174,7 @@ class GenerateLaSoRequest(BaseModel):
                 "gioi_tinh": 1,
                 "duong_lich": True,
                 "time_zone": 7,
+                "nam_xem_han": 2026,
             }
         }
 

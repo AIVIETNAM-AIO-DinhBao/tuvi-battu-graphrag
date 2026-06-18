@@ -4,8 +4,8 @@ Lasotuvi Service - Wrapper around lasotuvi engine for Tử Vi calculations
 Provides structured interface for generating Tử Vi lá số (birth chart)
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime
+from typing import Dict, List, Optional, Any, Tuple
+from datetime import datetime, timezone, timedelta
 import math
 import logging
 import unicodedata
@@ -29,11 +29,94 @@ class LasoTuviService:
         5: "07h-09h", 6: "09h-11h", 7: "11h-13h", 8: "13h-15h",
         9: "15h-17h", 10: "17h-19h", 11: "19h-21h", 12: "21h-23h",
     }
+    VIETNAM_TZ = timezone(timedelta(hours=7))
+    YEAR_MIN = 1900
+    YEAR_MAX = 2100
     TRANG_SINH = [
         "Tràng sinh", "Mộc dục", "Quan đới", "Lâm quan",
         "Đế vượng", "Suy", "Bệnh", "Tử", "Mộ",
         "Tuyệt", "Thai", "Dưỡng"
     ]
+    BRIGHTNESS_LABELS = {
+        "M": "Miếu",
+        "V": "Vượng",
+        "Đ": "Đắc",
+        "H": "Hãm",
+        "B": "Bình",
+    }
+    HOA_LINH_STARTS_BY_BIRTH_BRANCH = {
+        3: (2, 4),   # Dần/Ngọ/Tuất: Hỏa khởi Sửu, Linh khởi Mão
+        7: (2, 4),
+        11: (2, 4),
+        9: (3, 11),  # Thân/Tý/Thìn: Hỏa khởi Dần, Linh khởi Tuất
+        1: (3, 11),
+        5: (3, 11),
+        6: (4, 11),  # Tỵ/Dậu/Sửu: Hỏa khởi Mão, Linh khởi Tuất
+        10: (4, 11),
+        2: (4, 11),
+        12: (10, 11),  # Hợi/Mão/Mùi: Hỏa khởi Dậu, Linh khởi Tuất
+        4: (10, 11),
+        8: (10, 11),
+    }
+    PHA_TOAI_BY_BIRTH_BRANCH = {
+        1: 6, 7: 6, 4: 6, 10: 6,
+        3: 10, 9: 10, 6: 10, 12: 10,
+        5: 2, 11: 2, 2: 2, 8: 2,
+    }
+    TRIET_BY_STEM_INDEX = {
+        0: (9, 10), 5: (9, 10),  # Giáp/Kỷ -> Thân-Dậu
+        1: (7, 8), 6: (7, 8),    # Ất/Canh -> Ngọ-Mùi
+        2: (5, 6), 7: (5, 6),    # Bính/Tân -> Thìn-Tỵ
+        3: (3, 4), 8: (3, 4),    # Đinh/Nhâm -> Dần-Mão
+        4: (1, 2), 9: (1, 2),    # Mậu/Quý -> Tý-Sửu
+    }
+    TUAN_BY_GIAP_START_BRANCH = {
+        1: (11, 12),  # Giáp Tý -> Tuất-Hợi
+        11: (9, 10),  # Giáp Tuất -> Thân-Dậu
+        9: (7, 8),    # Giáp Thân -> Ngọ-Mùi
+        7: (5, 6),    # Giáp Ngọ -> Thìn-Tỵ
+        5: (3, 4),    # Giáp Thìn -> Dần-Mão
+        3: (1, 2),    # Giáp Dần -> Tý-Sửu
+    }
+    LOC_TON_BY_STEM_INDEX = [3, 4, 6, 7, 6, 7, 9, 10, 12, 1]
+    NGU_HANH_SINH = {
+        "moc": "hoa",
+        "hoa": "tho",
+        "tho": "kim",
+        "kim": "thuy",
+        "thuy": "moc",
+    }
+    NGU_HANH_KHAC = {
+        "moc": "tho",
+        "tho": "thuy",
+        "thuy": "hoa",
+        "hoa": "kim",
+        "kim": "moc",
+    }
+    NGU_HANH_LABELS = {
+        "kim": "Kim",
+        "thuy": "Thủy",
+        "moc": "Mộc",
+        "hoa": "Hỏa",
+        "tho": "Thổ",
+    }
+    STATIC_BRIGHTNESS_OVERRIDES = {
+        "hoa quyen": "V",
+        "hoa loc": "Đ",
+        "hoa khoa": "Đ",
+        "hoa ky": "H",
+        "loc ton": "M",
+        "bach ho": "H",
+        "tang mon": "H",
+        "dai hao": "H",
+        "tieu hao": "H",
+        "thien dieu": "H",
+        "thien rieu": "H",
+        "thien ma": "H",
+    }
+    BRANCH_BRIGHTNESS_OVERRIDES = {
+        ("van khuc", 4): "H",
+    }
     CHINH_TINH_IDS = set(range(1, 15))
     CHINH_TINH_NAMES = {
         "tử vi", "thiên cơ", "thái dương", "vũ khúc", "thiên đồng",
@@ -128,12 +211,13 @@ class LasoTuviService:
         # Nhóm Hao tinh
         "dai hao", "tieu hao",
         # Nhóm Tang - Hổ - Khốc - Hư (Bộ sao thị phi/buồn phiền)
-        "tang mon", "bach ho", "thien khoc", "thien hu",
+        "tang mon", "bach ho", "thien khoc", "thien hu", "thien ma",
         # Nhóm Cô quả
         "co than", "qua tu",
         # Nhóm sao Vòng Thái Tuế / Lộc Tồn (tùy vị trí nhưng thường xét tính sát)
         "hoa ky", "phuc binh", "dieu khach", "benh phu", "truc phu", "dau quan", 
-        "thien thuong", "thien su", "quan phu", "tu phu", "tu tuyet"
+        "thien thuong", "thien su", "quan phu", "tu phu", "tu tuyet", "tue pha",
+        "thai tue", "phi liem", "thien khong", "luu ha", "thien la", "dia vong",
     }
 
     @staticmethod
@@ -176,7 +260,8 @@ class LasoTuviService:
         gio: int,
         gioi_tinh: int,
         duong_lich: bool = True,
-        time_zone: int = 7
+        time_zone: int = 7,
+        nam_xem_han: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Generate Tử Vi birth chart (lá số) from given birth date/time
@@ -202,6 +287,7 @@ class LasoTuviService:
             is_valid, error_msg = LasoTuviService.validate_input(ngay, thang, nam, gio, gioi_tinh)
             if not is_valid:
                 raise ValueError(error_msg)
+            resolved_nam_xem_han = LasoTuviService._resolve_nam_xem_han(nam_xem_han)
             
             # Import lasotuvi modules
             from lasotuvi.DiaBan import diaBan
@@ -223,7 +309,15 @@ class LasoTuviService:
             
             # Parse and structure the output
             result = LasoTuviService._parse_dia_ban(
-                dia_ban_obj, ngay, thang, nam, gio, gioi_tinh, duong_lich, time_zone
+                dia_ban_obj,
+                ngay,
+                thang,
+                nam,
+                gio,
+                gioi_tinh,
+                duong_lich,
+                time_zone,
+                resolved_nam_xem_han,
             )
             
             logger.info("✓ Successfully generated lá số")
@@ -246,6 +340,7 @@ class LasoTuviService:
         gioi_tinh: int,
         duong_lich: bool = True,
         time_zone: int = 7,
+        nam_xem_han: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Parse lasotuvi output into structured format
@@ -262,6 +357,8 @@ class LasoTuviService:
             cung_menh = dia_ban_obj.cungMenh
             cung_than = dia_ban_obj.cungThan
             can_chi_nam = LasoTuviService._get_can_chi_year(nam)
+            resolved_nam_xem_han = LasoTuviService._resolve_nam_xem_han(nam_xem_han)
+            can_chi_nam_xem = LasoTuviService._get_can_chi_year(resolved_nam_xem_han)
             lunar_date = LasoTuviService._get_lunar_date(
                 dia_ban_obj, ngay, thang, nam, duong_lich, time_zone
             )
@@ -284,7 +381,13 @@ class LasoTuviService:
                 can_chi_nam=can_chi_nam,
                 nam=nam,
                 gio=gio,
+                gioi_tinh=gioi_tinh,
                 lunar_date=lunar_date,
+            )
+            trang_sinh_by_position = LasoTuviService._build_trang_sinh_by_position(
+                destiny_info.get('cucMenh'),
+                nam,
+                gioi_tinh,
             )
             
             # Process 12 cung (palaces)
@@ -297,15 +400,22 @@ class LasoTuviService:
                 if hasattr(cung, 'cungSao') and cung.cungSao:
                     for sao in cung.cungSao:
                         sao_ten = sao.get('saoTen', 'Không rõ tên')
+                        if LasoTuviService._is_trang_sinh_star(sao_ten):
+                            continue
                         dac_tinh = sao.get('saoDacTinh')
                         sao_id = sao.get('saoID')
+                        brightness = LasoTuviService._resolve_star_brightness(
+                            sao_ten,
+                            i,
+                            dac_tinh,
+                        )
                         sao_info = {
                             'saoTen': sao.get('saoTen', 'Không rõ tên'),
-                            'saoDacTinh': dac_tinh,
-                            'saoDacTinhCode': LasoTuviService._brightness_code(dac_tinh),
+                            'saoDacTinh': brightness['label'],
+                            'saoDacTinhCode': brightness['code'],
                             'saoNhom': LasoTuviService._star_category(sao_ten, sao_id),
                             'saoTinhChat': LasoTuviService._star_quality(sao_ten),
-                            'saoColor': LasoTuviService._brightness_color(dac_tinh),
+                            'saoColor': brightness['color'],
                             'saoID': sao_id
                         }
                         danh_sach_sao.append(sao_info)
@@ -331,13 +441,25 @@ class LasoTuviService:
                     'luuNienDaiVan': LasoTuviService._get_attr(
                         cung, ['cungLuuNienDaiVan', 'luuNienDaiVan', 'lnDaiVan']
                     ),
-                    'trangSinh': LasoTuviService._get_trang_sinh(cung, i),
+                    'trangSinh': LasoTuviService._get_trang_sinh(cung, i, trang_sinh_by_position),
                     'coThan': co_than,
                     'coThhan': co_than,
+                    'tuanKhong': False,
+                    'trietKhong': False,
+                    'khongVong': [],
                     'cungSao': danh_sach_sao
                 }
                 
                 thap_nhi_cung.append(cung_data)
+
+            LasoTuviService._apply_star_rule_corrections(
+                thap_nhi_cung=thap_nhi_cung,
+                birth_year=nam,
+                birth_hour=gio,
+                gioi_tinh=gioi_tinh,
+                nam_xem_han=resolved_nam_xem_han,
+            )
+            LasoTuviService._apply_khong_vong_markers(thap_nhi_cung, can_chi_nam)
             
             # Build final result
             result = {
@@ -357,6 +479,8 @@ class LasoTuviService:
                 'thienCan': can_chi_nam.split(" ")[0],
                 'diaChi': can_chi_nam.split(" ")[1],
                 'canChiNam': can_chi_nam,
+                'namXemHan': resolved_nam_xem_han,
+                'canChiNamXem': can_chi_nam_xem,
                 'lunarDate': lunar_date,
                 'thapNhiCung': thap_nhi_cung,
                 'timestamp': datetime.now().isoformat()
@@ -367,6 +491,221 @@ class LasoTuviService:
         except Exception as e:
             logger.error(f"Error parsing địa bàn: {str(e)}", exc_info=True)
             raise Exception(f"Lỗi khi phân tích dữ liệu: {str(e)}") from e
+
+    @staticmethod
+    def _resolve_nam_xem_han(nam_xem_han: Optional[int]) -> int:
+        if nam_xem_han is None:
+            return datetime.now(LasoTuviService.VIETNAM_TZ).year
+        try:
+            resolved = int(nam_xem_han)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Năm xem hạn phải là số nguyên, nhận được: {nam_xem_han}") from exc
+        if not LasoTuviService.YEAR_MIN <= resolved <= LasoTuviService.YEAR_MAX:
+            raise ValueError(
+                f"Năm xem hạn phải trong khoảng {LasoTuviService.YEAR_MIN}-{LasoTuviService.YEAR_MAX}, "
+                f"nhận được: {resolved}"
+            )
+        return resolved
+
+    @staticmethod
+    def _apply_star_rule_corrections(
+        thap_nhi_cung: List[Dict[str, Any]],
+        birth_year: int,
+        birth_hour: int,
+        gioi_tinh: int,
+        nam_xem_han: int,
+    ) -> None:
+        birth_can_chi = LasoTuviService._get_can_chi_year(birth_year)
+        birth_chi = birth_can_chi.split(" ")[1]
+        birth_branch = LasoTuviService._branch_index(birth_chi) + 1
+
+        LasoTuviService._remove_stars(thap_nhi_cung, ["Hỏa tinh", "Linh tinh", "Phá toái", "Phá Toái"])
+        hoa_position, linh_position = LasoTuviService._calculate_hoa_linh_positions(
+            birth_year,
+            birth_branch,
+            birth_hour,
+            gioi_tinh,
+        )
+        LasoTuviService._insert_star(thap_nhi_cung, hoa_position, "Hỏa tinh", source="corrected_rule")
+        LasoTuviService._insert_star(thap_nhi_cung, linh_position, "Linh tinh", source="corrected_rule")
+        LasoTuviService._insert_star(
+            thap_nhi_cung,
+            LasoTuviService._calculate_pha_toai_position(birth_branch),
+            "Phá Toái",
+            source="corrected_rule",
+        )
+
+        can_chi_nam_xem = LasoTuviService._get_can_chi_year(nam_xem_han)
+        can_nam_xem, chi_nam_xem = can_chi_nam_xem.split(" ", 1)
+        for annual_star in LasoTuviService.an_sao_luu(can_nam_xem, chi_nam_xem, nam_xem_han):
+            LasoTuviService._insert_star(
+                thap_nhi_cung,
+                annual_star["position"],
+                annual_star["name"],
+                is_luu=True,
+                source="annual_transit",
+                nam_xem_han=nam_xem_han,
+            )
+
+    @staticmethod
+    def _apply_khong_vong_markers(thap_nhi_cung: List[Dict[str, Any]], can_chi_nam: str) -> None:
+        can_nam = can_chi_nam.split(" ", 1)[0]
+        tuan_positions = set(LasoTuviService._calculate_tuan_positions(can_chi_nam))
+        triet_positions = set(LasoTuviService._calculate_triet_positions(can_nam))
+
+        for cung in thap_nhi_cung:
+            position = int(cung.get("cungSo", 0))
+            markers = []
+            if position in tuan_positions:
+                markers.append("Tuần")
+            if position in triet_positions:
+                markers.append("Triệt")
+            cung["tuanKhong"] = position in tuan_positions
+            cung["trietKhong"] = position in triet_positions
+            cung["khongVong"] = markers
+
+    @staticmethod
+    def _calculate_triet_positions(can_nam: str) -> List[int]:
+        stem_index = LasoTuviService._stem_index(can_nam)
+        return list(LasoTuviService.TRIET_BY_STEM_INDEX[stem_index])
+
+    @staticmethod
+    def _calculate_tuan_positions(can_chi_nam: str) -> List[int]:
+        can_nam, chi_nam = can_chi_nam.split(" ", 1)
+        stem_index = LasoTuviService._stem_index(can_nam)
+        branch_position = LasoTuviService._branch_index(chi_nam) + 1
+        giap_start_branch = LasoTuviService._shift_branch(branch_position, -stem_index)
+        try:
+            return list(LasoTuviService.TUAN_BY_GIAP_START_BRANCH[giap_start_branch])
+        except KeyError as exc:
+            raise ValueError(f"Không thể xác định Tuần Không cho năm: {can_chi_nam}") from exc
+
+    @staticmethod
+    def _calculate_hoa_linh_positions(
+        birth_year: int,
+        birth_branch: int,
+        birth_hour: int,
+        gioi_tinh: int,
+    ) -> Tuple[int, int]:
+        if birth_branch not in LasoTuviService.HOA_LINH_STARTS_BY_BIRTH_BRANCH:
+            raise ValueError(f"Không thể khởi Hỏa/Linh cho địa chi năm sinh: {birth_branch}")
+        hoa_start, linh_start = LasoTuviService.HOA_LINH_STARTS_BY_BIRTH_BRANCH[birth_branch]
+        forward = LasoTuviService._is_trang_sinh_forward(birth_year, gioi_tinh)
+        hour_offset = birth_hour - 1
+        hoa_direction = 1 if forward else -1
+        linh_direction = -hoa_direction
+        return (
+            LasoTuviService._shift_branch(hoa_start, hoa_direction * hour_offset),
+            LasoTuviService._shift_branch(linh_start, linh_direction * hour_offset),
+        )
+
+    @staticmethod
+    def _calculate_pha_toai_position(birth_branch: int) -> int:
+        try:
+            return LasoTuviService.PHA_TOAI_BY_BIRTH_BRANCH[birth_branch]
+        except KeyError as exc:
+            raise ValueError(f"Không thể an Phá Toái cho địa chi năm sinh: {birth_branch}") from exc
+
+    @staticmethod
+    def an_sao_luu(can_nam_xem: str, chi_nam_xem: str, nam_xem_han: Optional[int] = None) -> List[Dict[str, Any]]:
+        stem_index = LasoTuviService._stem_index(can_nam_xem)
+        branch_position = LasoTuviService._branch_index(chi_nam_xem) + 1
+        loc_ton_position = LasoTuviService.LOC_TON_BY_STEM_INDEX[stem_index]
+
+        return [
+            {"name": "L.Thái Tuế", "position": branch_position, "nam_xem_han": nam_xem_han},
+            {"name": "L.Tang Môn", "position": LasoTuviService._shift_branch(branch_position, 2), "nam_xem_han": nam_xem_han},
+            {"name": "L.Bạch Hổ", "position": LasoTuviService._shift_branch(branch_position, 8), "nam_xem_han": nam_xem_han},
+            {"name": "L.Thiên Hư", "position": LasoTuviService._shift_branch(7, branch_position - 1), "nam_xem_han": nam_xem_han},
+            {"name": "L.Thiên Khốc", "position": LasoTuviService._shift_branch(7, -branch_position + 1), "nam_xem_han": nam_xem_han},
+            {"name": "L.Lộc Tồn", "position": loc_ton_position, "nam_xem_han": nam_xem_han},
+            {"name": "L.Kình Dương", "position": LasoTuviService._shift_branch(loc_ton_position, 1), "nam_xem_han": nam_xem_han},
+            {"name": "L.Đà La", "position": LasoTuviService._shift_branch(loc_ton_position, -1), "nam_xem_han": nam_xem_han},
+            {"name": "L.Thiên Mã", "position": LasoTuviService._calculate_thien_ma_position(branch_position), "nam_xem_han": nam_xem_han},
+        ]
+
+    @staticmethod
+    def _calculate_thien_ma_position(branch_position: int) -> int:
+        dem_nghich = branch_position % 4
+        if dem_nghich == 1:
+            return 3
+        if dem_nghich == 2:
+            return 12
+        if dem_nghich == 3:
+            return 9
+        if dem_nghich == 0:
+            return 6
+        raise ValueError(f"Không thể an Thiên Mã cho địa chi: {branch_position}")
+
+    @staticmethod
+    def _shift_branch(start_position: int, offset: int) -> int:
+        return ((start_position - 1 + offset) % 12) + 1
+
+    @staticmethod
+    def _remove_stars(thap_nhi_cung: List[Dict[str, Any]], star_names: List[str]) -> None:
+        normalized_targets = {
+            LasoTuviService._normalize_star_lookup(name)
+            for name in star_names
+        }
+        for cung in thap_nhi_cung:
+            cung["cungSao"] = [
+                star for star in cung.get("cungSao", [])
+                if LasoTuviService._normalize_star_lookup(star.get("saoTen")) not in normalized_targets
+            ]
+
+    @staticmethod
+    def _insert_star(
+        thap_nhi_cung: List[Dict[str, Any]],
+        position: int,
+        name: str,
+        is_luu: bool = False,
+        source: str = "corrected_rule",
+        nam_xem_han: Optional[int] = None,
+    ) -> None:
+        for cung in thap_nhi_cung:
+            if int(cung.get("cungSo", 0)) != position:
+                continue
+            normalized_name = LasoTuviService._normalize_star_lookup(name)
+            existing = [
+                star for star in cung.get("cungSao", [])
+                if LasoTuviService._normalize_star_lookup(star.get("saoTen")) == normalized_name
+            ]
+            if existing:
+                return
+            cung.setdefault("cungSao", []).append(
+                LasoTuviService._build_star_info(
+                    name,
+                    position,
+                    is_luu=is_luu,
+                    source=source,
+                    nam_xem_han=nam_xem_han,
+                )
+            )
+            return
+
+    @staticmethod
+    def _build_star_info(
+        name: str,
+        branch_position: int,
+        is_luu: bool = False,
+        source: Optional[str] = None,
+        nam_xem_han: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        brightness = LasoTuviService._resolve_star_brightness(name, branch_position)
+        return {
+            "saoTen": name,
+            "saoDacTinh": brightness["label"],
+            "saoDacTinhCode": brightness["code"],
+            "saoNhom": "Sao lưu" if is_luu else LasoTuviService._star_category(name, None),
+            "saoTinhChat": LasoTuviService._star_quality(name),
+            "saoColor": brightness["color"],
+            "saoID": None,
+            "isLuu": is_luu,
+            "is_luu": is_luu,
+            "source": source,
+            "namXemHan": nam_xem_han,
+            "nam_xem_han": nam_xem_han,
+        }
 
     @staticmethod
     def _get_attr(obj: Any, names: List[str], default: Any = None) -> Any:
@@ -646,19 +985,31 @@ class LasoTuviService:
         can_chi_nam: str,
         nam: int,
         gio: int,
+        gioi_tinh: int,
         lunar_date: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         menh_cung = dia_ban_obj.thapNhiCung[cung_menh]
         than_cung = dia_ban_obj.thapNhiCung[cung_than]
+        can_chi_menh = LasoTuviService._get_cung_can_chi(nam, cung_menh)
+        cuc_menh = LasoTuviService._infer_cuc_menh(nam, cung_menh)
+        ban_menh = LasoTuviService._get_attr(
+            dia_ban_obj,
+            ['banMenh', 'banMenhNapAm', 'menhNapAm'],
+            LasoTuviService._get_nap_am(can_chi_nam)
+        )
+        menh_ngu_hanh = LasoTuviService._extract_ngu_hanh(ban_menh)
+        cuc_ngu_hanh = LasoTuviService._extract_ngu_hanh(cuc_menh)
+        am_duong = LasoTuviService._am_duong_gender(can_chi_nam.split(" ")[0], gioi_tinh)
         return {
-            'banMenh': LasoTuviService._get_attr(
-                dia_ban_obj, ['banMenh', 'banMenhNapAm', 'menhNapAm'],
-                LasoTuviService._get_nap_am(can_chi_nam)
-            ),
-            'cucMenh': LasoTuviService._get_attr(
-                dia_ban_obj,
-                ['cucMenh', 'menhCuc', 'cuc', 'tenCuc', 'cucSo', 'cucSoMenh'],
-                LasoTuviService._infer_cuc_menh(menh_cung)
+            'banMenh': ban_menh,
+            'cucMenh': cuc_menh,
+            'cucMenhSource': 'ngu_ho_don_nap_am',
+            'menhNguHanh': menh_ngu_hanh,
+            'cucNguHanh': cuc_ngu_hanh,
+            'amDuongLy': LasoTuviService._calculate_am_duong_ly(am_duong, cung_menh),
+            'menhCucTuongQuan': LasoTuviService._calculate_menh_cuc_relation(
+                menh_ngu_hanh,
+                cuc_ngu_hanh,
             ),
             'chuMenh': LasoTuviService._get_attr(
                 dia_ban_obj,
@@ -685,6 +1036,7 @@ class LasoTuviService:
                 ['thanCu', 'thanCuCung', 'cungThanCu'],
                 LasoTuviService._format_cung_label(than_cung)
             ),
+            'canChiMenh': can_chi_menh,
             'cungMenh': cung_menh,
             'cungThan': cung_than,
         }
@@ -698,12 +1050,97 @@ class LasoTuviService:
         return str(cung_chu or cung_ten or "Chua ro")
 
     @staticmethod
-    def _infer_cuc_menh(menh_cung: Any) -> str:
-        element = LasoTuviService._normalize_text(getattr(menh_cung, 'hanhCung', ''))
-        for key, label in LasoTuviService.CUC_BY_ELEMENT.items():
-            if key in element:
-                return label
-        return "Chua ro cuc menh"
+    def _infer_cuc_menh(year: int, cung_menh: int) -> str:
+        can_chi_menh = LasoTuviService._get_cung_can_chi(year, cung_menh)
+        can, chi = can_chi_menh.split(" ", 1)
+        return LasoTuviService._cuc_from_can_chi(can, chi)
+
+    @staticmethod
+    def _get_cung_can_chi(year: int, branch_position: int) -> str:
+        year_stem_index = (year - 4) % 10
+        dan_stem_index = ((year_stem_index % 5) * 2 + 2) % 10
+        offset_from_dan = (branch_position - 3) % 12
+        palace_stem_index = (dan_stem_index + offset_from_dan) % 10
+        return f"{LasoTuviService.THIEN_CAN[palace_stem_index]} {LasoTuviService.DIA_CHI[(branch_position - 1) % 12]}"
+
+    @staticmethod
+    def _cuc_from_can_chi(can: str, chi: str) -> str:
+        can_index = LasoTuviService._stem_index(can)
+        branch_index = LasoTuviService._branch_index(chi)
+        can_value = can_index // 2 + 1
+        branch_value = (branch_index // 2) % 3
+        cuc_value = can_value + branch_value
+        if cuc_value > 5:
+            cuc_value -= 5
+
+        return {
+            1: "Kim tứ cục",
+            2: "Thủy nhị cục",
+            3: "Hỏa lục cục",
+            4: "Thổ ngũ cục",
+            5: "Mộc tam cục",
+        }[cuc_value]
+
+    @staticmethod
+    def _extract_ngu_hanh(value: Optional[str]) -> Optional[str]:
+        key = LasoTuviService._element_key(value)
+        if not key:
+            return None
+        return LasoTuviService.NGU_HANH_LABELS[key]
+
+    @staticmethod
+    def _element_key(value: Optional[str]) -> Optional[str]:
+        tokens = set(LasoTuviService._normalize_text(str(value or "")).split())
+        for key in LasoTuviService.NGU_HANH_LABELS:
+            if key in tokens:
+                return key
+        return None
+
+    @staticmethod
+    def _calculate_am_duong_ly(am_duong: str, cung_menh: int) -> str:
+        normalized = LasoTuviService._normalize_text(am_duong)
+        menh_in_yang_palace = cung_menh in {1, 3, 5, 7, 9, 11}
+        favorable_type = normalized in {"duong nam", "am nu"}
+        if favorable_type:
+            return "Thuận lý" if menh_in_yang_palace else "Nghịch lý"
+        return "Thuận lý" if not menh_in_yang_palace else "Nghịch lý"
+
+    @staticmethod
+    def _calculate_menh_cuc_relation(
+        menh_ngu_hanh: Optional[str],
+        cuc_ngu_hanh: Optional[str],
+    ) -> str:
+        menh_key = LasoTuviService._element_key(menh_ngu_hanh)
+        cuc_key = LasoTuviService._element_key(cuc_ngu_hanh)
+        if not menh_key or not cuc_key:
+            return "Chưa đủ dữ liệu"
+        if menh_key == cuc_key:
+            return "Mệnh - Cục bình hòa"
+        if LasoTuviService.NGU_HANH_SINH[cuc_key] == menh_key:
+            return "Cục sinh Mệnh"
+        if LasoTuviService.NGU_HANH_SINH[menh_key] == cuc_key:
+            return "Mệnh sinh Cục"
+        if LasoTuviService.NGU_HANH_KHAC[cuc_key] == menh_key:
+            return "Cục khắc Mệnh"
+        if LasoTuviService.NGU_HANH_KHAC[menh_key] == cuc_key:
+            return "Mệnh khắc Cục"
+        return "Chưa đủ dữ liệu"
+
+    @staticmethod
+    def _stem_index(can: str) -> int:
+        normalized = LasoTuviService._normalize_text(can)
+        for index, stem in enumerate(LasoTuviService.THIEN_CAN):
+            if LasoTuviService._normalize_text(stem) == normalized:
+                return index
+        raise ValueError(f"Unknown heavenly stem: {can}")
+
+    @staticmethod
+    def _branch_index(chi: str) -> int:
+        normalized = LasoTuviService._normalize_text(chi)
+        for index, branch in enumerate(LasoTuviService.DIA_CHI):
+            if LasoTuviService._normalize_text(branch) == normalized:
+                return index
+        raise ValueError(f"Unknown earthly branch: {chi}")
 
     @staticmethod
     def _fallback_chu_menh(year: int) -> str:
@@ -751,6 +1188,13 @@ class LasoTuviService:
         return "".join(char.lower() if char.isalnum() else " " for char in without_marks).strip()
 
     @staticmethod
+    def _normalize_star_lookup(value: Optional[str]) -> str:
+        normalized = LasoTuviService._normalize_text(str(value or ""))
+        if normalized.startswith("l "):
+            return normalized[2:].strip()
+        return normalized
+
+    @staticmethod
     def _am_duong_gender(can_nam: str, gioi_tinh: int) -> str:
         duong_can = {'Giáp', 'Bính', 'Mậu', 'Canh', 'Nhâm'}
         am_duong = 'Dương' if can_nam in duong_can else 'Âm'
@@ -758,13 +1202,87 @@ class LasoTuviService:
         return f"{am_duong} {gender}"
 
     @staticmethod
-    def _get_trang_sinh(cung: Any, position: int) -> Optional[str]:
+    def _build_trang_sinh_by_position(
+        cuc_menh: Any,
+        year: int,
+        gioi_tinh: int,
+    ) -> Dict[int, str]:
+        normalized_cuc = LasoTuviService._normalize_text(str(cuc_menh or ""))
+        start_branch_by_cuc = {
+            'thuy': 9,
+            'moc': 12,
+            'kim': 6,
+            'tho': 9,
+            'hoa': 3,
+        }
+
+        start_branch = None
+        for element, branch_position in start_branch_by_cuc.items():
+            if element in normalized_cuc:
+                start_branch = branch_position
+                break
+        if start_branch is None:
+            return {}
+
+        forward = LasoTuviService._is_trang_sinh_forward(year, gioi_tinh)
+        result = {}
+        start_index = start_branch - 1
+        for branch_position in range(1, 13):
+            branch_index = branch_position - 1
+            offset = (
+                (branch_index - start_index) % 12
+                if forward
+                else (start_index - branch_index) % 12
+            )
+            result[branch_position] = LasoTuviService.TRANG_SINH[offset]
+        return result
+
+    @staticmethod
+    def _is_trang_sinh_forward(year: int, gioi_tinh: int) -> bool:
+        stem_index = (year - 4) % 10
+        is_yang_year = stem_index % 2 == 0
+        is_male = gioi_tinh == 1
+        return is_yang_year == is_male
+
+    @staticmethod
+    def _get_trang_sinh(
+        cung: Any,
+        position: int,
+        computed_cycle: Optional[Dict[int, str]] = None,
+    ) -> Optional[str]:
+        if computed_cycle and position in computed_cycle:
+            return computed_cycle[position]
+
         engine_value = LasoTuviService._get_attr(
             cung, ['trangSinh', 'vongTrangSinh', 'cungTrangSinh']
         )
         if engine_value:
             return engine_value
         return LasoTuviService.TRANG_SINH[(position - 1) % 12]
+
+    @staticmethod
+    def _resolve_star_brightness(
+        name: Optional[str],
+        branch_position: int,
+        engine_value: Optional[str] = None,
+    ) -> Dict[str, Optional[str]]:
+        code = LasoTuviService._star_brightness_override(name, branch_position)
+        if not code:
+            code = LasoTuviService._brightness_code(engine_value)
+        label = LasoTuviService.BRIGHTNESS_LABELS.get(code or "", engine_value)
+        return {
+            "code": code,
+            "label": label,
+            "color": LasoTuviService._brightness_color_from_code(code),
+        }
+
+    @staticmethod
+    def _star_brightness_override(name: Optional[str], branch_position: int) -> Optional[str]:
+        normalized = LasoTuviService._normalize_star_lookup(name)
+        branch_code = LasoTuviService.BRANCH_BRIGHTNESS_OVERRIDES.get((normalized, branch_position))
+        if branch_code:
+            return branch_code
+        return LasoTuviService.STATIC_BRIGHTNESS_OVERRIDES.get(normalized)
 
     @staticmethod
     def _brightness_code(value: Optional[str]) -> Optional[str]:
@@ -786,6 +1304,10 @@ class LasoTuviService:
     @staticmethod
     def _brightness_color(value: Optional[str]) -> str:
         code = LasoTuviService._brightness_code(value)
+        return LasoTuviService._brightness_color_from_code(code)
+
+    @staticmethod
+    def _brightness_color_from_code(code: Optional[str]) -> str:
         if code in {'M', 'V', 'Đ'}:
             return 'strong'
         if code == 'H':
@@ -802,6 +1324,8 @@ class LasoTuviService:
         if numeric_id in LasoTuviService.CHINH_TINH_IDS:
             return 'Chính tinh'
         normalized = LasoTuviService._normalize_text(name or '')
+        if normalized.startswith("l "):
+            return 'Sao lưu'
         normalized_major_names = {
             LasoTuviService._normalize_text(star_name)
             for star_name in LasoTuviService.CHINH_TINH_NAMES
@@ -812,12 +1336,22 @@ class LasoTuviService:
 
     @staticmethod
     def _star_quality(name: Optional[str]) -> str:
-        normalized = LasoTuviService._normalize_text(name or '')
+        normalized = LasoTuviService._normalize_star_lookup(name)
         if normalized in LasoTuviService.SAT_TINH_NAMES:
             return 'sat_tinh'
         if normalized in LasoTuviService.CAT_TINH_NAMES:
             return 'cat_tinh'
         return 'cat_tinh'
+
+    @staticmethod
+    def _is_trang_sinh_star(name: Optional[str]) -> bool:
+        normalized = LasoTuviService._normalize_text(name or '')
+        trang_sinh_names = {
+            LasoTuviService._normalize_text(star_name)
+            for star_name in LasoTuviService.TRANG_SINH
+        }
+        trang_sinh_names.add("truong sinh")
+        return normalized in trang_sinh_names
 
     @staticmethod
     def get_cung_info(la_so_data: Dict[str, Any], cung_so: int) -> Optional[Dict[str, Any]]:
@@ -877,6 +1411,8 @@ class LasoTuviService:
                 'gio': la_so_data['gio'],
                 'gioiTinh': la_so_data['gioiTinh'],
                 'duongLich': la_so_data.get('duongLich'),
+                'namXemHan': la_so_data.get('namXemHan'),
+                'canChiNamXem': la_so_data.get('canChiNamXem'),
                 'personalInfo': la_so_data.get('personalInfo'),
                 'destinyInfo': la_so_data.get('destinyInfo')
             },

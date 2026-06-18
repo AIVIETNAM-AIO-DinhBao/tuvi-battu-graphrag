@@ -244,6 +244,8 @@ class TestTuViOutputStructure:
         assert "birth_time" in metadata
         assert "gender" in metadata
         assert "calculated_at" in metadata
+        assert "nam_xem_han" in metadata
+        assert "can_chi_nam_xem" in metadata
     
     def test_palace_structure(self, sample_chart):
         """Test palace structure consistency"""
@@ -273,6 +275,44 @@ class TestTuViOutputStructure:
             # palace can be None for some stars
             assert "palace" in star_data
             assert "attributes" in star_data
+
+    def test_annual_transit_stars_are_normalized(self, calculator):
+        result = calculator.calculate(
+            birth_date="2005-01-01",
+            birth_time="18:00",
+            gender="male",
+            nam_xem_han=2026,
+        )
+
+        assert result["metadata"]["nam_xem_han"] == 2026
+        assert result["metadata"]["can_chi_nam_xem"] == "Bính Ngọ"
+        assert result["metadata"]["destiny_info"]["amDuongLy"] == "Thuận lý"
+        assert result["metadata"]["destiny_info"]["menhCucTuongQuan"] == "Cục khắc Mệnh"
+
+        dien_trach_stars = result["palaces"]["Điền Trạch"]["star_details"]
+        annual_names = {star["name"] for star in dien_trach_stars if star.get("is_luu")}
+
+        assert {"L.Thái Tuế", "L.Kình Dương"}.issubset(annual_names)
+        assert result["stars"]["L.Lộc Tồn"]["attributes"]["brightness_code"] == "M"
+
+    def test_khong_vong_markers_are_normalized(self, calculator):
+        result = calculator.calculate(
+            birth_date="2005-01-01",
+            birth_time="18:00",
+            gender="male",
+            nam_xem_han=2026,
+        )
+
+        marked = [
+            palace
+            for palace in result["palaces"].values()
+            if palace.get("position") in [7, 8]
+        ]
+
+        assert len(marked) == 2
+        assert all(palace["attributes"]["tuan_khong"] is True for palace in marked)
+        assert all(palace["attributes"]["triet_khong"] is True for palace in marked)
+        assert all(palace["attributes"]["khong_vong"] == ["Tuần", "Triệt"] for palace in marked)
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ interface CreateChartFormState {
   birth_time: string;
   gender: Gender;
   chart_system: ChartSystem;
+  nam_xem_han: string;
 }
 
 interface SessionUser {
@@ -24,6 +25,7 @@ interface SessionUser {
 const BATU_SUPPORTED_YEAR_MIN = 1930;
 const BATU_SUPPORTED_YEAR_MAX = 2048;
 const CHART_VERSION = "1.0";
+const CURRENT_YEAR = new Date().getFullYear();
 
 const initialFormState: CreateChartFormState = {
   label: "",
@@ -31,6 +33,7 @@ const initialFormState: CreateChartFormState = {
   birth_time: "08:00",
   gender: "male",
   chart_system: "TUVI",
+  nam_xem_han: String(CURRENT_YEAR),
 };
 
 export default function DashboardPage() {
@@ -47,7 +50,7 @@ export default function DashboardPage() {
   const userEmail = user?.email ?? null;
   const isBatuSystem = useMemo(
     () => form.chart_system === "BATU" || form.chart_system === "TUVI_BATU",
-    [form.chart_system]
+    [form.chart_system],
   );
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function DashboardPage() {
       }
 
       if (error) {
-        setChartsError(`Khong the tai danh sach chart: ${error.message}`);
+        setChartsError(`Không thể tải danh sách chart: ${error.message}`);
         setCharts([]);
       } else {
         setCharts((data ?? []) as ChartSummary[]);
@@ -113,7 +116,7 @@ export default function DashboardPage() {
 
   const updateField = <K extends keyof CreateChartFormState>(
     field: K,
-    value: CreateChartFormState[K]
+    value: CreateChartFormState[K],
   ) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
@@ -157,7 +160,7 @@ export default function DashboardPage() {
       });
 
       if (profileError) {
-        throw new Error(`Khong the tao profile: ${profileError.message}`);
+        throw new Error(`Không thể tạo profile: ${profileError.message}`);
       }
 
       const { data: newRow, error: insertError } = await supabase
@@ -176,23 +179,23 @@ export default function DashboardPage() {
         .single();
 
       if (insertError) {
-        throw new Error(`Khong the luu chart: ${insertError.message}`);
+        throw new Error(`Không thể lưu chart: ${insertError.message}`);
       }
 
       if (!newRow?.id) {
-        throw new Error("Supabase khong tra ve id chart moi.");
+        throw new Error("Supabase không trả về id chart mới.");
       }
 
       router.push(`/chart/${newRow.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Tao chart that bai.");
+      setError(err instanceof Error ? err.message : "Tạo chart thất bại.");
     } finally {
       setSubmitLoading(false);
     }
   };
 
   if (loading) {
-    return <main>Dang tai du lieu nguoi dung...</main>;
+    return <main className="loading-state">Đang tải dữ liệu người dùng...</main>;
   }
 
   return (
@@ -200,28 +203,28 @@ export default function DashboardPage() {
       <header className="page-header">
         <div>
           <h1>Dashboard</h1>
-          <p>Xin chao, {userEmail ?? "Nguoi dung"}.</p>
+          <p>Xin chào, {userEmail ?? "người dùng"}.</p>
         </div>
         <div className="header-actions">
           <button type="button" className="secondary-button" onClick={scrollToCreateChart}>
-            Create new chart
+            Tạo chart mới
           </button>
           <button type="button" className="secondary-button" onClick={handleLogout}>
-            Dang xuat
+            Đăng xuất
           </button>
         </div>
       </header>
 
       <section className="panel" id="create-chart">
-        <h2>Create new chart</h2>
+        <h2>Tạo chart mới</h2>
         <form className="chart-form" onSubmit={handleSubmit}>
           <label>
-            Label
+            Tên chart
             <input
               type="text"
               value={form.label}
               onChange={(event) => updateField("label", event.target.value)}
-              placeholder="La so cua toi"
+              placeholder="Lá số của tôi"
               disabled={submitLoading}
               required
             />
@@ -229,7 +232,7 @@ export default function DashboardPage() {
 
           <div className="form-grid">
             <label>
-              Birth date
+              Ngày sinh
               <input
                 type="date"
                 value={form.birth_date}
@@ -240,7 +243,7 @@ export default function DashboardPage() {
             </label>
 
             <label>
-              Birth time
+              Giờ sinh
               <input
                 type="time"
                 value={form.birth_time}
@@ -253,19 +256,19 @@ export default function DashboardPage() {
 
           <div className="form-grid">
             <label>
-              Gender
+              Giới tính
               <select
                 value={form.gender}
                 onChange={(event) => updateField("gender", event.target.value as Gender)}
                 disabled={submitLoading}
               >
                 <option value="male">Nam</option>
-                <option value="female">Nu</option>
+                <option value="female">Nữ</option>
               </select>
             </label>
 
             <label>
-              Chart type
+              Loại chart
               <select
                 value={form.chart_system}
                 onChange={(event) =>
@@ -273,21 +276,36 @@ export default function DashboardPage() {
                 }
                 disabled={submitLoading}
               >
-                <option value="TUVI">Tu Vi</option>
-                <option value="BATU">Bat Tu</option>
-                <option value="TUVI_BATU">Tu Vi + Bat Tu</option>
+                <option value="TUVI">Tử Vi</option>
+                <option value="BATU">Bát Tự</option>
+                <option value="TUVI_BATU">Tử Vi + Bát Tự</option>
               </select>
+            </label>
+          </div>
+
+          <div className="form-grid">
+            <label>
+              Năm xem hạn
+              <input
+                type="number"
+                min="1900"
+                max="2100"
+                value={form.nam_xem_han}
+                onChange={(event) => updateField("nam_xem_han", event.target.value)}
+                disabled={submitLoading}
+                required
+              />
             </label>
           </div>
 
           {isBatuSystem && (
             <p className="form-note">
-              Bat Tu hien ho tro nam {BATU_SUPPORTED_YEAR_MIN}-{BATU_SUPPORTED_YEAR_MAX}.
+              Bát Tự hiện hỗ trợ năm {BATU_SUPPORTED_YEAR_MIN}-{BATU_SUPPORTED_YEAR_MAX}.
             </p>
           )}
 
           <button type="submit" disabled={submitLoading}>
-            {submitLoading ? "Dang tinh va luu chart..." : "Tao chart"}
+            {submitLoading ? "Đang tính và lưu chart..." : "Tạo chart"}
           </button>
         </form>
 
@@ -297,23 +315,27 @@ export default function DashboardPage() {
       <section className="panel">
         <div className="section-heading-row">
           <div>
-            <h2>Charts</h2>
-            <p>{charts.length > 0 ? `${charts.length} chart da luu.` : "Danh sach chart cua ban."}</p>
+            <h2>Charts đã lưu</h2>
+            <p>
+              {charts.length > 0
+                ? `${charts.length} chart đã lưu.`
+                : "Danh sách chart của bạn."}
+            </p>
           </div>
           <button type="button" className="secondary-button" onClick={scrollToCreateChart}>
-            Create new chart
+            Tạo chart mới
           </button>
         </div>
 
-        {chartsLoading && <p className="form-note">Dang tai danh sach chart...</p>}
+        {chartsLoading && <p className="form-note">Đang tải danh sách chart...</p>}
         {chartsError && <p className="error-message">{chartsError}</p>}
 
         {!chartsLoading && !chartsError && charts.length === 0 && (
           <div className="empty-state">
-            <h3>Chua co chart nao</h3>
-            <p>Tao chart dau tien de xem bang Tu Vi hoac Bat Tu tai trang chi tiet.</p>
+            <h3>Chưa có chart nào</h3>
+            <p>Tạo chart đầu tiên để xem bảng Tử Vi hoặc Bát Tự tại trang chi tiết.</p>
             <button type="button" onClick={scrollToCreateChart}>
-              Create new chart
+              Tạo chart mới
             </button>
           </div>
         )}
@@ -332,28 +354,33 @@ export default function DashboardPage() {
 
 function validateForm(form: CreateChartFormState): string | null {
   if (!form.label.trim()) {
-    return "Label khong duoc de trong.";
+    return "Tên chart không được để trống.";
   }
 
   const dateParts = parseBirthDate(form.birth_date);
   if (!dateParts) {
-    return "Birth date phai la ngay Gregorian hop le.";
+    return "Ngày sinh phải là ngày Gregorian hợp lệ.";
   }
 
   if (!/^\d{2}:\d{2}$/.test(form.birth_time)) {
-    return "Birth time phai co dinh dang HH:MM.";
+    return "Giờ sinh phải có định dạng HH:MM.";
   }
 
   const [hour, minute] = form.birth_time.split(":").map(Number);
   if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-    return "Birth time phai nam trong khoang 00:00-23:59.";
+    return "Giờ sinh phải nằm trong khoảng 00:00-23:59.";
   }
 
   if (
     (form.chart_system === "BATU" || form.chart_system === "TUVI_BATU") &&
     (dateParts.year < BATU_SUPPORTED_YEAR_MIN || dateParts.year > BATU_SUPPORTED_YEAR_MAX)
   ) {
-    return `Bat Tu chi ho tro nam ${BATU_SUPPORTED_YEAR_MIN}-${BATU_SUPPORTED_YEAR_MAX}.`;
+    return `Bát Tự chỉ hỗ trợ năm ${BATU_SUPPORTED_YEAR_MIN}-${BATU_SUPPORTED_YEAR_MAX}.`;
+  }
+
+  const namXemHan = Number(form.nam_xem_han);
+  if (!Number.isInteger(namXemHan) || namXemHan < 1900 || namXemHan > 2100) {
+    return "Năm xem hạn phải nằm trong khoảng 1900-2100.";
   }
 
   return null;
@@ -375,7 +402,7 @@ async function calculateChartData(form: CreateChartFormState) {
 async function calculateTuVi(form: CreateChartFormState) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!apiBaseUrl) {
-    throw new Error("Thieu cau hinh NEXT_PUBLIC_API_BASE_URL cho Tu Vi engine.");
+    throw new Error("Thiếu cấu hình NEXT_PUBLIC_API_BASE_URL cho Tử Vi engine.");
   }
 
   const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/chart/tuvi`, {
@@ -386,16 +413,17 @@ async function calculateTuVi(form: CreateChartFormState) {
       birth_date: form.birth_date,
       birth_time: form.birth_time,
       gender: form.gender,
+      nam_xem_han: Number(form.nam_xem_han),
     }),
   });
 
-  return parseEngineResponse(response, "Tu Vi");
+  return parseEngineResponse(response, "Tử Vi");
 }
 
 async function calculateBatTu(form: CreateChartFormState) {
   const dateParts = parseBirthDate(form.birth_date);
   if (!dateParts) {
-    throw new Error("Birth date khong hop le.");
+    throw new Error("Ngày sinh không hợp lệ.");
   }
 
   const [hour] = form.birth_time.split(":").map(Number);
@@ -412,7 +440,7 @@ async function calculateBatTu(form: CreateChartFormState) {
     }),
   });
 
-  return parseEngineResponse(response, "Bat Tu");
+  return parseEngineResponse(response, "Bát Tự");
 }
 
 async function parseEngineResponse(response: Response, engineName: string) {
@@ -426,7 +454,7 @@ async function parseEngineResponse(response: Response, engineName: string) {
 
   if (!response.ok) {
     const message = extractErrorMessage(body);
-    throw new Error(`${engineName} engine loi: ${message || response.statusText}`);
+    throw new Error(`${engineName} engine lỗi: ${message || response.statusText}`);
   }
 
   return body;
