@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "TuVi - BaTu GraphRAG",
-  description: "Hệ thống hỏi đáp TuVi và BaTu với Hybrid GraphRAG",
+  description: "Hệ thống hỏi đáp Tử Vi và Bát Tự với Hybrid GraphRAG",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

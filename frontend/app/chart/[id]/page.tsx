@@ -39,7 +39,7 @@ export default function ChartDetailPage() {
       }
 
       if (!chartId) {
-        setError("Chart id khong hop le.");
+        setError("Chart id không hợp lệ.");
         setLoading(false);
         return;
       }
@@ -49,7 +49,7 @@ export default function ChartDetailPage() {
       const { data, error: fetchError } = await supabase
         .from("la_so")
         .select(
-          "id,label,birth_date,birth_time,gender,chart_system,chart_version,chart_data,created_at"
+          "id,label,birth_date,birth_time,gender,chart_system,chart_version,chart_data,created_at",
         )
         .eq("id", chartId)
         .single();
@@ -59,7 +59,7 @@ export default function ChartDetailPage() {
       }
 
       if (fetchError) {
-        setError(`Khong the tai chart: ${fetchError.message}`);
+        setError(`Không thể tải chart: ${fetchError.message}`);
       } else {
         setChart(data as ChartRow);
       }
@@ -75,18 +75,18 @@ export default function ChartDetailPage() {
   }, [chartId, router]);
 
   if (loading) {
-    return <main>Dang tai chart...</main>;
+    return <main className="loading-state">Đang tải chart...</main>;
   }
 
   return (
     <main>
       <header className="page-header">
         <div>
-          <h1>Chart Detail</h1>
-          <p>Nguoi dung: {sessionEmail}</p>
+          <h1>Chi tiết chart</h1>
+          <p>Người dùng: {sessionEmail}</p>
         </div>
         <button type="button" className="secondary-button" onClick={() => router.push("/dashboard")}>
-          Ve dashboard
+          Về dashboard
         </button>
       </header>
 
@@ -101,23 +101,23 @@ export default function ChartDetailPage() {
               <dd>{chart.id}</dd>
             </div>
             <div>
-              <dt>Birth date</dt>
+              <dt>Ngày sinh</dt>
               <dd>{chart.birth_date}</dd>
             </div>
             <div>
-              <dt>Birth time</dt>
+              <dt>Giờ sinh</dt>
               <dd>{chart.birth_time}</dd>
             </div>
             <div>
-              <dt>Gender</dt>
-              <dd>{chart.gender}</dd>
+              <dt>Giới tính</dt>
+              <dd>{formatGender(chart.gender)}</dd>
             </div>
             <div>
-              <dt>Chart system</dt>
-              <dd>{chart.chart_system}</dd>
+              <dt>Loại chart</dt>
+              <dd>{formatChartSystem(chart.chart_system)}</dd>
             </div>
             <div>
-              <dt>Chart version</dt>
+              <dt>Phiên bản chart</dt>
               <dd>{chart.chart_version ?? "N/A"}</dd>
             </div>
           </dl>
@@ -125,7 +125,7 @@ export default function ChartDetailPage() {
           <ChartVisualizer chartSystem={chart.chart_system} chartData={chart.chart_data} />
 
           <details className="debug-details">
-            <summary>Debug chart data</summary>
+            <summary>Dữ liệu debug của chart</summary>
             <pre className="json-preview">{JSON.stringify(chart.chart_data, null, 2)}</pre>
           </details>
         </section>
@@ -146,7 +146,7 @@ function ChartVisualizer({
       return <TuViBoard chart={chartData} />;
     }
 
-    return <VisualizerError message="Du lieu Tu Vi khong dung dinh dang." />;
+    return <VisualizerError message="Dữ liệu Tử Vi không đúng định dạng." />;
   }
 
   if (chartSystem === "BATU") {
@@ -154,12 +154,12 @@ function ChartVisualizer({
       return <BatuBoard chart={chartData} />;
     }
 
-    return <VisualizerError message="Du lieu Bat Tu khong dung dinh dang." />;
+    return <VisualizerError message="Dữ liệu Bát Tự không đúng định dạng." />;
   }
 
   if (chartSystem === "TUVI_BATU") {
     if (!isRecord(chartData)) {
-      return <VisualizerError message="Du lieu chart ket hop khong dung dinh dang." />;
+      return <VisualizerError message="Dữ liệu chart kết hợp không đúng định dạng." />;
     }
 
     const tuvi = chartData.tuvi;
@@ -170,29 +170,42 @@ function ChartVisualizer({
         {isTuViChartData(tuvi) ? (
           <TuViBoard chart={tuvi} />
         ) : (
-          <VisualizerError message="Du lieu Tu Vi trong chart ket hop khong dung dinh dang." />
+          <VisualizerError message="Dữ liệu Tử Vi trong chart kết hợp không đúng định dạng." />
         )}
         {isBatuChartData(batu) ? (
           <BatuBoard chart={batu} />
         ) : (
-          <VisualizerError message="Du lieu Bat Tu trong chart ket hop khong dung dinh dang." />
+          <VisualizerError message="Dữ liệu Bát Tự trong chart kết hợp không đúng định dạng." />
         )}
       </div>
     );
   }
 
-  return <VisualizerError message={`Chart system chua duoc ho tro: ${chartSystem}`} />;
+  return <VisualizerError message={`Chart system chưa được hỗ trợ: ${chartSystem}`} />;
 }
 
 function VisualizerError({ message }: { message: string }) {
   return (
     <section className="visualizer-section">
       <div className="board-message">
-        <h3>Khong the hien thi visualizer</h3>
+        <h3>Không thể hiển thị visualizer</h3>
         <p>{message}</p>
       </div>
     </section>
   );
+}
+
+function formatGender(value: string) {
+  if (value === "male") return "Nam";
+  if (value === "female") return "Nữ";
+  return value || "N/A";
+}
+
+function formatChartSystem(value: string) {
+  if (value === "TUVI") return "Tử Vi";
+  if (value === "BATU") return "Bát Tự";
+  if (value === "TUVI_BATU") return "Tử Vi + Bát Tự";
+  return value || "N/A";
 }
 
 function isTuViChartData(value: unknown): value is TuViChartData {

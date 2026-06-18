@@ -199,6 +199,177 @@ class TestLasoTuViServiceExtendedMetadata:
     def test_star_quality_normalization(self):
         assert LasoTuviService._star_quality("Địa Không") == "sat_tinh"
         assert LasoTuviService._star_quality("Thiên Khôi") == "cat_tinh"
+        assert LasoTuviService._star_quality("L.Thiên Mã") == "sat_tinh"
+        assert LasoTuviService._star_quality("Thái Tuế") == "sat_tinh"
+        assert LasoTuviService._star_quality("L.Thái Tuế") == "sat_tinh"
+        assert LasoTuviService._star_quality("Phi Liêm") == "sat_tinh"
+        assert LasoTuviService._star_quality("Thiên Không") == "sat_tinh"
+        assert LasoTuviService._star_quality("Lưu Hà") == "sat_tinh"
+        assert LasoTuviService._star_quality("Thiên La") == "sat_tinh"
+        assert LasoTuviService._star_quality("Địa Võng") == "sat_tinh"
+
+    def test_trang_sinh_moc_tam_cuc_starts_at_hoi(self):
+        cycle = LasoTuviService._build_trang_sinh_by_position("Moc tam cuc", 1990, 1)
+
+        assert cycle[12] == LasoTuviService.TRANG_SINH[0]
+        assert cycle[1] == LasoTuviService.TRANG_SINH[1]
+
+    def test_cuc_menh_uses_ngu_ho_don_can_chi(self):
+        assert LasoTuviService._get_cung_can_chi(2005, 4) == "Kỷ Mão"
+        assert LasoTuviService._infer_cuc_menh(2005, 4) == "Thổ ngũ cục"
+
+    def test_am_duong_ly(self):
+        assert LasoTuviService._calculate_am_duong_ly("Âm Nam", 4) == "Thuận lý"
+        assert LasoTuviService._calculate_am_duong_ly("Dương Nam", 4) == "Nghịch lý"
+        assert LasoTuviService._calculate_am_duong_ly("Dương Nam", 3) == "Thuận lý"
+        assert LasoTuviService._calculate_am_duong_ly("Âm Nữ", 3) == "Thuận lý"
+
+    @pytest.mark.parametrize(
+        "menh,cuc,expected",
+        [
+            ("Hỏa", "Mộc", "Cục sinh Mệnh"),
+            ("Mộc", "Hỏa", "Mệnh sinh Cục"),
+            ("Thủy", "Thổ", "Cục khắc Mệnh"),
+            ("Mộc", "Thổ", "Mệnh khắc Cục"),
+            ("Kim", "Kim", "Mệnh - Cục bình hòa"),
+        ],
+    )
+    def test_menh_cuc_relation(self, menh, cuc, expected):
+        assert LasoTuviService._calculate_menh_cuc_relation(menh, cuc) == expected
+
+    def test_filters_engine_trang_sinh_stars(self):
+        assert LasoTuviService._is_trang_sinh_star("Tràng sinh") is True
+        assert LasoTuviService._is_trang_sinh_star("Thiên Khôi") is False
+
+    @pytest.mark.parametrize(
+        "birth_branch,hoa_start,linh_start",
+        [
+            (3, 2, 4),
+            (1, 3, 11),
+            (10, 4, 11),
+            (4, 10, 11),
+        ],
+    )
+    def test_hoa_linh_uses_standard_group_table(self, birth_branch, hoa_start, linh_start):
+        assert LasoTuviService._calculate_hoa_linh_positions(2006, birth_branch, 3, 1) == (
+            LasoTuviService._shift_branch(hoa_start, 2),
+            LasoTuviService._shift_branch(linh_start, -2),
+        )
+        assert LasoTuviService._calculate_hoa_linh_positions(2006, birth_branch, 3, -1) == (
+            LasoTuviService._shift_branch(hoa_start, -2),
+            LasoTuviService._shift_branch(linh_start, 2),
+        )
+
+    def test_pha_toai_for_dau_year_goes_to_ty_branch(self):
+        dau_branch = 10
+        assert LasoTuviService._calculate_pha_toai_position(dau_branch) == 6
+
+    def test_an_sao_luu_for_binh_ngo_2026(self):
+        placements = {
+            item["name"]: item["position"]
+            for item in LasoTuviService.an_sao_luu("Bính", "Ngọ", 2026)
+        }
+
+        assert placements["L.Thái Tuế"] == 7
+        assert placements["L.Tang Môn"] == 9
+        assert placements["L.Bạch Hổ"] == 3
+        assert placements["L.Lộc Tồn"] == 6
+        assert placements["L.Kình Dương"] == 7
+        assert placements["L.Đà La"] == 5
+        assert placements["L.Thiên Mã"] == 9
+
+    def test_star_brightness_overrides(self):
+        assert LasoTuviService._resolve_star_brightness("Văn Khúc", 4)["code"] == "H"
+        assert LasoTuviService._resolve_star_brightness("Hóa Quyền", 1)["code"] == "V"
+        assert LasoTuviService._resolve_star_brightness("Hóa Lộc", 1)["code"] == "Đ"
+        assert LasoTuviService._resolve_star_brightness("Hóa Khoa", 1)["code"] == "Đ"
+        assert LasoTuviService._resolve_star_brightness("Hóa Kỵ", 1)["code"] == "H"
+        assert LasoTuviService._resolve_star_brightness("L.Lộc Tồn", 1)["code"] == "M"
+        assert LasoTuviService._resolve_star_brightness("L.Thiên Mã", 1)["code"] == "H"
+
+    def test_triet_positions_by_birth_stem(self):
+        assert LasoTuviService._calculate_triet_positions("Ất") == [7, 8]
+        assert LasoTuviService._calculate_triet_positions("Giáp") == [9, 10]
+        assert LasoTuviService._calculate_triet_positions("Bính") == [5, 6]
+        assert LasoTuviService._calculate_triet_positions("Đinh") == [3, 4]
+        assert LasoTuviService._calculate_triet_positions("Mậu") == [1, 2]
+
+    @pytest.mark.parametrize(
+        "can_chi,expected",
+        [
+            ("Giáp Tý", [11, 12]),
+            ("Giáp Tuất", [9, 10]),
+            ("Giáp Thân", [7, 8]),
+            ("Giáp Ngọ", [5, 6]),
+            ("Giáp Thìn", [3, 4]),
+            ("Giáp Dần", [1, 2]),
+            ("Ất Dậu", [7, 8]),
+        ],
+    )
+    def test_tuan_positions_by_luc_thap_hoa_giap_week(self, can_chi, expected):
+        assert LasoTuviService._calculate_tuan_positions(can_chi) == expected
+
+    def test_generate_applies_v6_corrected_and_annual_stars(self):
+        result = LasoTuviService.generate_la_so(
+            ngay=1,
+            thang=1,
+            nam=2005,
+            gio=10,
+            gioi_tinh=1,
+            nam_xem_han=2026,
+        )
+
+        by_role = {cung["cungChu"]: cung for cung in result["thapNhiCung"]}
+
+        assert result["namXemHan"] == 2026
+        assert result["canChiNamXem"] == "Bính Ngọ"
+        assert result["cungMenh"] == 4
+        assert result["destinyInfo"]["banMenh"] == "Tuyền Trung Thủy"
+        assert result["destinyInfo"]["cucMenh"] == "Thổ ngũ cục"
+        assert result["destinyInfo"]["menhNguHanh"] == "Thủy"
+        assert result["destinyInfo"]["cucNguHanh"] == "Thổ"
+        assert result["destinyInfo"]["amDuongLy"] == "Thuận lý"
+        assert result["destinyInfo"]["menhCucTuongQuan"] == "Cục khắc Mệnh"
+        assert "Phá Toái" in [s["saoTen"] for s in by_role["Phúc đức"]["cungSao"]]
+        assert {"L.Lộc Tồn", "Phá Toái"}.issubset(
+            {s["saoTen"] for s in by_role["Phúc đức"]["cungSao"]}
+        )
+        assert {"L.Thái Tuế", "L.Kình Dương"}.issubset(
+            {s["saoTen"] for s in by_role["Điền trạch"]["cungSao"]}
+        )
+        assert "L.Đà La" in {s["saoTen"] for s in by_role["Phụ mẫu"]["cungSao"]}
+        assert {"L.Thiên Mã", "L.Tang Môn"}.issubset(
+            {s["saoTen"] for s in by_role["Nô bộc"]["cungSao"]}
+        )
+        assert all(
+            s.get("is_luu") is True
+            for cung in result["thapNhiCung"]
+            for s in cung["cungSao"]
+            if s["saoTen"].startswith("L.")
+        )
+
+    def test_generate_marks_tuan_triet_without_adding_them_as_stars(self):
+        result = LasoTuviService.generate_la_so(
+            ngay=1,
+            thang=1,
+            nam=2005,
+            gio=10,
+            gioi_tinh=1,
+            nam_xem_han=2026,
+        )
+
+        by_position = {cung["cungSo"]: cung for cung in result["thapNhiCung"]}
+        for position in [7, 8]:
+            assert by_position[position]["tuanKhong"] is True
+            assert by_position[position]["trietKhong"] is True
+            assert by_position[position]["khongVong"] == ["Tuần", "Triệt"]
+
+        void_star_names = {"tuan", "triet", "tuan khong", "triet khong"}
+        assert not any(
+            LasoTuviService._normalize_text(star["saoTen"]) in void_star_names
+            for cung in result["thapNhiCung"]
+            for star in cung["cungSao"]
+        )
 
     def test_format_for_output_includes_extended_metadata(self):
         raw_chart = {
@@ -215,6 +386,8 @@ class TestLasoTuViServiceExtendedMetadata:
             "tenCungMenh": "Thìn",
             "tenCungThan": "Tuất",
             "thapNhiCung": [],
+            "namXemHan": 2026,
+            "canChiNamXem": "Bính Ngọ",
             "lunarDate": {"day": 27, "month": 8, "year": 1990},
             "timestamp": "2026-06-17T00:00:00",
         }
@@ -223,6 +396,8 @@ class TestLasoTuViServiceExtendedMetadata:
 
         assert formatted["thongTinCanChi"]["personalInfo"]["gender"] == "Nam"
         assert formatted["thongTinCanChi"]["destinyInfo"]["banMenh"] == "Lộ Bàng Thổ"
+        assert formatted["thongTinCanChi"]["namXemHan"] == 2026
+        assert formatted["thongTinCanChi"]["canChiNamXem"] == "Bính Ngọ"
         assert formatted["lunarDate"]["year"] == 1990
         assert formatted["timestamp"] == "2026-06-17T00:00:00"
 

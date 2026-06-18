@@ -67,6 +67,7 @@ class TuViCalculator:
         birth_time: str,
         gender: str,
         label: Optional[str] = None,
+        nam_xem_han: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Calculate a Tu Vi chart from ISO date, clock time, and gender.
@@ -97,6 +98,7 @@ class TuViCalculator:
                 nam=parsed_date.year,
                 gio=lasotuvi_hour,
                 gioi_tinh=normalized_gender,
+                nam_xem_han=nam_xem_han,
             )
 
             return self._normalize_output(
@@ -168,6 +170,8 @@ class TuViCalculator:
                 "birth_date": birth_date,
                 "birth_time": birth_time,
                 "gender": gender,
+                "nam_xem_han": raw_chart.get("namXemHan"),
+                "can_chi_nam_xem": raw_chart.get("canChiNamXem"),
                 "calculated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "personal_info": raw_chart.get("personalInfo"),
                 "destiny_info": raw_chart.get("destinyInfo"),
@@ -204,6 +208,9 @@ class TuViCalculator:
                     "tieu_han": palace_info.get("tieuHan"),
                     "luu_nien_dai_van": palace_info.get("luuNienDaiVan"),
                     "trang_sinh": palace_info.get("trangSinh"),
+                    "tuan_khong": palace_info.get("tuanKhong", False),
+                    "triet_khong": palace_info.get("trietKhong", False),
+                    "khong_vong": palace_info.get("khongVong", []),
                     "has_than": palace_info.get("coThan", palace_info.get("coThhan")),
                 },
             }
@@ -231,6 +238,9 @@ class TuViCalculator:
                         "brightness_code": star_info.get("saoDacTinhCode"),
                         "color": star_info.get("saoColor"),
                         "quality": star_info.get("saoTinhChat"),
+                        "is_luu": star_info.get("is_luu", star_info.get("isLuu", False)),
+                        "source": star_info.get("source"),
+                        "nam_xem_han": star_info.get("nam_xem_han", star_info.get("namXemHan")),
                     },
                 }
         return normalized
@@ -246,11 +256,14 @@ class TuViCalculator:
                 "brightness": star_info.get("saoDacTinh"),
                 "brightness_code": star_info.get("saoDacTinhCode"),
                 "category": star_info.get("saoNhom") or (
-                    "ChÃ­nh Tinh" if star_name in self.MAJOR_STARS else "Phá»¥ Tinh"
+                    "Chính Tinh" if star_name in self.MAJOR_STARS else "Phụ Tinh"
                 ),
                 "color": star_info.get("saoColor"),
                 "quality": star_info.get("saoTinhChat"),
                 "id": star_info.get("saoID"),
+                "is_luu": star_info.get("is_luu", star_info.get("isLuu", False)),
+                "source": star_info.get("source"),
+                "nam_xem_han": star_info.get("nam_xem_han", star_info.get("namXemHan")),
             })
         return normalized
 

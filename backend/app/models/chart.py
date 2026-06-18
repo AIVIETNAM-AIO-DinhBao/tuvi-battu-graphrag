@@ -28,6 +28,13 @@ class TuViChartRequest(BaseModel):
         description="Optional label for this chart",
         examples=["Lá số của tôi"]
     )
+    nam_xem_han: Optional[int] = Field(
+        None,
+        ge=1900,
+        le=2100,
+        description="Optional annual transit year. Defaults to the current Vietnam year.",
+        examples=[2026]
+    )
     
     @field_validator('gender')
     @classmethod

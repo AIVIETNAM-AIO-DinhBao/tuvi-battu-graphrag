@@ -10,6 +10,9 @@ export interface TuViStarDetail {
   color?: string | null;
   quality?: string | null;
   id?: number | string | null;
+  is_luu?: boolean | null;
+  source?: string | null;
+  nam_xem_han?: number | null;
 }
 
 export interface TuViPalace {
@@ -29,6 +32,8 @@ export interface TuViChartData {
     birth_date?: string;
     birth_time?: string;
     gender?: string;
+    nam_xem_han?: number;
+    can_chi_nam_xem?: string;
     personal_info?: Record<string, unknown> | null;
     destiny_info?: Record<string, unknown> | null;
   };
@@ -65,6 +70,11 @@ const PALACE_ORDER = [
 ];
 
 const GRID_CELLS = [
+  { x: 2, y: 3 },
+  { x: 1, y: 3 },
+  { x: 0, y: 3 },
+  { x: 0, y: 2 },
+  { x: 0, y: 1 },
   { x: 0, y: 0 },
   { x: 1, y: 0 },
   { x: 2, y: 0 },
@@ -72,11 +82,6 @@ const GRID_CELLS = [
   { x: 3, y: 1 },
   { x: 3, y: 2 },
   { x: 3, y: 3 },
-  { x: 2, y: 3 },
-  { x: 1, y: 3 },
-  { x: 0, y: 3 },
-  { x: 0, y: 2 },
-  { x: 0, y: 1 },
 ];
 
 const MAJOR_STAR_NAMES = new Set([
@@ -135,14 +140,33 @@ const BAD_STAR_NAMES = new Set([
   "bach ho",
   "thien khoc",
   "thien hu",
+  "thai tue",
+  "phi liem",
+  "thien khong",
+  "luu ha",
+  "thien la",
+  "dia vong",
   "co than",
   "qua tu",
   "pha toai",
   "hoa ky",
 ]);
 
-const MAX_MAJOR_STARS = 3;
-const MAX_MINOR_PER_COLUMN = 6;
+const TRANG_SINH_STAR_NAMES = new Set([
+  "trang sinh",
+  "truong sinh",
+  "moc duc",
+  "quan doi",
+  "lam quan",
+  "de vuong",
+  "suy",
+  "benh",
+  "tu",
+  "mo",
+  "tuyet",
+  "thai",
+  "duong",
+]);
 
 export function TuViBoard({ chart }: TuViBoardProps) {
   const palaces = normalizePalaces(chart);
@@ -150,8 +174,8 @@ export function TuViBoard({ chart }: TuViBoardProps) {
 
   if (palaces.length !== 12) {
     return (
-      <BoardMessage title="Khong the hien thi bang Tu Vi">
-        Du lieu chart hien co khong du 12 cung.
+      <BoardMessage title="Không thể hiển thị bảng Tử Vi">
+        Dữ liệu chart hiện có không đủ 12 cung.
       </BoardMessage>
     );
   }
@@ -160,8 +184,8 @@ export function TuViBoard({ chart }: TuViBoardProps) {
     <section className="visualizer-section" aria-labelledby="tuvi-board-title">
       <div className="visualizer-heading">
         <div>
-          <p className="eyebrow">Tu Vi</p>
-          <h3 id="tuvi-board-title">Bang 12 cung</h3>
+          <p className="eyebrow">Tử Vi</p>
+          <h3 id="tuvi-board-title">Bảng 12 cung</h3>
         </div>
         <p>
           {chart.metadata?.birth_date ?? "N/A"} - {chart.metadata?.birth_time ?? "N/A"}
@@ -169,9 +193,9 @@ export function TuViBoard({ chart }: TuViBoardProps) {
       </div>
 
       <div className="tuvi-board-scroll">
-        <div className="tuvi-board" role="img" aria-label="Bang Tu Vi 12 cung">
+        <div className="tuvi-board" role="img" aria-label="Bảng Tử Vi 12 cung">
           <section className="tuvi-center-cell" style={centerCellStyle()}>
-            <h4>{truncateText(chart.metadata?.label ?? "La so Tu Vi", 32)}</h4>
+            <h4>{truncateText(chart.metadata?.label ?? "Lá số Tử Vi", 32)}</h4>
             <dl className="tuvi-center-table">
               {centerRows.map((row, index) => (
                 <div key={`${row.label}-${index}`}>
@@ -194,6 +218,7 @@ export function TuViBoard({ chart }: TuViBoardProps) {
             const trangSinh = textValue(palace.attributes.trang_sinh, "");
             const tieuHan = textValue(palace.attributes.tieu_han, "");
             const luuNien = textValue(palace.attributes.luu_nien_dai_van, "");
+            const khongVong = normalizeKhongVong(palace.attributes.khong_vong);
 
             return (
               <section
@@ -202,18 +227,24 @@ export function TuViBoard({ chart }: TuViBoardProps) {
                 style={cellStyle(cell.x, cell.y)}
               >
                 <span className="tuvi-palace-age">{daiHan}</span>
-                <span className="tuvi-palace-branch" title={[diaChi, trangSinh].filter(Boolean).join(" - ")}>
-                  {truncateText([diaChi, trangSinh].filter(Boolean).join(" - "), 24)}
+                <span className="tuvi-palace-branch" title={diaChi}>
+                  {truncateText(diaChi, 18)}
                 </span>
 
-                <h4 className="tuvi-palace-name">{palace.name}</h4>
+                <h4 className="tuvi-palace-name">
+                  <span>{palace.name}</span>
+                  {khongVong.map((marker) => (
+                    <span className="tuvi-khong-vong-badge" key={`${palace.key}-${marker}`}>
+                      {marker}
+                    </span>
+                  ))}
+                </h4>
 
                 <div className="tuvi-major-stars">
                   {starLayout.major.map((star, starIndex) => (
                     <StarLine
                       className={starClassName(star, "major")}
                       key={`${palace.key}-major-${star.name}-${starIndex}`}
-                      maxLength={26}
                       star={star}
                     />
                   ))}
@@ -225,7 +256,6 @@ export function TuViBoard({ chart }: TuViBoardProps) {
                       <StarLine
                         className={starClassName(star, "minor")}
                         key={`${palace.key}-good-${star.name}-${starIndex}`}
-                        maxLength={15}
                         star={star}
                       />
                     ))}
@@ -235,16 +265,13 @@ export function TuViBoard({ chart }: TuViBoardProps) {
                       <StarLine
                         className={starClassName(star, "minor")}
                         key={`${palace.key}-bad-${star.name}-${starIndex}`}
-                        maxLength={15}
                         star={star}
                       />
                     ))}
                   </div>
                 </div>
 
-                {starLayout.overflowCount > 0 && (
-                  <span className="tuvi-star-overflow">+{starLayout.overflowCount} sao</span>
-                )}
+                {trangSinh && <strong className="tuvi-trang-sinh">{trangSinh}</strong>}
 
                 <footer className="tuvi-palace-footer">
                   <span>{truncateText(tieuHan ? `TH: ${tieuHan}` : "TH: --", 16)}</span>
@@ -261,17 +288,15 @@ export function TuViBoard({ chart }: TuViBoardProps) {
 
 function StarLine({
   className,
-  maxLength,
   star,
 }: {
   className: string;
-  maxLength: number;
   star: TuViStarDetail;
 }) {
   const text = formatStar(star);
   return (
     <span className={className} title={text}>
-      {truncateText(text, maxLength)}
+      {text}
     </span>
   );
 }
@@ -325,14 +350,17 @@ function normalizeStars(palace: TuViPalace): TuViStarDetail[] {
       ...(grouped.chinh_tinh ?? []),
       ...(grouped.phu_tinh ?? []),
       ...(grouped.khac ?? []),
-    ].filter((star) => Boolean(star.name));
+    ].filter((star) => Boolean(star.name) && !isTrangSinhStar(star));
   }
 
   if (Array.isArray(palace.star_details) && palace.star_details.length > 0) {
-    return palace.star_details.filter((star) => Boolean(star.name));
+    return palace.star_details.filter((star) => Boolean(star.name) && !isTrangSinhStar(star));
   }
 
-  return (palace.stars ?? []).filter(Boolean).map((name) => ({ name }));
+  return (palace.stars ?? [])
+    .filter(Boolean)
+    .map((name) => ({ name }))
+    .filter((star) => !isTrangSinhStar(star));
 }
 
 function splitStars(stars: TuViStarDetail[]) {
@@ -341,21 +369,10 @@ function splitStars(stars: TuViStarDetail[]) {
   const goodMinor = minor.filter((star) => starQuality(star) !== "bad");
   const badMinor = minor.filter((star) => starQuality(star) === "bad");
 
-  const visibleMajor = major.slice(0, MAX_MAJOR_STARS);
-  const visibleGood = goodMinor.slice(0, MAX_MINOR_PER_COLUMN);
-  const visibleBad = badMinor.slice(0, MAX_MINOR_PER_COLUMN);
-  const overflowCount =
-    major.length +
-    minor.length -
-    visibleMajor.length -
-    visibleGood.length -
-    visibleBad.length;
-
   return {
-    major: visibleMajor,
-    good: visibleGood,
-    bad: visibleBad,
-    overflowCount: Math.max(overflowCount, 0),
+    major,
+    good: goodMinor,
+    bad: badMinor,
   };
 }
 
@@ -369,23 +386,32 @@ function buildCenterRows(chart: TuViChartData) {
   const canChi = recordValue(personal, "canChi");
 
   return [
-    { label: "Duong lich", value: formatDateObject(solarDate) || metadata.birth_date || "Dang tinh" },
-    { label: "Am lich", value: formatDateObject(lunarDate) || "Dang tinh" },
-    { label: "Gio sinh", value: formatHour(birthHour, metadata.birth_time ?? "Dang tinh") },
-    { label: "Gioi tinh", value: textValue(personal.gender, metadata.gender ?? "Dang tinh") },
-    { label: "Am duong", value: textValue(personal.amDuong, "Dang tinh") },
-    { label: "Can chi nam", value: textValue(recordValue(canChi, "year"), "Dang tinh") },
-    { label: "Ban menh", value: textValue(destiny.banMenh, "Dang tinh") },
-    { label: "Cuc menh", value: textValue(destiny.cucMenh, "Dang tinh") },
     {
-      label: "Chu menh/than",
+      label: "Năm xem hạn",
+      value: [
+        textValue(metadata.nam_xem_han, ""),
+        textValue(metadata.can_chi_nam_xem, ""),
+      ].filter(Boolean).join(" - ") || "Đang tính",
+    },
+    { label: "Dương lịch", value: formatDateObject(solarDate) || metadata.birth_date || "Đang tính" },
+    { label: "Âm lịch", value: formatDateObject(lunarDate) || "Đang tính" },
+    { label: "Giờ sinh", value: formatHour(birthHour, metadata.birth_time ?? "Đang tính") },
+    { label: "Giới tính", value: textValue(personal.gender, metadata.gender ?? "Đang tính") },
+    { label: "Âm dương", value: textValue(personal.amDuong, "Đang tính") },
+    { label: "Âm dương lý", value: textValue(destiny.amDuongLy, "Đang tính") },
+    { label: "Can chi năm", value: textValue(recordValue(canChi, "year"), "Đang tính") },
+    { label: "Bản mệnh", value: textValue(destiny.banMenh, "Đang tính") },
+    { label: "Cục mệnh", value: textValue(destiny.cucMenh, "Đang tính") },
+    { label: "Cục - Mệnh", value: textValue(destiny.menhCucTuongQuan, "Đang tính") },
+    {
+      label: "Chủ mệnh/thân",
       value: [textValue(destiny.chuMenh, ""), textValue(destiny.chuThan, "")]
         .filter(Boolean)
-        .join(" / ") || "Dang tinh",
+        .join(" / ") || "Đang tính",
     },
-    { label: "Can luong", value: textValue(destiny.canLuong, "Dang tinh") },
-    { label: "Than cu", value: textValue(destiny.thanCu, "Dang tinh") },
-    { label: "Lai nhan", value: textValue(destiny.laiNhanCung, "Dang tinh") },
+    { label: "Cân lượng", value: textValue(destiny.canLuong, "Đang tính") },
+    { label: "Thân cư", value: textValue(destiny.thanCu, "Đang tính") },
+    { label: "Lai nhân", value: textValue(destiny.laiNhanCung, "Đang tính") },
   ];
 }
 
@@ -423,7 +449,7 @@ function starQuality(star: TuViStarDetail) {
     return "good";
   }
 
-  const name = normalizeStarName(star.name ?? "");
+  const name = normalizeStarLookup(star.name ?? "");
   if (BAD_STAR_NAMES.has(name)) {
     return "bad";
   }
@@ -431,6 +457,10 @@ function starQuality(star: TuViStarDetail) {
     return "good";
   }
   return "good";
+}
+
+function isTrangSinhStar(star: TuViStarDetail) {
+  return TRANG_SINH_STAR_NAMES.has(normalizeStarLookup(star.name ?? ""));
 }
 
 function formatStar(star: TuViStarDetail) {
@@ -442,6 +472,9 @@ function formatStar(star: TuViStarDetail) {
 function starClassName(star: TuViStarDetail, size: "major" | "minor") {
   const color = normalizeStarName(String(star.color ?? ""));
   const classes = ["tuvi-star", size === "major" ? "is-primary" : "is-secondary"];
+  if (star.is_luu || normalizeStarName(star.name ?? "").startsWith("l ")) {
+    classes.push("is-luu");
+  }
   if (starQuality(star) === "bad") {
     classes.push("is-bad");
   } else {
@@ -472,7 +505,7 @@ function formatDateObject(value: unknown) {
   if (!day || !month || !year) {
     return "";
   }
-  const leap = value.leap_month ? " nhuan" : "";
+  const leap = value.leap_month ? " nhuận" : "";
   return `${day}/${month}/${year}${leap}`;
 }
 
@@ -492,11 +525,24 @@ function textValue(value: unknown, fallback = "") {
   return String(value);
 }
 
+function normalizeKhongVong(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => textValue(item, "")).filter(Boolean);
+  }
+  const text = textValue(value, "");
+  return text ? [text] : [];
+}
+
 function normalizeStarName(value: string) {
   return stripAccents(value)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function normalizeStarLookup(value: string) {
+  const normalized = normalizeStarName(value);
+  return normalized.startsWith("l ") ? normalized.slice(2).trim() : normalized;
 }
 
 function stripAccents(value: string) {

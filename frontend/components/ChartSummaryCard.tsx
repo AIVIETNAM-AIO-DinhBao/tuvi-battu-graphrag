@@ -18,9 +18,9 @@ interface ChartSummaryCardProps {
 }
 
 const CHART_SYSTEM_LABELS: Record<ChartSystem, string> = {
-  TUVI: "Tu Vi",
-  BATU: "Bat Tu",
-  TUVI_BATU: "Tu Vi + Bat Tu",
+  TUVI: "Tử Vi",
+  BATU: "Bát Tự",
+  TUVI_BATU: "Tử Vi + Bát Tự",
 };
 
 export function ChartSummaryCard({ chart, onOpen }: ChartSummaryCardProps) {
@@ -29,23 +29,23 @@ export function ChartSummaryCard({ chart, onOpen }: ChartSummaryCardProps) {
       type="button"
       className="chart-summary-card"
       onClick={() => onOpen(chart.id)}
-      aria-label={`Mo chart ${chart.label}`}
+      aria-label={`Mở chart ${chart.label}`}
     >
       <span className="chart-type-chip">{CHART_SYSTEM_LABELS[chart.chart_system]}</span>
       <strong>{chart.label}</strong>
       <dl>
         <div>
-          <dt>Birth</dt>
+          <dt>Ngày sinh</dt>
           <dd>
             {formatDate(chart.birth_date)} - {chart.birth_time}
           </dd>
         </div>
         <div>
-          <dt>Gender</dt>
+          <dt>Giới tính</dt>
           <dd>{formatGender(chart.gender)}</dd>
         </div>
         <div>
-          <dt>Created</dt>
+          <dt>Ngày tạo</dt>
           <dd>{formatDate(chart.created_at)}</dd>
         </div>
       </dl>
@@ -55,7 +55,7 @@ export function ChartSummaryCard({ chart, onOpen }: ChartSummaryCardProps) {
 
 function formatGender(value: string) {
   if (value === "male") return "Nam";
-  if (value === "female") return "Nu";
+  if (value === "female") return "Nữ";
   return value || "N/A";
 }
 
