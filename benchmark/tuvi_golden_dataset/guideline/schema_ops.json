@@ -1,0 +1,26 @@
+{
+  "description": "Internal metadata schema for workflow management",
+  "type": "object",
+  "properties": {
+    "expected_answer_points": { "type": "array", "items": { "type": "string" } },
+    "negative_constraints": { "type": "array", "items": { "type": "string" } },
+    "answer_rubric": { "type": "string" },
+    "annotator": {
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "created_at": { "type": "string" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "reviewer": { "type": "string" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "status": { "enum": ["draft", "verified", "adjudicated", "locked"] },
+    "difficulty": { "enum": ["easy", "medium", "hard"] }
+  }
+}
