@@ -5,6 +5,7 @@ neo4j
 pydantic
 pydantic-settings
 pytest
+PyYAML
 requests
 supabase
 pymupdf
