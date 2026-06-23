@@ -36,10 +36,6 @@ DOMAIN_MAP = {
     "tu_vi": "TUVI",
     "tuvi": "TUVI",
     "tử vi": "TUVI",
-    "bat_tu": "BATU",
-    "battu": "BATU",
-    "bát tự": "BATU",
-    "shared": "SHARED",
 }
 
 
@@ -127,7 +123,10 @@ def normalize_domain(value: str | None) -> str:
     if not value:
         return "TUVI"
     normalized = unicodedata.normalize("NFC", value).strip().casefold()
-    return DOMAIN_MAP.get(normalized, value.strip().upper())
+    domain = DOMAIN_MAP.get(normalized, value.strip().upper())
+    if domain != "TUVI":
+        raise ValueError(f"Unsupported corpus domain for Tử Vi-only scope: {value}")
+    return domain
 
 
 def discover_input_files(inputs: Iterable[Path] | None = None) -> list[Path]:

@@ -1,6 +1,6 @@
 "use client";
 
-export type ChartSystem = "TUVI" | "BATU" | "TUVI_BATU";
+export type ChartSystem = "TUVI";
 
 export interface ChartSummary {
   id: string;
@@ -19,8 +19,6 @@ interface ChartSummaryCardProps {
 
 const CHART_SYSTEM_LABELS: Record<ChartSystem, string> = {
   TUVI: "Tử Vi",
-  BATU: "Bát Tự",
-  TUVI_BATU: "Tử Vi + Bát Tự",
 };
 
 export function ChartSummaryCard({ chart, onOpen }: ChartSummaryCardProps) {

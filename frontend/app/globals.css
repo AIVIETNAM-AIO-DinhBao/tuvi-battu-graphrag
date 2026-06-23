@@ -573,12 +573,6 @@ select:disabled {
   white-space: pre-wrap;
 }
 
-.combined-boards {
-  display: grid;
-  gap: 1rem;
-  min-width: 0;
-}
-
 .visualizer-section {
   border-top: 1px solid var(--color-border-light);
   margin-top: 1.25rem;
@@ -860,107 +854,6 @@ select:disabled {
   white-space: nowrap;
 }
 
-.batu-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
-}
-
-.batu-pillar {
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-sm);
-  min-width: 0;
-  padding: 1rem;
-}
-
-.batu-pillar h4 {
-  color: var(--color-slate);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  margin: 0 0 0.75rem;
-  text-transform: uppercase;
-}
-
-.batu-stem-branch {
-  align-items: center;
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 1rem;
-}
-
-.batu-stem-branch span {
-  background: var(--color-soft-stone);
-  border-radius: var(--radius-sm);
-  color: var(--color-primary);
-  display: grid;
-  font-size: clamp(1.6rem, 4vw, 2rem);
-  min-height: 4.5rem;
-  min-width: 0;
-  place-items: center;
-}
-
-.batu-pillar dl,
-.batu-pillar dd {
-  margin: 0;
-}
-
-.batu-pillar dl {
-  display: grid;
-  gap: 0.65rem;
-}
-
-.batu-pillar dt {
-  color: var(--color-slate);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.batu-pillar dd {
-  color: var(--color-ink);
-  margin-top: 0.15rem;
-  overflow-wrap: anywhere;
-}
-
-.batu-elements {
-  border-top: 1px solid var(--color-border-light);
-  display: grid;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-}
-
-.element-row {
-  align-items: center;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: minmax(3rem, 4rem) minmax(0, 1fr) minmax(2rem, 2.5rem);
-}
-
-.element-row span,
-.element-row strong {
-  color: var(--color-body-muted);
-  font-size: 0.9rem;
-}
-
-.element-row strong {
-  text-align: right;
-}
-
-.element-meter {
-  background: var(--color-soft-stone);
-  border-radius: var(--radius-pill);
-  height: 0.55rem;
-  overflow: hidden;
-}
-
-.element-meter div {
-  background: var(--color-deep-green);
-  border-radius: inherit;
-  height: 100%;
-}
-
 .board-message {
   background: var(--color-soft-stone);
   border: 1px solid var(--color-hairline);
@@ -1133,7 +1026,4 @@ select:disabled {
     min-height: 320px;
   }
 
-  .element-row {
-    grid-template-columns: 3rem minmax(0, 1fr) 2rem;
-  }
 }
