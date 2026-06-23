@@ -1,15 +1,15 @@
-# TuVi / BaTu GraphRAG
+# TuVi GraphRAG
 
-MVP web app for creating Tu Vi and Bat Tu charts, storing them in Supabase,
-and later using the saved chart as context for GraphRAG chat.
+MVP web app for creating Tử Vi charts, storing them in Supabase, and later
+using the saved chart as context for GraphRAG chat.
 
 ## Project Layout
 
 ```text
 backend/      FastAPI backend, Tu Vi engine, RAG placeholders
-frontend/     Next.js app, auth pages, Bat Tu API route
+frontend/     Next.js app, auth pages, chart creation flow
 infra/        Supabase and Neo4j schema files
-data/         Local Tu Vi / Bat Tu source documents
+data/         Local Tu Vi source documents
 docs/         Project notes
 ```
 
@@ -106,7 +106,6 @@ Public endpoints used by the create-chart flow:
 
 ```text
 Tu Vi:  POST <FASTAPI_BASE_URL>/chart/tuvi
-Bat Tu: POST /api/battu/calculate
 ```
 
 `POST /lasotuvi/generate` is a low-level diagnostic endpoint for the raw
@@ -123,25 +122,6 @@ Tu Vi request shape:
 }
 ```
 
-Bat Tu request shape:
-
-```json
-{
-  "year": 1990,
-  "month": 1,
-  "day": 15,
-  "hour": 14,
-  "gender": "male",
-  "label": "My chart"
-}
-```
-
-The UI form keeps `birth_date` and `birth_time`; the frontend adapter derives
-`year`, `month`, `day`, and `hour` for the Bat Tu endpoint.
-
-Bat Tu currently supports years `1930-2048`, matching the local date mapping
-data used by the calculator.
-
 ## Supabase Chart Storage Contract
 
 Create-chart flow inserts one row into `la_so`:
@@ -152,19 +132,14 @@ label
 birth_date
 birth_time
 gender
-chart_system   TUVI | BATU | TUVI_BATU
+chart_system   TUVI
 chart_data
 chart_version
 ```
 
-For `TUVI_BATU`, store combined chart data as:
-
-```json
-{
-  "tuvi": { "chart_type": "TUVI", "version": "1.0" },
-  "batu": { "chart_type": "BATU", "version": "1.0" }
-}
-```
+`chart_system` is kept for compatibility, but the MVP accepts only `TUVI`.
+Store the normalized Tử Vi engine response directly in `chart_data`, with
+`chart_version = "tuvi-v1"`.
 
 See `backend/docs/chart-schema.md` for the locked contract used by
 `W2-ENGINE-04`.

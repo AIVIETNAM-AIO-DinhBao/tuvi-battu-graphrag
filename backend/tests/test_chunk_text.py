@@ -62,6 +62,13 @@ def test_load_sections_jsonl_records() -> None:
     assert units[0].input_format == "sections_jsonl"
 
 
+def test_domain_is_tuvi_only() -> None:
+    assert chunk_text.normalize_domain(None) == "TUVI"
+    assert chunk_text.normalize_domain("tu_vi") == "TUVI"
+    with pytest.raises(ValueError, match="Tử Vi-only"):
+        chunk_text.normalize_domain("bat_tu")
+
+
 def test_tvnl_clean_path_is_used_and_thnl_typo_is_reported() -> None:
     tvnl_clean = CORPUS_DIR / "TVNL" / "TVNL_clean.json"
     thnl_typo = CORPUS_DIR / "TVNL" / "THNL_clean.json"
@@ -125,11 +132,14 @@ def test_parent_child_schema_and_parent_references() -> None:
         "parent_id",
         "chunk_type",
         "chunk_text",
+        "text",
+        "source_id",
         "source_name",
         "source_page",
         "domain",
         "chunk_strategy_id",
         "chunk_hash",
+        "provenance",
         "metadata",
         "doc_id",
         "section_id",
@@ -146,6 +156,10 @@ def test_parent_child_schema_and_parent_references() -> None:
     assert all(parent["parent_id"] is None for parent in parents)
     assert all(child["parent_id"] in parent_ids for child in children)
     assert all(chunk["metadata"]["chunk_strategy_id"] == "chunk_structure_parent_child" for chunk in chunks)
+    assert all(chunk["domain"] == "TUVI" for chunk in chunks)
+    assert all(chunk["source_id"] == "TVGM" for chunk in chunks)
+    assert all(chunk["text"] == chunk["chunk_text"] for chunk in chunks)
+    assert all(chunk["provenance"]["source_id"] == "TVGM" for chunk in chunks)
     assert any("Thiên Cơ" in chunk["preserved_entities"] for chunk in chunks)
 
 

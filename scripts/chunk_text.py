@@ -498,17 +498,32 @@ def make_chunk_record(
     char_end = max(atom.end for atom in atoms)
     token_count = count_tokens(chunk_text)
     chunk_id = f"{unit.doc_id}_{chunk_strategy_id}_{chunk_type}_{running_no:06d}"
+    provenance = {
+        "char_end": char_end,
+        "char_start": char_start,
+        "input_format": unit.input_format,
+        "page_book": unit.page_book,
+        "page_pdf_end": unit.page_pdf_end,
+        "page_pdf_start": unit.page_pdf_start,
+        "section_id": unit.section_id,
+        "source_id": unit.doc_id,
+        "source_name": unit.source_name,
+        "source_page": unit.source_page,
+    }
 
     record = {
         "chunk_id": chunk_id,
         "parent_id": parent_id,
         "chunk_type": chunk_type,
         "chunk_text": chunk_text,
+        "text": chunk_text,
+        "source_id": unit.doc_id,
         "source_name": unit.source_name,
         "source_page": unit.source_page,
         "domain": unit.domain,
         "chunk_strategy_id": chunk_strategy_id,
         "chunk_hash": "",
+        "provenance": provenance,
         "metadata": {
             "char_end": char_end,
             "char_start": char_start,
@@ -519,7 +534,9 @@ def make_chunk_record(
             "page_pdf_end": unit.page_pdf_end,
             "page_pdf_start": unit.page_pdf_start,
             "parent_id": parent_id,
+            "provenance": provenance,
             "section_metadata": unit.metadata,
+            "source_id": unit.doc_id,
             "source_page": unit.source_page,
             "strategy_config_snapshot": strategy_snapshot,
             "token_count": token_count,
