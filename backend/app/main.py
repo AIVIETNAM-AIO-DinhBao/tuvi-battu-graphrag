@@ -8,7 +8,7 @@ from app.config import settings
 from app.routers import chart
 from app.routers import lasotuvi_routes
 
-app = FastAPI(title="TuVi-BatTu GraphRAG - FastAPI Backend")
+app = FastAPI(title="TuVi GraphRAG - FastAPI Backend")
 
 # Include routers
 app.include_router(chart.router)

@@ -5,11 +5,11 @@ export default function Home() {
     <main className="home-main">
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-copy">
-          <p className="auth-kicker">TuVi / BaTu GraphRAG</p>
-          <h1 id="home-title">Lá số và tri thức mệnh lý</h1>
+          <p className="auth-kicker">TuVi GraphRAG</p>
+          <h1 id="home-title">Lá số Tử Vi và tri thức có nguồn</h1>
           <p>
-            Hệ thống MVP hỗ trợ tạo, lưu và xem chart Tử Vi hoặc Bát Tự trong một giao
-            diện rõ ràng, linh hoạt trên mọi kích thước màn hình.
+            Hệ thống MVP hỗ trợ tạo, lưu và xem lá số Tử Vi trong một giao diện rõ ràng,
+            linh hoạt trên mọi kích thước màn hình.
           </p>
           <div className="home-actions">
             <Link className="primary-link" href="/login">
@@ -24,11 +24,11 @@ export default function Home() {
         <aside className="home-product-panel" aria-label="Các khả năng chính">
           <div>
             <p className="auth-kicker">Workspace</p>
-            <h2>Tạo chart, đọc bảng, lưu lịch sử.</h2>
+            <h2>Tạo lá số, đọc bảng, lưu lịch sử.</h2>
           </div>
           <p>
-            Dashboard tập trung cho việc nhập thông tin sinh, chọn hệ thống chart và mở lại
-            dữ liệu đã lưu khi cần đối chiếu.
+            Dashboard tập trung cho việc nhập thông tin sinh, tạo lá số Tử Vi và mở lại dữ
+            liệu đã lưu khi cần đối chiếu.
           </p>
           <div className="system-strip" aria-hidden="true">
             <div className="system-row">
@@ -36,8 +36,8 @@ export default function Home() {
               <strong>12 cung Tử Vi</strong>
             </div>
             <div className="system-row">
-              <span>Calculator</span>
-              <strong>Bốn trụ Bát Tự</strong>
+              <span>Engine</span>
+              <strong>Lá số Tử Vi</strong>
             </div>
             <div className="system-row">
               <span>Data</span>

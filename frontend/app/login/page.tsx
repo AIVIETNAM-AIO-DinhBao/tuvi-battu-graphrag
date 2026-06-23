@@ -38,9 +38,9 @@ export default function LoginPage() {
       <section className="auth-shell" aria-labelledby="login-title">
         <div className="auth-panel">
           <div className="auth-copy">
-            <p className="auth-kicker">TuVi / BaTu GraphRAG</p>
+            <p className="auth-kicker">TuVi GraphRAG</p>
             <h1 id="login-title">Đăng nhập</h1>
-            <p>Trở lại không gian lưu lá số, xem Tử Vi, Bát Tự và tiếp tục phân tích.</p>
+            <p>Trở lại không gian lưu lá số Tử Vi và tiếp tục phân tích.</p>
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
@@ -90,8 +90,8 @@ export default function LoginPage() {
             <p className="auth-kicker">Hybrid knowledge workspace</p>
             <h2>Lá số rõ ràng, dữ liệu có ngữ cảnh.</h2>
             <p>
-              Quản lý hồ sơ cá nhân, tạo chart Tử Vi hoặc Bát Tự, rồi mở chi tiết để xem
-              trực quan theo từng cung, trụ và metadata đã lưu.
+              Quản lý hồ sơ cá nhân, tạo lá số Tử Vi, rồi mở chi tiết để xem trực quan theo
+              từng cung và metadata đã lưu.
             </p>
           </div>
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
             </div>
             <div className="auth-console-row">
               <span>Charts</span>
-              <strong>Tử Vi + Bát Tự</strong>
+              <strong>Tử Vi</strong>
             </div>
             <div className="auth-console-row">
               <span>View</span>

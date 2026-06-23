@@ -1,11 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChartSummaryCard, type ChartSummary } from "../../components/ChartSummaryCard";
 import { supabase } from "../../lib/supabaseClient";
 
-type ChartSystem = "TUVI" | "BATU" | "TUVI_BATU";
 type Gender = "male" | "female";
 
 interface CreateChartFormState {
@@ -13,7 +12,6 @@ interface CreateChartFormState {
   birth_date: string;
   birth_time: string;
   gender: Gender;
-  chart_system: ChartSystem;
   nam_xem_han: string;
 }
 
@@ -22,9 +20,7 @@ interface SessionUser {
   email?: string;
 }
 
-const BATU_SUPPORTED_YEAR_MIN = 1930;
-const BATU_SUPPORTED_YEAR_MAX = 2048;
-const CHART_VERSION = "1.0";
+const CHART_VERSION = "tuvi-v1";
 const CURRENT_YEAR = new Date().getFullYear();
 
 const initialFormState: CreateChartFormState = {
@@ -32,7 +28,6 @@ const initialFormState: CreateChartFormState = {
   birth_date: "",
   birth_time: "08:00",
   gender: "male",
-  chart_system: "TUVI",
   nam_xem_han: String(CURRENT_YEAR),
 };
 
@@ -48,10 +43,6 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const userEmail = user?.email ?? null;
-  const isBatuSystem = useMemo(
-    () => form.chart_system === "BATU" || form.chart_system === "TUVI_BATU",
-    [form.chart_system],
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -171,7 +162,7 @@ export default function DashboardPage() {
           birth_date: normalizedForm.birth_date,
           birth_time: normalizedForm.birth_time,
           gender: normalizedForm.gender,
-          chart_system: normalizedForm.chart_system,
+          chart_system: "TUVI",
           chart_data: chartData,
           chart_version: CHART_VERSION,
         })
@@ -268,23 +259,6 @@ export default function DashboardPage() {
             </label>
 
             <label>
-              Loại chart
-              <select
-                value={form.chart_system}
-                onChange={(event) =>
-                  updateField("chart_system", event.target.value as ChartSystem)
-                }
-                disabled={submitLoading}
-              >
-                <option value="TUVI">Tử Vi</option>
-                <option value="BATU">Bát Tự</option>
-                <option value="TUVI_BATU">Tử Vi + Bát Tự</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="form-grid">
-            <label>
               Năm xem hạn
               <input
                 type="number"
@@ -297,12 +271,6 @@ export default function DashboardPage() {
               />
             </label>
           </div>
-
-          {isBatuSystem && (
-            <p className="form-note">
-              Bát Tự hiện hỗ trợ năm {BATU_SUPPORTED_YEAR_MIN}-{BATU_SUPPORTED_YEAR_MAX}.
-            </p>
-          )}
 
           <button type="submit" disabled={submitLoading}>
             {submitLoading ? "Đang tính và lưu chart..." : "Tạo chart"}
@@ -333,7 +301,7 @@ export default function DashboardPage() {
         {!chartsLoading && !chartsError && charts.length === 0 && (
           <div className="empty-state">
             <h3>Chưa có chart nào</h3>
-            <p>Tạo chart đầu tiên để xem bảng Tử Vi hoặc Bát Tự tại trang chi tiết.</p>
+            <p>Tạo chart đầu tiên để xem bảng Tử Vi tại trang chi tiết.</p>
             <button type="button" onClick={scrollToCreateChart}>
               Tạo chart mới
             </button>
@@ -371,13 +339,6 @@ function validateForm(form: CreateChartFormState): string | null {
     return "Giờ sinh phải nằm trong khoảng 00:00-23:59.";
   }
 
-  if (
-    (form.chart_system === "BATU" || form.chart_system === "TUVI_BATU") &&
-    (dateParts.year < BATU_SUPPORTED_YEAR_MIN || dateParts.year > BATU_SUPPORTED_YEAR_MAX)
-  ) {
-    return `Bát Tự chỉ hỗ trợ năm ${BATU_SUPPORTED_YEAR_MIN}-${BATU_SUPPORTED_YEAR_MAX}.`;
-  }
-
   const namXemHan = Number(form.nam_xem_han);
   if (!Number.isInteger(namXemHan) || namXemHan < 1900 || namXemHan > 2100) {
     return "Năm xem hạn phải nằm trong khoảng 1900-2100.";
@@ -387,16 +348,7 @@ function validateForm(form: CreateChartFormState): string | null {
 }
 
 async function calculateChartData(form: CreateChartFormState) {
-  if (form.chart_system === "TUVI") {
-    return calculateTuVi(form);
-  }
-
-  if (form.chart_system === "BATU") {
-    return calculateBatTu(form);
-  }
-
-  const [tuvi, batu] = await Promise.all([calculateTuVi(form), calculateBatTu(form)]);
-  return { tuvi, batu };
+  return calculateTuVi(form);
 }
 
 async function calculateTuVi(form: CreateChartFormState) {
@@ -418,29 +370,6 @@ async function calculateTuVi(form: CreateChartFormState) {
   });
 
   return parseEngineResponse(response, "Tử Vi");
-}
-
-async function calculateBatTu(form: CreateChartFormState) {
-  const dateParts = parseBirthDate(form.birth_date);
-  if (!dateParts) {
-    throw new Error("Ngày sinh không hợp lệ.");
-  }
-
-  const [hour] = form.birth_time.split(":").map(Number);
-  const response = await fetch("/api/battu/calculate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      year: dateParts.year,
-      month: dateParts.month,
-      day: dateParts.day,
-      hour,
-      gender: form.gender,
-      label: form.label,
-    }),
-  });
-
-  return parseEngineResponse(response, "Bát Tự");
 }
 
 async function parseEngineResponse(response: Response, engineName: string) {

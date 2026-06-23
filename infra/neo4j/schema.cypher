@@ -1,4 +1,4 @@
-// Neo4j schema setup for TuVi/BatTu GraphRAG
+// Neo4j schema setup for TuVi GraphRAG
 
 CREATE CONSTRAINT chunk_hash_unique IF NOT EXISTS
 FOR (c:Chunk)

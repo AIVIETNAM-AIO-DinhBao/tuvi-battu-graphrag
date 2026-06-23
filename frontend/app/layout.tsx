@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "TuVi - BaTu GraphRAG",
-  description: "Hệ thống hỏi đáp Tử Vi và Bát Tự với Hybrid GraphRAG",
+  title: "TuVi GraphRAG",
+  description: "Hệ thống hỏi đáp Tử Vi với Hybrid GraphRAG",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
