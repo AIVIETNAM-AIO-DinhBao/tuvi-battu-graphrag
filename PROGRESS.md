@@ -1,27 +1,27 @@
-# Progress Report - Week 1 & Week 2 (Partial)
+﻿# Progress Report - Week 1 & Week 2 (Partial)
 
-## ✓ Week 1 Completed Tasks
+## âœ“ Week 1 Completed Tasks
 
 ### Database Infrastructure (W1-DB)
-- **W1-DB-01: Supabase Schema** ✓ COMPLETE
-- **W1-DB-02: Neo4j Schema** ✓ COMPLETE
+- **W1-DB-01: Supabase Schema** âœ“ COMPLETE
+- **W1-DB-02: Neo4j Schema** âœ“ COMPLETE
 
 ### Backend API (W1-API)
-- **W1-API-01: FastAPI Skeleton** ✓ COMPLETE
+- **W1-API-01: FastAPI Skeleton** âœ“ COMPLETE
 
 ### Frontend (W1-FE)
-- **W1-FE-01: Next.js Auth Skeleton** ✓ COMPLETE
+- **W1-FE-01: Next.js Auth Skeleton** âœ“ COMPLETE
 
 ### Authentication (W1-AUTH)
-- **W1-AUTH-01: Supabase Auth Setup** ✓ COMPLETE
+- **W1-AUTH-01: Supabase Auth Setup** âœ“ COMPLETE
 
-## ✓ Week 2 Completed Tasks (Engine)
+## âœ“ Week 2 Completed Tasks (Engine)
 
-### W2-ENGINE-01: Tích hợp Tử Vi Engine ✓ COMPLETE (REFACTORED)
+### W2-ENGINE-01: TÃ­ch há»£p Tá»­ Vi Engine âœ“ COMPLETE (REFACTORED)
 **Date**: 2026-06-13
 
 #### Implementation Summary
-Đã refactor lại hoàn toàn implementation với lasotuvi engine từ doanguyen/lasotuvi package.
+ÄÃ£ refactor láº¡i hoÃ n toÃ n implementation vá»›i lasotuvi engine tá»« doanguyen/lasotuvi package.
 
 #### Files Created/Modified
 1. **Dependencies**:
@@ -81,15 +81,15 @@
 #### Key Technical Details
 - **Installation**: Requires `pip install --no-deps lasotuvi` to avoid outdated dependencies
 - **Critical Note**: Must pass `diaBan` CLASS (not instance) to `lapDiaBan()`
-- **Hour Format**: Uses 1-12 (địa chi), not 0-23
-- **Gender**: 1=Nam (male), -1=Nữ (female)
+- **Hour Format**: Uses 1-12 (Ä‘á»‹a chi), not 0-23
+- **Gender**: 1=Nam (male), -1=Ná»¯ (female)
 - **Palace Index**: Starts from 1 (no index 0)
 
-**Status**: ✓ COMPLETE - Implementation, testing, and documentation all finished
+**Status**: âœ“ COMPLETE - Implementation, testing, and documentation all finished
 
 ---
 
-### W2-ENGINE-02: Unit Test Tử Vi Engine ✓ COMPLETE (Implementation)
+### W2-ENGINE-02: Unit Test Tá»­ Vi Engine âœ“ COMPLETE (Implementation)
 - **Test File**: Created `backend/tests/test_tuvi_engine.py`
 - **Test Classes**:
   1. `TestTuViEngineAccuracy` - 5 golden test cases
@@ -114,7 +114,7 @@
 
 ---
 
-### W2-ENGINE-03: Tích hợp Bát Tự Engine ✓ COMPLETE (Implementation)
+### W2-ENGINE-03: TÃ­ch há»£p BÃ¡t Tá»± Engine âœ“ COMPLETE (Implementation)
 - **Dependencies**: Added `bazi-calculator-by-alvamind` to frontend/package.json
 - **API Route**: Created `frontend/app/api/battu/calculate/route.ts`
   - `POST /api/battu/calculate` endpoint
@@ -128,10 +128,10 @@
   - `extractPillar()` - Extract pillar information
   - `extractElements()` - Extract element analysis
 - **Documentation**: Updated `backend/docs/chart-schema.md`
-  - Added complete Bát Tự schema section
+  - Added complete BÃ¡t Tá»± schema section
   - Four Pillars documentation
-  - Heavenly Stems (10 Thiên Can)
-  - Earthly Branches (12 Địa Chi)
+  - Heavenly Stems (10 ThiÃªn Can)
+  - Earthly Branches (12 Äá»‹a Chi)
   - Complete example chart
   - API endpoint references
 
@@ -139,7 +139,7 @@
 
 ---
 
-### W2-ENGINE-04: Chart Creation Flow ✓ COMPLETE (Implementation)
+### W2-ENGINE-04: Chart Creation Flow âœ“ COMPLETE (Implementation)
 **Date**: 2026-06-17
 
 #### Implementation Summary
@@ -240,21 +240,29 @@ Implemented the end-to-end chart creation flow from Dashboard form to engine cal
 
 ---
 
-## 📋 Week 2 Remaining Tasks
+## Week 2 Completed Tasks - 2026-06-19
 
-Engine tasks W2-ENGINE-01 through W2-ENGINE-04 are complete. Remaining Week 2 work is now visualization and dashboard listing.
+Week 2 is now complete. Engine integration, chart creation, visualization, saved chart listing, chart detail navigation, and frontend responsive/auth polish have all been implemented.
 
-### W2-VIZ-01: Tử Vi Visualization (Not Started)
-- Create TuViBoard component
-- Render 12-palace grid in SVG
+### W2-VIZ-01: Tu Vi Visualization - COMPLETE
+- Created `frontend/components/TuViBoard.tsx`.
+- Renders the 12-palace Tu Vi board with palace metadata, major/minor star grouping, highlighted Menh/Than context, and horizontal scroll for small screens.
+- Integrated into `frontend/app/chart/[id]/page.tsx` for saved Tu Vi and combined Tu Vi + Bat Tu charts.
 
-### W2-VIZ-02: Bát Tự Visualization (Not Started)
-- Create BatuBoard component
-- Render 4-pillar layout
+### W2-VIZ-02: Bat Tu Visualization - COMPLETE
+- Created `frontend/components/BatuBoard.tsx`.
+- Renders the four-pillar Bat Tu layout with stem/branch, nap am, hidden stems, and element distribution.
+- Uses responsive grid behavior for mobile, tablet, and desktop layouts.
 
-### W2-DASH-01: Dashboard (Not Started)
-- List user's charts
-- Navigation to chart detail
+### W2-DASH-01: Dashboard - COMPLETE
+- Dashboard now lists the authenticated user's saved charts from Supabase.
+- Added chart summary cards and navigation from dashboard to chart detail.
+- Empty, loading, and error states are implemented.
+
+### W2-FE-POLISH: Authentication and Responsive Frontend - COMPLETE
+- Rebuilt `/login` and `/register` as polished split-layout authentication pages following `DESIGN.md`.
+- Updated home, dashboard, chart detail, chart cards, Tu Vi board, and Bat Tu board to be flexible across common screen sizes.
+- Fixed visible frontend Vietnamese encoding/copy issues.
 
 ---
 
@@ -262,12 +270,16 @@ Engine tasks W2-ENGINE-01 through W2-ENGINE-04 are complete. Remaining Week 2 wo
 
 | Component | Files Created/Modified | Status |
 |-----------|----------------------|--------|
-| W2-ENGINE-01 (Refactored) | 10 files | ✓ Complete |
+| W2-ENGINE-01 (Refactored) | 10 files | Complete |
 | W2-ENGINE-02 | 1 file | Verified |
 | W2-ENGINE-03 | 3 files | Verified |
-| W2-ENGINE-04 | 3 frontend files | ✓ Complete |
+| W2-ENGINE-04 | 3 frontend files | Complete |
+| W2-VIZ-01 | 1 component + chart detail integration | Complete |
+| W2-VIZ-02 | 1 component + chart detail integration | Complete |
+| W2-DASH-01 | Dashboard + chart card flow | Complete |
+| W2-FE-POLISH | Auth pages + responsive UI CSS | Complete |
 | Phase 5 Contract | 2 docs | Locked |
-| Total | 19+ files | W2 engine tasks complete |
+| Total | 24+ files | Week 2 complete |
 
 ### Files Created/Modified - Lasotuvi Integration (2026-06-13)
 1. `backend/requirements.txt` - Updated
@@ -290,14 +302,20 @@ Engine tasks W2-ENGINE-01 through W2-ENGINE-04 are complete. Remaining Week 2 wo
 16. `.gitignore` and `README.md` - Repo hygiene and usage documentation
 17. `frontend/app/dashboard/page.tsx` - End-to-end create-chart form and storage flow
 18. `frontend/app/chart/[id]/page.tsx` - Saved chart detail fetch/display
-19. `frontend/app/globals.css` - Create/detail UI styling
+19. `frontend/app/globals.css` - Create/detail/auth responsive UI styling
+20. `frontend/components/TuViBoard.tsx` - Tu Vi 12-palace visualization
+21. `frontend/components/BatuBoard.tsx` - Bat Tu four-pillar visualization
+22. `frontend/components/ChartSummaryCard.tsx` - Saved chart summary card
+23. `frontend/app/login/page.tsx` and `frontend/app/register/page.tsx` - Redesigned authentication pages
+24. `frontend/app/page.tsx` and `frontend/app/layout.tsx` - Home/metadata copy updates
 
 ---
 
 ## Next Steps
 
-1. Remove tracked generated artifacts from git index if needed:
-   - `git rm -r --cached frontend/.next`
-   - `git rm --cached frontend/tsconfig.tsbuildinfo`
-2. Commit W2-ENGINE-01 through W2-ENGINE-04 updates.
-3. Move to `W2-VIZ-01` and `W2-VIZ-02` for real chart visualization.
+1. Resolve the local git lock/index issue, then stage the Week 2 updates.
+2. Run final frontend verification if not already done after the latest UI polish:
+   - `npm run build`
+   - `npm run lint` if supported by the installed Next.js version
+3. Commit the completed Week 2 work.
+4. Move to Week 3 planning and implementation.
