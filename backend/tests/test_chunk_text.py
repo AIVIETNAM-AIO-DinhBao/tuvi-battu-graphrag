@@ -12,6 +12,36 @@ import chunk_text  # noqa: E402
 
 CONFIG_PATH = ROOT_DIR / "configs" / "chunking_strategies.yaml"
 CORPUS_DIR = ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "corpus"
+ALL_STRATEGIES = [
+    "chunk_structure_parent_child",
+    "chunk_fixed_256",
+    "chunk_fixed_512",
+    "chunk_fixed_1024",
+    "chunk_sentence_merge",
+    "chunk_semantic",
+]
+REQUIRED_FIELDS = {
+    "chunk_id",
+    "parent_id",
+    "chunk_type",
+    "chunk_text",
+    "text",
+    "source_id",
+    "source_name",
+    "source_page",
+    "domain",
+    "chunk_strategy_id",
+    "chunk_hash",
+    "provenance",
+    "metadata",
+    "doc_id",
+    "section_id",
+    "char_start",
+    "char_end",
+    "token_count",
+    "chunking_version",
+    "preserved_entities",
+}
 
 
 def sample_registry() -> dict[str, dict]:
@@ -21,20 +51,27 @@ def sample_registry() -> dict[str, dict]:
     }
 
 
-def test_config_declares_six_strategies_and_blocks_unimplemented() -> None:
+def make_test_unit(text: str, section_id: str = "TVGM_TEST_SEC01") -> chunk_text.SourceUnit:
+    return chunk_text.SourceUnit(
+        doc_id="TVGM",
+        section_id=section_id,
+        text=text,
+        source_name="Tử Vi Giảng Minh",
+        source_page=1,
+        domain="TUVI",
+        input_format="clean_json",
+        page_pdf_start=1,
+        page_pdf_end=1,
+        page_book=None,
+        metadata={"page_pdf": 1},
+    )
+
+
+def test_config_declares_six_implemented_strategies() -> None:
     config = chunk_text.load_chunking_config(CONFIG_PATH)
 
-    assert set(config["strategies"]) == {
-        "chunk_structure_parent_child",
-        "chunk_fixed_256",
-        "chunk_fixed_512",
-        "chunk_fixed_1024",
-        "chunk_sentence_merge",
-        "chunk_semantic",
-    }
-    assert chunk_text.get_strategy_config(config, "chunk_structure_parent_child")["implemented"]
-    with pytest.raises(NotImplementedError, match="not implemented"):
-        chunk_text.get_strategy_config(config, "chunk_fixed_256")
+    assert set(config["strategies"]) == set(ALL_STRATEGIES)
+    assert all(chunk_text.get_strategy_config(config, strategy)["implemented"] for strategy in ALL_STRATEGIES)
 
 
 def test_load_clean_json_records() -> None:
@@ -101,25 +138,108 @@ def test_chunk_hash_changes_when_strategy_changes() -> None:
     assert strategy_a_hash != fixed_hash
 
 
+@pytest.mark.parametrize("strategy_id", ALL_STRATEGIES)
+def test_all_strategies_generate_chunks_with_shared_schema(strategy_id: str) -> None:
+    config = chunk_text.load_chunking_config(CONFIG_PATH)
+    text = (
+        "Thiên Cơ ở Cung Tý luận về Giáp Tý và Ngũ Hành. "
+        "Cung Mệnh cần xét cùng Cung Thân để giữ bối cảnh. "
+        "Tử Vi và Thiên Phủ tạo thành một nhóm luận đoán riêng. "
+    ) * 90
+
+    chunks = chunk_text.chunk_units([make_test_unit(text)], config=config, strategy_id=strategy_id)
+
+    assert chunks
+    assert all(REQUIRED_FIELDS <= set(chunk) for chunk in chunks)
+    assert all(chunk["chunk_strategy_id"] == strategy_id for chunk in chunks)
+    assert all(chunk["domain"] == "TUVI" for chunk in chunks)
+    assert all(chunk["source_id"] == "TVGM" for chunk in chunks)
+    assert all(chunk["source_page"] == 1 for chunk in chunks)
+    assert all(chunk["text"] == chunk["chunk_text"] for chunk in chunks)
+    assert all(chunk["provenance"]["source_id"] == "TVGM" for chunk in chunks)
+    assert all(chunk["metadata"]["chunk_strategy_id"] == strategy_id for chunk in chunks)
+
+
+@pytest.mark.parametrize(
+    ("strategy_id", "max_tokens"),
+    [
+        ("chunk_fixed_256", 256),
+        ("chunk_fixed_512", 512),
+        ("chunk_fixed_1024", 1024),
+    ],
+)
+def test_fixed_strategies_respect_configured_token_caps(strategy_id: str, max_tokens: int) -> None:
+    config = chunk_text.load_chunking_config(CONFIG_PATH)
+    text = (
+        "Thiên Cơ ở Cung Tý luận về Giáp Tý và Ngũ Hành. "
+        "Cung Mệnh cần xét cùng Cung Thân để giữ bối cảnh. "
+    ) * 140
+
+    chunks = chunk_text.chunk_units([make_test_unit(text)], config=config, strategy_id=strategy_id)
+
+    assert chunks
+    assert all(chunk["chunk_type"] == "chunk" for chunk in chunks)
+    assert all(chunk["parent_id"] is None for chunk in chunks)
+    assert max(chunk["token_count"] for chunk in chunks) <= max_tokens
+
+
+def test_sentence_merge_does_not_merge_across_source_units() -> None:
+    config = chunk_text.load_chunking_config(CONFIG_PATH)
+    first = make_test_unit(
+        "Thiên Cơ ở Cung Tý. Cung Mệnh giữ một đoạn riêng. " * 25,
+        section_id="TVGM_TEST_SEC01",
+    )
+    second = make_test_unit(
+        "Tử Vi ở Cung Thân. Thiên Phủ giữ một đoạn riêng. " * 25,
+        section_id="TVGM_TEST_SEC02",
+    )
+
+    chunks = chunk_text.chunk_units(
+        [first, second], config=config, strategy_id="chunk_sentence_merge"
+    )
+
+    section_ids = {chunk["section_id"] for chunk in chunks}
+    assert section_ids == {"TVGM_TEST_SEC01", "TVGM_TEST_SEC02"}
+    assert all(chunk["chunk_type"] == "chunk" for chunk in chunks)
+
+
+def test_semantic_strategy_splits_clear_topic_shift() -> None:
+    config = chunk_text.load_chunking_config(CONFIG_PATH)
+    strategy = {
+        "chunking_version": "chunk_semantic_test_v1",
+        "min_tokens": 10,
+        "target_tokens": 20,
+        "max_tokens": 80,
+        "similarity_threshold": 0.2,
+    }
+    unit = make_test_unit(
+        (
+            "Thiên Cơ Cung Mệnh luận sao chính tinh. "
+            "Thiên Cơ Cung Mệnh xét thêm Tử Vi Thiên Phủ. "
+            "Điền Trạch đất nhà ruộng vườn tài sản. "
+            "Điền Trạch nhà cửa đất đai sản nghiệp. "
+        )
+        * 4
+    )
+
+    windows = list(
+        chunk_text.iter_semantic_windows(
+            [unit],
+            strategy=strategy,
+            protected_terms=["Thiên Cơ", "Cung Mệnh", "Điền Trạch"],
+        )
+    )
+
+    assert len(windows) >= 2
+
+
 def test_parent_child_schema_and_parent_references() -> None:
     config = chunk_text.load_chunking_config(CONFIG_PATH)
     text = (
         "Thiên Cơ ở Cung Tý luận về Giáp Tý và Ngũ Hành. "
         "Cung Mệnh cần xét cùng Cung Thân để giữ bối cảnh. "
     ) * 70
-    unit = chunk_text.SourceUnit(
-        doc_id="TVGM",
-        section_id="TVGM_TEST_SEC01",
-        text=text,
-        source_name="Tử Vi Giảng Minh",
-        source_page=1,
-        domain="TUVI",
-        input_format="clean_json",
-        page_pdf_start=1,
-        page_pdf_end=1,
-        page_book=None,
-        metadata={"page_pdf": 1},
-    )
+    unit = make_test_unit(text)
 
     chunks = chunk_text.chunk_units(
         [unit], config=config, strategy_id="chunk_structure_parent_child"
@@ -127,32 +247,9 @@ def test_parent_child_schema_and_parent_references() -> None:
     parents = [chunk for chunk in chunks if chunk["chunk_type"] == "parent"]
     children = [chunk for chunk in chunks if chunk["chunk_type"] == "child"]
     parent_ids = {chunk["chunk_id"] for chunk in parents}
-    required_fields = {
-        "chunk_id",
-        "parent_id",
-        "chunk_type",
-        "chunk_text",
-        "text",
-        "source_id",
-        "source_name",
-        "source_page",
-        "domain",
-        "chunk_strategy_id",
-        "chunk_hash",
-        "provenance",
-        "metadata",
-        "doc_id",
-        "section_id",
-        "char_start",
-        "char_end",
-        "token_count",
-        "chunking_version",
-        "preserved_entities",
-    }
-
     assert parents
     assert children
-    assert all(required_fields <= set(chunk) for chunk in chunks)
+    assert all(REQUIRED_FIELDS <= set(chunk) for chunk in chunks)
     assert all(parent["parent_id"] is None for parent in parents)
     assert all(child["parent_id"] in parent_ids for child in children)
     assert all(chunk["metadata"]["chunk_strategy_id"] == "chunk_structure_parent_child" for chunk in chunks)

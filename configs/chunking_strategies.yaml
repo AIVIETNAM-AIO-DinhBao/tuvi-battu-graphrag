@@ -19,28 +19,28 @@ strategies:
 
   chunk_fixed_256:
     label: Fixed-size sliding window 256
-    implemented: false
+    implemented: true
     chunking_version: chunk_fixed_256_v1
     max_tokens: 256
     overlap_ratio: 0.12
 
   chunk_fixed_512:
     label: Fixed-size sliding window 512
-    implemented: false
+    implemented: true
     chunking_version: chunk_fixed_512_v1
     max_tokens: 512
     overlap_ratio: 0.12
 
   chunk_fixed_1024:
     label: Fixed-size sliding window 1024
-    implemented: false
+    implemented: true
     chunking_version: chunk_fixed_1024_v1
     max_tokens: 1024
     overlap_ratio: 0.12
 
   chunk_sentence_merge:
     label: Sentence dynamic merge
-    implemented: false
+    implemented: true
     chunking_version: chunk_sentence_merge_v1
     min_tokens: 200
     target_tokens: 300
@@ -48,11 +48,12 @@ strategies:
 
   chunk_semantic:
     label: Semantic chunking with embedding similarity
-    implemented: false
+    implemented: true
     chunking_version: chunk_semantic_v1
     min_tokens: 300
     target_tokens: 400
     max_tokens: 500
+    similarity_threshold: 0.12
 
 protected_terms:
   sao:

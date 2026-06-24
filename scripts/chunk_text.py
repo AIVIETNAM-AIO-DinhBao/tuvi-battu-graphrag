@@ -29,6 +29,9 @@ DEFAULT_SOURCE_REGISTRY = (
 )
 DEFAULT_CHUNK_DIR = ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "chunks"
 STRATEGY_PARENT_CHILD = "chunk_structure_parent_child"
+FIXED_STRATEGIES = {"chunk_fixed_256", "chunk_fixed_512", "chunk_fixed_1024"}
+STRATEGY_SENTENCE_MERGE = "chunk_sentence_merge"
+STRATEGY_SEMANTIC = "chunk_semantic"
 
 TOKEN_RE = re.compile(r"\S+")
 SENTENCE_BOUNDARY_RE = re.compile(r"(?<=[.!?…])\s+")
@@ -451,6 +454,22 @@ def find_preserved_entities(text: str, protected_terms: list[str]) -> list[str]:
     return sorted(set(found), key=lambda item: (item.casefold(), item))
 
 
+def normalized_token_set(text: str) -> set[str]:
+    return {
+        token
+        for token in (canonical_token(match.group(0)) for match in TOKEN_RE.finditer(text))
+        if token
+    }
+
+
+def lexical_similarity(left: str, right: str) -> float:
+    left_tokens = normalized_token_set(left)
+    right_tokens = normalized_token_set(right)
+    if not left_tokens or not right_tokens:
+        return 0.0
+    return len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+
+
 def make_chunk_hash(
     *,
     chunk_strategy_id: str,
@@ -564,6 +583,41 @@ def make_chunk_record(
     return record
 
 
+def make_flat_chunk_records(
+    unit_windows: Iterable[tuple[SourceUnit, list[Atom]]],
+    *,
+    config: dict[str, Any],
+    strategy_id: str,
+    strategy: dict[str, Any],
+    protected_terms: list[str],
+) -> list[dict[str, Any]]:
+    config_version = str(config.get("version") or "unknown")
+    chunking_version = str(strategy.get("chunking_version") or f"{strategy_id}_v1")
+    strategy_snapshot = json.loads(json.dumps(strategy, ensure_ascii=False))
+    counters: dict[str, int] = defaultdict(int)
+    records: list[dict[str, Any]] = []
+
+    for unit, atoms in unit_windows:
+        if not atoms:
+            continue
+        counters[unit.doc_id] += 1
+        records.append(
+            make_chunk_record(
+                unit=unit,
+                atoms=atoms,
+                chunk_type="chunk",
+                running_no=counters[unit.doc_id],
+                parent_id=None,
+                chunk_strategy_id=strategy_id,
+                chunking_version=chunking_version,
+                config_version=config_version,
+                strategy_snapshot=strategy_snapshot,
+                protected_terms=protected_terms,
+            )
+        )
+    return records
+
+
 def chunk_parent_child(
     units: list[SourceUnit],
     *,
@@ -636,15 +690,166 @@ def chunk_parent_child(
     return records
 
 
+def iter_fixed_windows(
+    units: list[SourceUnit],
+    *,
+    strategy: dict[str, Any],
+    protected_terms: list[str],
+) -> Iterable[tuple[SourceUnit, list[Atom]]]:
+    max_tokens = int(strategy["max_tokens"])
+    overlap_tokens = max(0, round(max_tokens * float(strategy.get("overlap_ratio", 0))))
+
+    for unit in units:
+        atoms = atomize_text(unit.text, protected_terms, max_tokens)
+        for window in build_token_windows(
+            atoms,
+            min_tokens=1,
+            max_tokens=max_tokens,
+            overlap_tokens=overlap_tokens,
+        ):
+            yield unit, window
+
+
+def chunk_fixed_size(
+    units: list[SourceUnit],
+    *,
+    config: dict[str, Any],
+    strategy_id: str,
+) -> list[dict[str, Any]]:
+    strategy = get_strategy_config(config, strategy_id)
+    protected_terms = flatten_protected_terms(config)
+    return make_flat_chunk_records(
+        iter_fixed_windows(units, strategy=strategy, protected_terms=protected_terms),
+        config=config,
+        strategy_id=strategy_id,
+        strategy=strategy,
+        protected_terms=protected_terms,
+    )
+
+
+def iter_sentence_merge_windows(
+    units: list[SourceUnit],
+    *,
+    strategy: dict[str, Any],
+    protected_terms: list[str],
+) -> Iterable[tuple[SourceUnit, list[Atom]]]:
+    target_tokens = int(strategy["target_tokens"])
+    max_tokens = int(strategy["max_tokens"])
+
+    for unit in units:
+        atoms = atomize_text(unit.text, protected_terms, max_tokens)
+        current: list[Atom] = []
+        current_tokens = 0
+
+        for atom in atoms:
+            if current and current_tokens + atom.token_count > max_tokens:
+                yield unit, current
+                current = []
+                current_tokens = 0
+
+            current.append(atom)
+            current_tokens += atom.token_count
+
+            if current_tokens >= target_tokens:
+                yield unit, current
+                current = []
+                current_tokens = 0
+
+        if current:
+            yield unit, current
+
+
+def chunk_sentence_merge(
+    units: list[SourceUnit],
+    *,
+    config: dict[str, Any],
+    strategy_id: str = STRATEGY_SENTENCE_MERGE,
+) -> list[dict[str, Any]]:
+    strategy = get_strategy_config(config, strategy_id)
+    protected_terms = flatten_protected_terms(config)
+    return make_flat_chunk_records(
+        iter_sentence_merge_windows(units, strategy=strategy, protected_terms=protected_terms),
+        config=config,
+        strategy_id=strategy_id,
+        strategy=strategy,
+        protected_terms=protected_terms,
+    )
+
+
+def iter_semantic_windows(
+    units: list[SourceUnit],
+    *,
+    strategy: dict[str, Any],
+    protected_terms: list[str],
+) -> Iterable[tuple[SourceUnit, list[Atom]]]:
+    min_tokens = int(strategy["min_tokens"])
+    target_tokens = int(strategy["target_tokens"])
+    max_tokens = int(strategy["max_tokens"])
+    similarity_threshold = float(strategy.get("similarity_threshold", 0.12))
+
+    for unit in units:
+        atoms = atomize_text(unit.text, protected_terms, max_tokens)
+        current: list[Atom] = []
+        current_tokens = 0
+
+        for atom in atoms:
+            if not current:
+                current = [atom]
+                current_tokens = atom.token_count
+                continue
+
+            current_text = chunk_text_from_atoms(current)
+            similarity = lexical_similarity(current_text, atom.text)
+            would_exceed_max = current_tokens + atom.token_count > max_tokens
+            has_topic_shift = current_tokens >= min_tokens and similarity < similarity_threshold
+            target_reached = current_tokens >= target_tokens
+
+            if would_exceed_max or has_topic_shift or (target_reached and similarity == 0.0):
+                yield unit, current
+                current = [atom]
+                current_tokens = atom.token_count
+                continue
+
+            current.append(atom)
+            current_tokens += atom.token_count
+
+        if current:
+            yield unit, current
+
+
+def chunk_semantic(
+    units: list[SourceUnit],
+    *,
+    config: dict[str, Any],
+    strategy_id: str = STRATEGY_SEMANTIC,
+) -> list[dict[str, Any]]:
+    strategy = get_strategy_config(config, strategy_id)
+    protected_terms = flatten_protected_terms(config)
+    return make_flat_chunk_records(
+        iter_semantic_windows(units, strategy=strategy, protected_terms=protected_terms),
+        config=config,
+        strategy_id=strategy_id,
+        strategy=strategy,
+        protected_terms=protected_terms,
+    )
+
+
 def chunk_units(
     units: list[SourceUnit],
     *,
     config: dict[str, Any],
     strategy_id: str,
 ) -> list[dict[str, Any]]:
-    if strategy_id != STRATEGY_PARENT_CHILD:
-        get_strategy_config(config, strategy_id)
-    return chunk_parent_child(units, config=config, strategy_id=strategy_id)
+    get_strategy_config(config, strategy_id)
+    if strategy_id == STRATEGY_PARENT_CHILD:
+        return chunk_parent_child(units, config=config, strategy_id=strategy_id)
+    if strategy_id in FIXED_STRATEGIES:
+        return chunk_fixed_size(units, config=config, strategy_id=strategy_id)
+    if strategy_id == STRATEGY_SENTENCE_MERGE:
+        return chunk_sentence_merge(units, config=config, strategy_id=strategy_id)
+    if strategy_id == STRATEGY_SEMANTIC:
+        return chunk_semantic(units, config=config, strategy_id=strategy_id)
+    raise ValueError(f"Strategy '{strategy_id}' is configured but has no chunker implementation.")
 
 
 def group_chunks_by_doc(chunks: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -691,9 +896,19 @@ def build_summary(chunks: list[dict[str, Any]], strategy_id: str) -> dict[str, A
         token_counts = [int(record["token_count"]) for record in records]
         parents = sum(1 for record in records if record["chunk_type"] == "parent")
         children = sum(1 for record in records if record["chunk_type"] == "child")
+        flat_chunks = sum(1 for record in records if record["chunk_type"] == "chunk")
         documents[doc_id] = {
             "avg_tokens": round(sum(token_counts) / len(token_counts), 2) if token_counts else 0,
             "child_chunks": children,
+            "chunk_chunks": flat_chunks,
+            "chunk_types": dict(
+                sorted(
+                    {
+                        chunk_type: sum(1 for record in records if record["chunk_type"] == chunk_type)
+                        for chunk_type in {record["chunk_type"] for record in records}
+                    }.items()
+                )
+            ),
             "max_tokens": max(token_counts) if token_counts else 0,
             "min_tokens": min(token_counts) if token_counts else 0,
             "parent_chunks": parents,

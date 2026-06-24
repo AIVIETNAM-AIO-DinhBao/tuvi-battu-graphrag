@@ -1,0 +1,171 @@
+version: entity_extraction_v1
+entity_dict_version: tuvi_entity_dict_v1
+prompt_version: tuvi_entity_extraction_prompt_v1
+default_model: gemini-2.0-flash-lite
+
+entity_types:
+  - Sao
+  - Cung
+  - ThienCan
+  - DiaChi
+  - NguHanh
+  - ToHop
+  - QuanHeCung
+  - TrangThaiSao
+  - TuHoa
+  - VanHan
+  - DaiHan
+  - CucBanMenh
+  - KhaiNiem
+  - LuanGiai
+
+entities:
+  Cung:
+    Mệnh: ["Mệnh", "Mạng", "Cung Mệnh", "Cung Mạng"]
+    Phụ Mẫu: ["Phụ Mẫu", "Phụ", "Cung Phụ Mẫu", "Cung Phụ"]
+    Phúc Đức: ["Phúc Đức", "Phúc", "Cung Phúc Đức", "Cung Phúc"]
+    Điền Trạch: ["Điền Trạch", "Điền", "Cung Điền Trạch", "Cung Điền"]
+    Quan Lộc: ["Quan Lộc", "Quan", "Cung Quan Lộc", "Cung Quan"]
+    Nô Bộc: ["Nô Bộc", "Nô", "Cung Nô Bộc", "Cung Nô"]
+    Thiên Di: ["Thiên Di", "Di", "Cung Thiên Di", "Cung Di"]
+    Tật Ách: ["Tật Ách", "Ách", "Cung Tật Ách", "Cung Ách"]
+    Tài Bạch: ["Tài Bạch", "Tài", "Cung Tài Bạch", "Cung Tài"]
+    Tử Tức: ["Tử Tức", "Tử", "Cung Tử Tức", "Cung Tử"]
+    Phu Thê: ["Phu Thê", "Phối", "Phu", "Cung Phu Thê", "Cung Phối"]
+    Huynh Đệ: ["Huynh Đệ", "Bào", "Cung Huynh Đệ", "Cung Bào"]
+
+  Sao:
+    Tử Vi: ["Tử Vi", "Tu Vi"]
+    Thiên Cơ: ["Thiên Cơ", "Thien Co"]
+    Thái Dương: ["Thái Dương", "Thai Duong", "Nhật"]
+    Vũ Khúc: ["Vũ Khúc", "Vu Khuc"]
+    Thiên Đồng: ["Thiên Đồng", "Thien Dong", "Đồng"]
+    Liêm Trinh: ["Liêm Trinh", "Liem Trinh"]
+    Thiên Phủ: ["Thiên Phủ", "Thien Phu", "Phủ"]
+    Thái Âm: ["Thái Âm", "Thai Am", "Nguyệt"]
+    Tham Lang: ["Tham Lang", "Tham"]
+    Cự Môn: ["Cự Môn", "Cu Mon", "Cự"]
+    Thiên Tướng: ["Thiên Tướng", "Thien Tuong", "Tướng"]
+    Thiên Lương: ["Thiên Lương", "Thien Luong", "Lương"]
+    Thất Sát: ["Thất Sát", "That Sat", "Sát"]
+    Phá Quân: ["Phá Quân", "Pha Quan", "Phá"]
+    Lộc Tồn: ["Lộc Tồn", "Loc Ton"]
+    Địa Không: ["Địa Không", "Dia Khong", "Không"]
+    Địa Kiếp: ["Địa Kiếp", "Dia Kiep", "Kiếp"]
+    Kình Dương: ["Kình Dương", "Kinh Duong", "Kình"]
+    Đà La: ["Đà La", "Da La", "Đà"]
+    Thiên Khôi: ["Thiên Khôi", "Thien Khoi", "Khôi"]
+    Thiên Việt: ["Thiên Việt", "Thien Viet", "Việt"]
+    Tả Phụ: ["Tả Phụ", "Ta Phu", "Tả"]
+    Hữu Bật: ["Hữu Bật", "Huu Bat", "Hữu"]
+    Văn Xương: ["Văn Xương", "Van Xuong", "Xương"]
+    Văn Khúc: ["Văn Khúc", "Van Khuc", "Khúc"]
+    Linh Tinh: ["Linh Tinh", "Linh"]
+    Hỏa Tinh: ["Hỏa Tinh", "Hoả Tinh", "Hoa Tinh", "Hỏa"]
+    Thiên Mã: ["Thiên Mã", "Thien Ma", "Mã"]
+    Tuần: ["Tuần", "Tuần Không", "Tuần Trung Không Vong"]
+    Triệt: ["Triệt", "Triệt Không", "Triệt Lộ Không Vong"]
+
+  TuHoa:
+    Hóa Lộc: ["Hóa Lộc", "Hoá Lộc", "Hoa Loc"]
+    Hóa Quyền: ["Hóa Quyền", "Hoá Quyền", "Hoa Quyen"]
+    Hóa Khoa: ["Hóa Khoa", "Hoá Khoa", "Hoa Khoa"]
+    Hóa Kỵ: ["Hóa Kỵ", "Hoá Kỵ", "Hoa Ky"]
+
+  TrangThaiSao:
+    Miếu: ["Miếu", "M"]
+    Vượng: ["Vượng", "V"]
+    Đắc: ["Đắc", "Đ"]
+    Hãm: ["Hãm", "H"]
+
+  ThienCan:
+    Giáp: ["Giáp", "Can Giáp"]
+    Ất: ["Ất", "Can Ất"]
+    Bính: ["Bính", "Can Bính"]
+    Đinh: ["Đinh", "Can Đinh"]
+    Mậu: ["Mậu", "Can Mậu"]
+    Kỷ: ["Kỷ", "Can Kỷ"]
+    Canh: ["Canh", "Can Canh"]
+    Tân: ["Tân", "Can Tân"]
+    Nhâm: ["Nhâm", "Can Nhâm"]
+    Quý: ["Quý", "Can Quý"]
+
+  DiaChi:
+    Tý: ["Tý", "Chi Tý", "Cung Tý", "Giờ Tý"]
+    Sửu: ["Sửu", "Chi Sửu", "Cung Sửu", "Giờ Sửu"]
+    Dần: ["Dần", "Chi Dần", "Cung Dần", "Giờ Dần"]
+    Mão: ["Mão", "Chi Mão", "Cung Mão", "Giờ Mão"]
+    Thìn: ["Thìn", "Chi Thìn", "Cung Thìn", "Giờ Thìn"]
+    Tỵ: ["Tỵ", "Tị", "Chi Tỵ", "Cung Tỵ", "Giờ Tỵ"]
+    Ngọ: ["Ngọ", "Chi Ngọ", "Cung Ngọ", "Giờ Ngọ"]
+    Mùi: ["Mùi", "Chi Mùi", "Cung Mùi", "Giờ Mùi"]
+    Thân: ["Thân", "Chi Thân", "Cung Thân", "Giờ Thân"]
+    Dậu: ["Dậu", "Chi Dậu", "Cung Dậu", "Giờ Dậu"]
+    Tuất: ["Tuất", "Chi Tuất", "Cung Tuất", "Giờ Tuất"]
+    Hợi: ["Hợi", "Chi Hợi", "Cung Hợi", "Giờ Hợi"]
+
+  NguHanh:
+    Kim: ["Kim", "hành Kim"]
+    Mộc: ["Mộc", "hành Mộc"]
+    Thủy: ["Thủy", "Thuỷ", "hành Thủy", "hành Thuỷ"]
+    Hỏa: ["Hỏa", "Hoả", "hành Hỏa", "hành Hoả"]
+    Thổ: ["Thổ", "hành Thổ"]
+    Âm Dương: ["Âm Dương", "Âm", "Dương"]
+    Ngũ Hành: ["Ngũ Hành", "Ngũ hành"]
+
+  QuanHeCung:
+    Tam hợp: ["tam hợp", "cung tam hợp", "tam hợp chiếu"]
+    Nhị hợp: ["nhị hợp", "lục hợp"]
+    Chính chiếu: ["chính chiếu", "xung chiếu", "đối cung"]
+    Đồng cung: ["đồng cung"]
+    Giáp: ["giáp", "giáp cung"]
+    Tam phương: ["tam phương", "tam phương tứ chính"]
+    Sinh nhập: ["sinh nhập"]
+    Sinh xuất: ["sinh xuất"]
+
+  ToHop:
+    Tử Phủ Vũ Tướng: ["Tử Phủ Vũ Tướng"]
+    Sát Phá Tham: ["Sát Phá Tham", "Sát Phá Liêm Tham"]
+    Cơ Nguyệt Đồng Lương: ["Cơ Nguyệt Đồng Lương"]
+    Cự Nhật: ["Cự Nhật"]
+    Không Kiếp: ["Không Kiếp", "Địa Không Địa Kiếp"]
+    Kình Đà: ["Kình Đà", "Kình Dương Đà La"]
+    Xương Khúc: ["Xương Khúc", "Văn Xương Văn Khúc"]
+    Khôi Việt: ["Khôi Việt", "Thiên Khôi Thiên Việt"]
+    Tả Hữu: ["Tả Hữu", "Tả Phụ Hữu Bật"]
+    Tam hợp Thái Tuế: ["tam hợp Thái Tuế", "Mệnh ở tam hợp Thái Tuế"]
+    Vô chính diệu: ["vô chính diệu", "Mệnh Vô Chính Diệu"]
+
+  VanHan:
+    Vận hạn: ["vận hạn", "hạn"]
+    Tiểu hạn: ["tiểu hạn", "Tiểu Hạn"]
+    Lưu niên: ["lưu niên", "Lưu Niên"]
+    Đại vận: ["đại vận", "Đại Vận"]
+
+  DaiHan:
+    Đại hạn: ["đại hạn", "Đại Hạn"]
+
+  CucBanMenh:
+    Bản mệnh: ["bản mệnh", "Bản Mệnh", "mệnh nạp âm"]
+    Cung Thân: ["Cung Thân", "Thân cư", "cư Thân"]
+    Cục: ["cục", "Cục", "Thủy Nhị Cục", "Mộc Tam Cục", "Kim Tứ Cục", "Thổ Ngũ Cục", "Hỏa Lục Cục"]
+    Âm Dương Nam Nữ: ["Âm Dương Nam Nữ", "Dương Nam", "Âm Nam", "Dương Nữ", "Âm Nữ"]
+
+  KhaiNiem:
+    Vô chính diệu: ["vô chính diệu", "Vô Chính Diệu"]
+    Tứ Hóa: ["Tứ Hóa", "Tứ Hoá", "tứ hóa", "tứ hoá"]
+    Sinh nhập: ["sinh nhập"]
+    Sinh xuất: ["sinh xuất"]
+    Tứ sinh: ["tứ sinh", "Tứ Sinh"]
+    Tứ chính: ["tứ chính", "Tứ Chính"]
+    Tứ mộ: ["tứ mộ", "Tứ Mộ"]
+    Miếu địa: ["miếu địa"]
+    Hãm địa: ["hãm địa"]
+
+luan_giai_triggers:
+  - "chủ về"
+  - "có nghĩa là"
+  - "nên luận là"
+  - "được luận là"
+  - "cho thấy"
+  - "thì"

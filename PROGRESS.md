@@ -319,3 +319,154 @@ Week 2 is now complete. Engine integration, chart creation, visualization, saved
    - `npm run lint` if supported by the installed Next.js version
 3. Commit the completed Week 2 work.
 4. Move to Week 3 planning and implementation.
+
+---
+
+## Week 3 Progress Update - 2026-06-24
+
+### W3-INGEST-02: Chunking framework strategy-aware - COMPLETE
+
+#### Implementation Summary
+Implemented the strategy-aware chunking framework for the Tử Vi-only ingestion pipeline.
+
+#### Files Created/Modified
+1. `scripts/chunk_text.py`
+   - CLI accepts normalized corpus input files or corpus directories.
+   - Supports `--chunking-strategy`, `--config`, `--source-registry`, `--output`, and `--summary-output`.
+   - Loads canonical `*_clean.json` and existing `*_sections.jsonl` corpus formats.
+   - Emits stable JSONL chunk records with `chunk_id`, `parent_id`, `chunk_type`, `chunk_text`, `source_name`, `source_page`, `domain`, `chunk_strategy_id`, `chunk_hash`, and `metadata`.
+   - Keeps Tử Vi-only runtime scope with `domain = "TUVI"`.
+   - Adds downstream-friendly fields: `source_id`, `text`, `provenance`, `doc_id`, `section_id`, `char_start`, `char_end`, `token_count`, `chunking_version`, and `preserved_entities`.
+   - Ensures `chunk_hash` includes `chunk_strategy_id` so strategies do not deduplicate into each other.
+   - Implements Strategy A parent-child chunking with parent and child chunk references.
+
+2. `configs/chunking_strategies.yaml`
+   - Declares the six v7 chunking strategy IDs:
+     - `chunk_structure_parent_child`
+     - `chunk_fixed_256`
+     - `chunk_fixed_512`
+     - `chunk_fixed_1024`
+     - `chunk_sentence_merge`
+     - `chunk_semantic`
+   - Defines Strategy A parent/child token targets and protected Tử Vi terms for sao, cung, thiên can, địa chi, and ngũ hành.
+
+3. `backend/tests/test_chunk_text.py`
+   - Covers clean JSON loader, sections JSONL loader, Tử Vi-only domain enforcement, typo guard for `THNL_clean.json`, strategy-aware hash behavior, parent-child schema, provenance fields, and protected term splitting.
+
+4. `backend/requirements.txt` and `backend/pyproject.toml`
+   - Added `PyYAML` for YAML strategy config loading.
+
+#### Verification
+- Unit/regression command:
+  - `python -m pytest tests/test_chunk_text.py -q`
+  - Current result after W3 chunking updates: `19 passed, 1 warning`
+  - Warning is only `.pytest_cache` write permission in the local sandbox.
+- Strategy A CLI smoke test on `TVGM_clean.json`:
+  - Total chunks: `924`
+  - Parent chunks: `258`
+  - Child chunks: `666`
+- Manual output check confirmed:
+  - `domain = "TUVI"`
+  - `source_id = "TVGM"`
+  - `chunk_strategy_id = "chunk_structure_parent_child"`
+  - child chunks reference valid parent chunk IDs
+  - provenance contains source/page/span metadata
+
+**Status**: COMPLETE - W3-INGEST-02 deliverable is implemented and verified.
+
+---
+
+### W3-INGEST-03: Implement remaining chunking strategies - COMPLETE
+
+#### Implementation Summary
+Implemented all remaining chunking strategies required for chunking ablation in the Tử Vi-only ingestion pipeline. The same input corpus can now produce chunk JSONL outputs for all six configured `chunk_strategy_id` values.
+
+#### Files Modified
+1. `configs/chunking_strategies.yaml`
+   - Enabled the remaining strategies by setting `implemented: true`:
+     - `chunk_fixed_256`
+     - `chunk_fixed_512`
+     - `chunk_fixed_1024`
+     - `chunk_sentence_merge`
+     - `chunk_semantic`
+   - Added `similarity_threshold` for deterministic local semantic chunking.
+
+2. `scripts/chunk_text.py`
+   - Added fixed-size sliding-window chunkers for 256, 512, and 1024 token variants.
+   - Added sentence-merge chunking with target/max token controls.
+   - Added local deterministic semantic chunking using lexical similarity between adjacent sentence groups.
+   - Kept Strategy A parent-child behavior unchanged.
+   - Flat strategies emit `chunk_type = "chunk"` and `parent_id = null`.
+   - All strategies reuse the same record factory, so output keeps `domain = "TUVI"`, `source_id`, `source_page`, `provenance`, `chunk_strategy_id`, and strategy-aware `chunk_hash`.
+   - Summary output now includes chunk type counts for parent/child/flat chunks.
+
+3. `backend/tests/test_chunk_text.py`
+   - Expanded tests to cover all six strategies.
+   - Added checks for shared schema, provenance fields, Tử Vi-only domain, fixed-size token caps, sentence source boundaries, and semantic topic-shift splitting.
+
+#### Verification
+- Unit/regression command:
+  - `python -m pytest tests/test_chunk_text.py -q`
+  - Result: `19 passed, 1 warning`
+  - Warning is only `.pytest_cache` write permission in the local sandbox.
+- CLI smoke test on the same input `TVGM_clean.json` for all six strategies:
+  - `chunk_structure_parent_child`: `924` chunks (`258` parent, `666` child)
+  - `chunk_fixed_256`: `454` chunks
+  - `chunk_fixed_512`: `258` chunks
+  - `chunk_fixed_1024`: `241` chunks
+  - `chunk_sentence_merge`: `385` chunks
+  - `chunk_semantic`: `382` chunks
+- Output record sample checks confirmed:
+  - `domain = "TUVI"`
+  - `source_id = "TVGM"`
+  - `source_page` is preserved
+  - `chunk_strategy_id` matches the selected strategy
+  - `provenance.source_id = "TVGM"`
+
+**Status**: COMPLETE - W3-INGEST-03 deliverable is implemented and verified.
+
+---
+
+### W3-INGEST-04: Trích xuất entity theo chunk strategy - COMPLETE
+
+#### Implementation Summary
+Implemented strategy-aware entity extraction for the Tử Vi-only ingestion pipeline. The extractor consumes chunk JSONL from W3-INGEST-02/03, validates chunk provenance, canonicalizes entity aliases, and emits entity JSONL with `chunk_id`, `chunk_hash`, `chunk_strategy_id`, source/page/section metadata, evidence spans, prompt/model versioning, and review flags.
+
+#### Files Created/Modified
+1. `SPECIFICATIONS.md`
+   - Expanded the Tử Vi ingestion taxonomy with `QuanHeCung`, `TrangThaiSao`, `TuHoa`, and `CucBanMenh`.
+   - Clarified `LuanGiai` as an evidence-backed interpretive claim, not a free-form long paragraph node.
+   - Added guardrails that extraction must not infer entities or claims outside source text.
+
+2. `PLAN.md`
+   - Updated W3-INGEST-04 scope, deliverable, and done criteria to use the expanded taxonomy and provenance requirements.
+
+3. `configs/entity_extraction.yaml`
+   - Added `entity_dict_version`, `prompt_version`, default Gemini Flash-Lite model, entity type list, alias/canonical mappings, and `LuanGiai` trigger phrases.
+   - Covers 12 cung aliases, key stars, Tứ Hóa, trạng thái sao, thiên can, địa chi, ngũ hành, quan hệ cung, tổ hợp, vận hạn, Cục/Bản Mệnh, and controlled concepts.
+
+4. `scripts/extract_entities.py`
+   - Added CLI with `--input`, `--output`, `--chunking-strategy`, `--config`, `--review-output`, and `--mock-llm`.
+   - Validates `domain = "TUVI"` and required chunk provenance before extraction.
+   - Provides a production Gemini adapter with lazy import and a deterministic mock dictionary adapter for offline tests.
+   - Drops entities without evidence in `chunk_text`, deduplicates within chunk by entity/type/span, and preserves strategy-aware provenance.
+   - Generates review JSON with excerpts, extracted entity summaries, warnings, and per-chunk parse errors.
+
+5. `backend/tests/test_extract_entities.py`
+   - Covers alias canonicalization, chunk validation, evidence-only filtering, provenance preservation, multi-strategy mock CLI extraction, and strategy filtering.
+
+6. `backend/requirements.txt` and `backend/pyproject.toml`
+   - Added `google-generativeai` for production Gemini extraction.
+
+#### Verification
+- Entity extraction unit/smoke tests:
+  - `..\.venv\Scripts\python.exe -m pytest tests/test_extract_entities.py -q -p no:cacheprovider`
+  - Result: `7 passed`
+- Chunking regression tests:
+  - `..\.venv\Scripts\python.exe -m pytest tests/test_chunk_text.py -q -p no:cacheprovider`
+  - Result: `19 passed`
+- CLI smoke test with deterministic mock extraction:
+  - `.\.venv\Scripts\python.exe scripts\extract_entities.py --input pytest-cache-files-entity-smoke\multiple-strategies\chunks.jsonl --output pytest-cache-files-entity-smoke\manual-cli\entities.jsonl --review-output pytest-cache-files-entity-smoke\manual-cli\review.json --mock-llm`
+  - Result: `2` chunks processed, `13` entities emitted, `0` errors.
+
+**Status**: COMPLETE - W3-INGEST-04 deliverable is implemented and verified with offline mock extraction. Manual 20-chunk quality review can now run on generated corpus chunks using the same CLI and review report.

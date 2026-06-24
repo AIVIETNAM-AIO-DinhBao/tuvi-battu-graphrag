@@ -385,7 +385,7 @@ Workflow:
 5. Parse cấu trúc sách, chương, mục, trang.
 6. Tạo chunks theo `chunking_strategy`.
 7. Gắn metadata, `domain = "TUVI"` và `chunk_strategy_id`.
-8. Trích entity/relation bằng model nhẹ.
+8. Trích entity/relation bằng model nhẹ theo taxonomy Tử Vi strategy-aware.
 9. Canonicalize và dedup trước khi ghi graph.
 10. Ghi node/edge/chunk vào Neo4j.
 11. Ghi provenance vào Supabase.
@@ -403,7 +403,21 @@ Chunking strategies cho ablation:
 | C | Sentence-merge | `chunk_sentence_merge` |
 | D | Semantic | `chunk_semantic` |
 
-Canonicalization: dùng tên canonical cho sao, cung, thiên can, địa chi, ngũ hành và vận hạn; `MERGE` entity theo `canonical_name + entity_type + domain`; `Chunk` dùng `chunk_hash` có bao gồm `chunk_strategy_id`.
+Entity extraction phải giữ provenance theo chunk strategy và chỉ trích các entity có bằng chứng trong `chunk_text`. Taxonomy ingestion gồm:
+
+- `Sao`: chính tinh, phụ tinh và sao lưu niên khi xuất hiện trong nguồn.
+- `Cung`: 12 cung chức năng và alias phổ biến như Phối, Bào, Tài, Quan.
+- `ThienCan`, `DiaChi`, `NguHanh`: nền tảng can chi, ngũ hành và âm dương.
+- `ToHop`: bộ sao/cung có tên như Sát Phá Tham, Cơ Nguyệt Đồng Lương, Không Kiếp, tam hợp Thái Tuế.
+- `QuanHeCung`: tam hợp, nhị hợp, chính chiếu, xung chiếu, đồng cung, giáp và tam phương.
+- `TrangThaiSao`: Miếu, Vượng, Đắc, Hãm và alias/ký hiệu tương ứng.
+- `TuHoa`: Hóa Lộc, Hóa Quyền, Hóa Khoa, Hóa Kỵ.
+- `VanHan`, `DaiHan`: vận hạn, đại hạn, tiểu hạn, lưu niên khi có evidence.
+- `CucBanMenh`: Cục, bản mệnh, ngũ hành bản mệnh, Âm Dương Nam Nữ.
+- `KhaiNiem`: fallback có kiểm soát cho thuật ngữ canonical như vô chính diệu, sinh nhập, sinh xuất, tứ sinh, tứ chính, tứ mộ.
+- `LuanGiai`: interpretive claim có evidence, ví dụ cấu trúc `X chủ về Y`, `X thì Y`, `gặp X thì Y`, `nên luận là Y`, `có nghĩa là Y`; không biến mọi đoạn văn dài thành node và không tạo claim do model tự suy ra.
+
+Canonicalization: dùng tên canonical cho sao, cung, thiên can, địa chi, ngũ hành, quan hệ cung, trạng thái sao, Tứ Hóa, Cục/Bản Mệnh và vận hạn; `MERGE` entity theo `canonical_name + entity_type + domain`; `Chunk` dùng `chunk_hash` có bao gồm `chunk_strategy_id`.
 
 ***
 
@@ -424,6 +438,12 @@ Node types MVP:
 - `NguHanh`
 - `VanHan`
 - `DaiHan`
+- `QuanHeCung`
+- `TrangThaiSao`
+- `TuHoa`
+- `CucBanMenh`
+
+`LuanGiai` là node claim diễn giải có evidence và phải liên kết về các entity nền như `Sao`, `Cung`, `ToHop` hoặc `QuanHeCung`. `KhaiNiem` chỉ dùng cho thuật ngữ canonical có giá trị retrieval rõ ràng, không dùng như nơi chứa mọi cụm danh từ khó phân loại.
 
 Relation types MVP:
 
@@ -479,7 +499,7 @@ Prompt generation phải:
 - Gắn citations theo chunk/source map.
 - Nói rõ khi thiếu bằng chứng.
 
-Entity extraction prompt phải dùng taxonomy Tử Vi, `domain = "TUVI"`, alias phổ biến và rule canonicalization.
+Entity extraction prompt phải dùng taxonomy Tử Vi, `domain = "TUVI"`, alias phổ biến, rule canonicalization, và guardrail không suy diễn entity/claim ngoài văn bản gốc.
 
 ***
 

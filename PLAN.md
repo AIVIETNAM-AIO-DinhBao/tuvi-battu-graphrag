@@ -299,14 +299,16 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 
 **What to do:**
 - Viết entity extraction prompt cho Tử Vi.
-- Extract sao, cung, tổ hợp, khái niệm, luận giải, thiên can, địa chi, ngũ hành, vận hạn.
-- Mỗi entity giữ `chunk_id`, `chunk_strategy_id`, `source_page`.
-- Canonicalize alias.
-- Không suy diễn entity ngoài văn bản gốc.
+- Extract taxonomy mở rộng: `Sao`, `Cung`, `ThienCan`, `DiaChi`, `NguHanh`, `ToHop`, `QuanHeCung`, `TrangThaiSao`, `TuHoa`, `VanHan`, `DaiHan`, `CucBanMenh`, `KhaiNiem`, `LuanGiai`.
+- Định nghĩa `LuanGiai` là interpretive claim có evidence, chỉ nhận các cấu trúc như `X chủ về Y`, `X thì Y`, `gặp X thì Y`, `nên luận là Y`, `có nghĩa là Y`.
+- Mỗi entity giữ `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `section_id` và evidence span.
+- Thêm `entity_dict_version`, `prompt_version`, `extraction_model` vào output.
+- Canonicalize alias bằng dictionary versioned cho sao, cung, Tứ Hóa, trạng thái sao, can/chi/ngũ hành, quan hệ cung và khái niệm canonical.
+- Không suy diễn entity, quan hệ hoặc luận giải ngoài văn bản gốc.
 
 **Deliverable:** Entity JSON có provenance.
 **Depends on:** W3-INGEST-02
-**Done when:** Sample 20 chunks được review thủ công và đạt chất lượng chấp nhận được.
+**Done when:** Sample 20 chunks được review thủ công, mọi entity có provenance đầy đủ, alias canonical hợp lý và không có entity suy diễn ngoài văn bản gốc.
 
 ### W3-INGEST-05 - Ghi graph và provenance strategy-aware
 
