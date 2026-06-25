@@ -470,3 +470,73 @@ Implemented strategy-aware entity extraction for the Tử Vi-only ingestion pipe
   - Result: `2` chunks processed, `13` entities emitted, `0` errors.
 
 **Status**: COMPLETE - W3-INGEST-04 deliverable is implemented and verified with offline mock extraction. Manual 20-chunk quality review can now run on generated corpus chunks using the same CLI and review report.
+
+---
+
+### W3-INGEST-05: Graph writer, provenance và relation extraction hybrid - COMPLETE
+
+#### Implementation Summary
+Implemented the strategy-aware graph/provenance writer for the Tử Vi-only ingestion pipeline. The writer consumes chunk JSONL and entity JSONL from W3-INGEST-02/03/04, validates provenance, derives evidence-backed relations, writes graph data to Neo4j, and upserts citation-ready chunk provenance into Supabase `source_chunks`.
+
+#### Files Created/Modified
+1. `PLAN.md`
+   - Expanded W3-INGEST-05 from basic graph writing to hybrid relation extraction, provenance validation, and full MVP relation coverage.
+
+2. `infra/neo4j/schema.cypher`
+   - Added strategy-aware `Source`, `Chunk`, and `Entity` constraints/indexes for graph ingestion and retrieval filtering.
+
+3. `infra/supabase/schema.sql` and `infra/supabase/migrations/20260625_source_chunks_strategy_provenance.sql`
+   - Added explicit provenance fields to `source_chunks`: `source_id`, `chunk_id`, `chunk_strategy_id`, `chunk_type`, `parent_id`, `section_id`, `text`, and `provenance`.
+
+4. `scripts/write_graph_provenance.py`
+   - Added CLI with `--chunks-input`, `--entities-input`, `--chunking-strategy`, `--relation-mode`, `--mock-llm`, `--dry-run`, `--skip-neo4j`, `--skip-supabase`, and `--summary-output`.
+   - Supports rule, LLM-constrained, and hybrid relation extraction modes.
+   - Derives evidence-backed MVP relations: `MENTIONS`, `THUOC_CUNG`, `DOI_CHIEU`, `LIEN_KE`, `GIAI_THICH`, `APPLIES_TO`, `RELATED_TO`, `LUU_Y`, `HAS_SOURCE`, and `HAS_CHUNK`.
+   - Adds ontology relations for the 12 functional Tử Vi cung with `relation_source = "ontology"`.
+   - Preserves `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `evidence_text`, and `relation_source` on extracted relations.
+
+5. `scripts/apply_supabase_migration.py` and `scripts/apply_neo4j_schema.py`
+   - Added a psql-free migration helper using `psycopg`.
+   - Improved Neo4j schema apply behavior so connectivity or statement failures fail clearly instead of reporting false success.
+
+6. `backend/tests/test_write_graph_provenance.py` and `backend/pyproject.toml`
+   - Added writer and relation derivation tests.
+   - Added `psycopg[binary]` to backend project dependencies.
+
+#### Verification
+- Regression tests:
+  - `..\.venv\Scripts\python.exe -m pytest tests/test_chunk_text.py tests/test_extract_entities.py tests/test_write_graph_provenance.py -q -p no:cacheprovider`
+  - Result: `35 passed`
+- Neo4j schema apply:
+  - Passed after the Neo4j Aura instance was resumed from pause.
+- Supabase migration:
+  - Applied successfully with `scripts/apply_supabase_migration.py`.
+- Writer smoke test on `TVGM_clean.json` with Strategy A and deterministic mock extraction:
+  - Dry-run succeeded.
+  - Real write succeeded.
+  - Neo4j write counts:
+    - `924` chunks
+    - `562` canonical entities
+    - `42,176` mentions
+    - `30,829` non-mention relations
+    - `1,848` source/chunk edges
+    - `1` source
+  - Supabase write count:
+    - `924` `source_chunks` rows
+  - Relation counts:
+    - `APPLIES_TO`: `4,678`
+    - `DOI_CHIEU`: `183`
+    - `GIAI_THICH`: `4,678`
+    - `LIEN_KE`: `6,012`
+    - `LUU_Y`: `2,049`
+    - `RELATED_TO`: `6,461`
+    - `THUOC_CUNG`: `6,768`
+
+#### Cleanup
+- Removed local smoke-test artifacts:
+  - `pytest-cache-files-w3-ingest-05/`
+  - `pytest-cache-files-writer/`
+  - `pytest-cache-files-entity-smoke/`
+- Neo4j AuraDB and Supabase sample `TVGM` Strategy A data were intentionally kept for W3-INGEST-06 embedding/fulltext verification.
+
+**Status**: COMPLETE - W3-INGEST-05 deliverable is implemented, verified with a real Neo4j/Supabase smoke write, and ready for W3-INGEST-06. Embedding and fulltext indexing remain owned by W3-INGEST-06.

@@ -8,6 +8,14 @@ CREATE CONSTRAINT chunk_id_unique IF NOT EXISTS
 FOR (c:Chunk)
 REQUIRE c.id IS UNIQUE;
 
+CREATE CONSTRAINT source_identity_unique IF NOT EXISTS
+FOR (s:Source)
+REQUIRE (s.source_id, s.domain) IS UNIQUE;
+
+CREATE CONSTRAINT entity_identity_unique IF NOT EXISTS
+FOR (e:Entity)
+REQUIRE (e.canonical_name, e.entity_type, e.domain) IS UNIQUE;
+
 CREATE CONSTRAINT sao_canonical_unique IF NOT EXISTS
 FOR (s:Sao)
 REQUIRE s.canonical_name IS UNIQUE;
@@ -27,6 +35,15 @@ REQUIRE d.canonical_name IS UNIQUE;
 CREATE CONSTRAINT ngu_hanh_canonical_unique IF NOT EXISTS
 FOR (n:NguHanh)
 REQUIRE n.canonical_name IS UNIQUE;
+
+CREATE INDEX chunk_domain_strategy IF NOT EXISTS
+FOR (c:Chunk) ON (c.domain, c.chunk_strategy_id);
+
+CREATE INDEX entity_domain_type IF NOT EXISTS
+FOR (e:Entity) ON (e.domain, e.entity_type);
+
+CREATE INDEX mentions_source_chunk IF NOT EXISTS
+FOR ()-[r:MENTIONS]-() ON (r.chunk_hash, r.chunk_strategy_id);
 
 CREATE VECTOR INDEX chunkVector IF NOT EXISTS
 FOR (c:Chunk) ON (c.embedding)

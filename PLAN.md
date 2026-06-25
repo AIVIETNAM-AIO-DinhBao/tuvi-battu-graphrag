@@ -310,21 +310,34 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 **Depends on:** W3-INGEST-02
 **Done when:** Sample 20 chunks được review thủ công, mọi entity có provenance đầy đủ, alias canonical hợp lý và không có entity suy diễn ngoài văn bản gốc.
 
-### W3-INGEST-05 - Ghi graph và provenance strategy-aware
+### W3-INGEST-05 - Graph writer, provenance và relation extraction hybrid
 
 **When:** Tuần 3, ngày 4-5
 **Môi trường:** Local hoặc Kaggle
 
 **What to do:**
-- Viết graph writer vào Neo4j.
+- Cập nhật graph/provenance writer để ghi chunks, sources, entities và relations vào Neo4j + Supabase.
+- Bổ sung relation candidates strategy-aware từ output chunk/entity.
 - `MERGE` canonical nodes theo `canonical_name + entity_type + domain`.
 - `MERGE` chunk theo `chunk_hash`.
-- Ghi relation có bằng chứng: `MENTIONS`, `GIAI_THICH`, `APPLIES_TO`, `RELATED_TO`.
-- Ghi source chunk provenance vào Supabase.
+- Ghi đủ relation MVP: `MENTIONS`, `THUOC_CUNG`, `DOI_CHIEU`, `LIEN_KE`, `GIAI_THICH`, `APPLIES_TO`, `RELATED_TO`, `LUU_Y`, `HAS_SOURCE`, `HAS_CHUNK`.
+- Mọi relation extracted phải giữ `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `evidence_text`, `relation_source = rule|llm|ontology`.
+- Dùng hybrid relation extraction:
+  - `rule`: pattern deterministic cho quan hệ cấu trúc rõ.
+  - `llm`: Gemini Flash-Lite strict JSON cho luận giải mềm, chỉ dùng relation whitelist.
+  - `hybrid`: rule trước, LLM chỉ bổ sung cho câu chưa phủ hoặc `LuanGiai`.
+- Policy relation:
+  - `THUOC_CUNG`: sao/tổ hợp/cách/cục tại hoặc thuộc cung.
+  - `DOI_CHIEU`: chính chiếu, xung chiếu, đối cung.
+  - `LIEN_KE`: giáp, liền kề, ontology 12 cung.
+  - `GIAI_THICH` / `APPLIES_TO`: nối `LuanGiai` với entity được luận.
+  - `LUU_Y`: cảnh báo/ngoại lệ có trigger như "cần xét", "lưu ý", "không nên", "kỵ".
+  - `RELATED_TO`: chỉ khi có pattern rõ hoặc LLM evidence hợp lệ, không dùng co-occurrence rộng.
+- Ghi source chunk provenance vào Supabase với đủ metadata citation.
 
-**Deliverable:** Graph và provenance được ghi đúng.
+**Deliverable:** Graph, relation và provenance strategy-aware được ghi đúng.
 **Depends on:** W3-INGEST-04, W1-DB-02
-**Done when:** Query Neo4j truy được entity, chunk và source cho sample.
+**Done when:** Query Neo4j từ entity truy được chunk/source; query từ cung truy được sao/luận giải liên quan; relation sample review không có relation suy diễn ngoài evidence; Supabase `source_chunks` có provenance đủ cho citation.
 
 ### W3-INGEST-06 - Embedding và fulltext index theo strategy
 

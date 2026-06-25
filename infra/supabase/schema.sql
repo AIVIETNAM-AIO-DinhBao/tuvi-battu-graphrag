@@ -37,14 +37,22 @@ CREATE TABLE chat_sessions (
 
 CREATE TABLE source_chunks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  source_id TEXT NOT NULL,
   source_name TEXT NOT NULL,
-  source_type TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'book',
   source_url TEXT,
   domain TEXT NOT NULL DEFAULT 'TUVI' CHECK (domain = 'TUVI'),
   source_page INT,
   title TEXT,
+  chunk_id TEXT NOT NULL,
+  chunk_strategy_id TEXT NOT NULL,
+  chunk_type TEXT,
+  parent_id TEXT,
+  section_id TEXT,
+  text TEXT NOT NULL,
   chunk_text TEXT NOT NULL,
   chunk_hash TEXT UNIQUE NOT NULL,
+  provenance JSONB DEFAULT '{}'::jsonb,
   metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -75,3 +83,6 @@ CREATE INDEX idx_la_so_user_id ON la_so(user_id);
 CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX idx_source_chunks_hash ON source_chunks(chunk_hash);
 CREATE INDEX idx_source_chunks_domain ON source_chunks(domain);
+CREATE INDEX idx_source_chunks_source_id ON source_chunks(source_id);
+CREATE INDEX idx_source_chunks_chunk_id ON source_chunks(chunk_id);
+CREATE INDEX idx_source_chunks_strategy ON source_chunks(chunk_strategy_id);
