@@ -1,0 +1,4 @@
+batch_id,owner,reviewer,charts,slot_range,slot_count,notes
+A,A,B,CHART-001|CHART-002,TVQA-001..TVQA-020,20,A owner verify CHART-001 and CHART-002 only.
+B,B,C,CHART-003|CHART-004|CHART-005|CHART-006,TVQA-021..TVQA-060,40,B owner verify CHART-003 through CHART-006.
+C,C,A,CHART-007|CHART-008|CHART-009|CHART-010,TVQA-061..TVQA-100,40,C owner verify CHART-007 through CHART-010.

@@ -12,7 +12,7 @@
   - [PHASE 1 — SETUP 10 LÁ SỐ](#phase-1--setup-10-lá-số-chart-selection)
   - [PHASE 2 — SINH 100 CÂU HỎI](#phase-2--sinh-100-câu-hỏi-10-chart-x-10-câu)
   - [PHASE 3 — HUMAN-LLM COLLABORATION](#phase-3--human-llm-collaboration)
-- [7. PROMPT TEMPLATES CHO LLM](#7-prompt-templates-cho-llm)
+- [7. PROMPT TEMPLATES CHO LLM](#7-wprompt-templates-cho-llm)
 - [8. QUY ĐỊNH CHUẨN HÓA](#8-quy-định-chuẩn-hóa)
 - [9. CẤU TRÚC THƯ MỤC KHUYẾN NGHỊ](#9-cấu-trúc-thư-mục-khuyến-nghị)
 - [10. SAMPLE MINH HỌA HOÀN CHỈNH (5 mẫu)](#10-sample-minh-họa-hoàn-chỉnh-5-mẫu)

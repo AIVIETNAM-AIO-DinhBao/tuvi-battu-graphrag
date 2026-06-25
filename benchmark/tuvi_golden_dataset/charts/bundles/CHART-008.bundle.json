@@ -1,0 +1,3156 @@
+{
+  "chart_id": "CHART-008",
+  "birth_info": {
+    "name": "Phạm Hoàng Bách",
+    "birth_date": "1995-07-22",
+    "birth_time": "08:15",
+    "gender": "nam",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "nam_xem_han": null
+  },
+  "chart_repr": {
+    "chart_type": "TUVI",
+    "schema_role": "chart_repr",
+    "schema_version": "2.0",
+    "menh_position": "Mão",
+    "than_position": "Hợi",
+    "ban_menh": "Sơn Đầu Hỏa",
+    "ngu_hanh_ban_menh": "Hỏa",
+    "cuc": "Thổ ngũ cục",
+    "am_duong_nam_nu": "Thuận Lý Nam",
+    "houses": [
+      {
+        "house_index": 1,
+        "house_name": "Tử Tức",
+        "earthly_branch": "Tý",
+        "is_than_resident": false,
+        "house_element": "Thủy",
+        "yin_yang": "Dương",
+        "dai_han_age": 35,
+        "tieu_han_branch": "Tuất",
+        "trang_sinh": "Mộ",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Tham Lang",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Tiểu Hao",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiếu Dương",
+            "status": null
+          },
+          {
+            "name": "Thiên Không",
+            "status": null
+          },
+          {
+            "name": "Thiên Khôi",
+            "status": null
+          },
+          {
+            "name": "Địa Giải",
+            "status": null
+          },
+          {
+            "name": "Đào Hoa",
+            "status": null
+          },
+          {
+            "name": "L.thiên Hư",
+            "status": null
+          },
+          {
+            "name": "L.thiên Khốc",
+            "status": null
+          }
+        ]
+      },
+      {
+        "house_index": 2,
+        "house_name": "Phu Thê",
+        "earthly_branch": "Sửu",
+        "is_than_resident": false,
+        "house_element": "Thổ",
+        "yin_yang": "Âm",
+        "dai_han_age": 25,
+        "tieu_han_branch": "Hợi",
+        "trang_sinh": "Tử",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thiên Đồng",
+            "status": "Hãm"
+          },
+          {
+            "name": "Cự Môn",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Thanh Long",
+            "status": null
+          },
+          {
+            "name": "Tang Môn",
+            "status": "Hãm"
+          }
+        ]
+      },
+      {
+        "house_index": 3,
+        "house_name": "Huynh Đệ",
+        "earthly_branch": "Dần",
+        "is_than_resident": false,
+        "house_element": "Mộc",
+        "yin_yang": "Dương",
+        "dai_han_age": 15,
+        "tieu_han_branch": "Tý",
+        "trang_sinh": "Bệnh",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Vũ Khúc",
+            "status": "Vượng"
+          },
+          {
+            "name": "Thiên Tướng",
+            "status": "Miếu"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Lực Sĩ",
+            "status": null
+          },
+          {
+            "name": "Thiếu Âm",
+            "status": null
+          },
+          {
+            "name": "Đà La",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Tài",
+            "status": null
+          },
+          {
+            "name": "Thiên Hình",
+            "status": "Đắc"
+          },
+          {
+            "name": "Cô Thần",
+            "status": null
+          },
+          {
+            "name": "Linh Tinh",
+            "status": null
+          },
+          {
+            "name": "L.bạch Hổ",
+            "status": "Hãm"
+          }
+        ]
+      },
+      {
+        "house_index": 4,
+        "house_name": "Mệnh",
+        "earthly_branch": "Mão",
+        "is_than_resident": false,
+        "house_element": "Mộc",
+        "yin_yang": "Âm",
+        "dai_han_age": 5,
+        "tieu_han_branch": "Sửu",
+        "trang_sinh": "Suy",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thái Dương",
+            "status": "Vượng"
+          },
+          {
+            "name": "Thiên Lương",
+            "status": "Vượng"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Lộc Tồn",
+            "status": "Miếu"
+          },
+          {
+            "name": "Bác Sỹ",
+            "status": null
+          },
+          {
+            "name": "Quan Phù",
+            "status": null
+          },
+          {
+            "name": "Địa Kiếp",
+            "status": "Hãm"
+          },
+          {
+            "name": "Long Trì",
+            "status": null
+          },
+          {
+            "name": "Hóa Quyền",
+            "status": "Vượng"
+          }
+        ]
+      },
+      {
+        "house_index": 5,
+        "house_name": "Phụ Mẫu",
+        "earthly_branch": "Thìn",
+        "is_than_resident": false,
+        "house_element": "Thổ",
+        "yin_yang": "Dương",
+        "dai_han_age": 115,
+        "tieu_han_branch": "Dần",
+        "trang_sinh": "Đế vượng",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thất Sát",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Quan Phù",
+            "status": null
+          },
+          {
+            "name": "Tử Phù",
+            "status": null
+          },
+          {
+            "name": "Nguyệt Đức",
+            "status": null
+          },
+          {
+            "name": "Kình Dương",
+            "status": "Đắc"
+          },
+          {
+            "name": "Hồng Loan",
+            "status": null
+          },
+          {
+            "name": "Thiên Quan",
+            "status": null
+          },
+          {
+            "name": "Thiên La",
+            "status": null
+          },
+          {
+            "name": "L.đà La",
+            "status": null
+          }
+        ]
+      },
+      {
+        "house_index": 6,
+        "house_name": "Phúc Đức",
+        "earthly_branch": "Tý",
+        "is_than_resident": false,
+        "house_element": "Hỏa",
+        "yin_yang": "Âm",
+        "dai_han_age": 105,
+        "tieu_han_branch": "Mão",
+        "trang_sinh": "Lâm quan",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thiên Cơ",
+            "status": "Vượng"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Phục Binh",
+            "status": null
+          },
+          {
+            "name": "Tuế Phá",
+            "status": null
+          },
+          {
+            "name": "Hữu Bật",
+            "status": null
+          },
+          {
+            "name": "Bát Tọa",
+            "status": null
+          },
+          {
+            "name": "Ân Quang",
+            "status": null
+          },
+          {
+            "name": "Thiên Hư",
+            "status": null
+          },
+          {
+            "name": "Thiên Mã",
+            "status": "Hãm"
+          },
+          {
+            "name": "Hóa Lộc",
+            "status": "Đắc"
+          },
+          {
+            "name": "Hỏa Tinh",
+            "status": null
+          },
+          {
+            "name": "L.lộc Tồn",
+            "status": "Miếu"
+          }
+        ]
+      },
+      {
+        "house_index": 7,
+        "house_name": "Điền Trạch",
+        "earthly_branch": "Ngọ",
+        "is_than_resident": false,
+        "house_element": "Hỏa",
+        "yin_yang": "Dương",
+        "dai_han_age": 95,
+        "tieu_han_branch": "Thìn",
+        "trang_sinh": "Quan đới",
+        "tuan_khong": false,
+        "triet_khong": true,
+        "major_stars": [
+          {
+            "name": "Tử Vi",
+            "status": "Miếu"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Đại Hao",
+            "status": "Hãm"
+          },
+          {
+            "name": "Long Đức",
+            "status": null
+          },
+          {
+            "name": "Văn Xương",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Riêu",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Y",
+            "status": null
+          },
+          {
+            "name": "Văn Tinh",
+            "status": null
+          },
+          {
+            "name": "Phong Cáo",
+            "status": null
+          },
+          {
+            "name": "Thiên Giải",
+            "status": null
+          },
+          {
+            "name": "Hóa Khoa",
+            "status": "Đắc"
+          },
+          {
+            "name": "Thiên Trù",
+            "status": null
+          },
+          {
+            "name": "L.thái Tuế",
+            "status": null
+          },
+          {
+            "name": "L.kình Dương",
+            "status": null
+          }
+        ]
+      },
+      {
+        "house_index": 8,
+        "house_name": "Quan Lộc",
+        "earthly_branch": "Mùi",
+        "is_than_resident": false,
+        "house_element": "Thổ",
+        "yin_yang": "Âm",
+        "dai_han_age": 85,
+        "tieu_han_branch": "Tý",
+        "trang_sinh": "Mộc dục",
+        "tuan_khong": false,
+        "triet_khong": true,
+        "major_stars": [],
+        "aux_stars": [
+          {
+            "name": "Bệnh Phù",
+            "status": null
+          },
+          {
+            "name": "Bạch Hổ",
+            "status": "Hãm"
+          },
+          {
+            "name": "Địa Không",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Khốc",
+            "status": "Đắc"
+          },
+          {
+            "name": "Hoa Cái",
+            "status": null
+          }
+        ]
+      },
+      {
+        "house_index": 9,
+        "house_name": "Nô Bộc",
+        "earthly_branch": "Thân",
+        "is_than_resident": false,
+        "house_element": "Kim",
+        "yin_yang": "Dương",
+        "dai_han_age": 75,
+        "tieu_han_branch": "Ngọ",
+        "trang_sinh": "Tràng sinh",
+        "tuan_khong": true,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Phá Quân",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Hỷ Thần",
+            "status": null
+          },
+          {
+            "name": "Phúc Đức",
+            "status": null
+          },
+          {
+            "name": "Thiên Đức",
+            "status": null
+          },
+          {
+            "name": "Văn Khúc",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Việt",
+            "status": null
+          },
+          {
+            "name": "Thiên Phúc",
+            "status": null
+          },
+          {
+            "name": "Đường Phù",
+            "status": null
+          },
+          {
+            "name": "Thiên Thương",
+            "status": null
+          },
+          {
+            "name": "Kiếp Sát",
+            "status": null
+          },
+          {
+            "name": "L.tang Môn",
+            "status": "Hãm"
+          },
+          {
+            "name": "L.thiên Mã",
+            "status": "Hãm"
+          }
+        ]
+      },
+      {
+        "house_index": 10,
+        "house_name": "Thiên Di",
+        "earthly_branch": "Dậu",
+        "is_than_resident": false,
+        "house_element": "Kim",
+        "yin_yang": "Âm",
+        "dai_han_age": 65,
+        "tieu_han_branch": "Mùi",
+        "trang_sinh": "Dưỡng",
+        "tuan_khong": true,
+        "triet_khong": false,
+        "major_stars": [],
+        "aux_stars": [
+          {
+            "name": "Phi Liêm",
+            "status": null
+          },
+          {
+            "name": "Điếu Khách",
+            "status": null
+          },
+          {
+            "name": "Tả Phù",
+            "status": null
+          },
+          {
+            "name": "Tam Thai",
+            "status": null
+          },
+          {
+            "name": "Thiên Quý",
+            "status": null
+          },
+          {
+            "name": "Phá Toái",
+            "status": null
+          }
+        ]
+      },
+      {
+        "house_index": 11,
+        "house_name": "Tật Ách",
+        "earthly_branch": "Tuất",
+        "is_than_resident": false,
+        "house_element": "Thổ",
+        "yin_yang": "Dương",
+        "dai_han_age": 55,
+        "tieu_han_branch": "Thân",
+        "trang_sinh": "Thai",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Liêm Trinh",
+            "status": "Miếu"
+          },
+          {
+            "name": "Thiên Phủ",
+            "status": null
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Tấu Thư",
+            "status": null
+          },
+          {
+            "name": "Trực Phù",
+            "status": null
+          },
+          {
+            "name": "Thiên Thọ",
+            "status": null
+          },
+          {
+            "name": "Thiên Hỷ",
+            "status": null
+          },
+          {
+            "name": "Quả Tú",
+            "status": null
+          },
+          {
+            "name": "Thai Phụ",
+            "status": null
+          },
+          {
+            "name": "Địa Võng",
+            "status": null
+          },
+          {
+            "name": "Thiên Sứ",
+            "status": null
+          },
+          {
+            "name": "Đẩu Quân",
+            "status": null
+          },
+          {
+            "name": "Lưu Hà",
+            "status": null
+          }
+        ]
+      },
+      {
+        "house_index": 12,
+        "house_name": "Tài Bạch",
+        "earthly_branch": "Hợi",
+        "is_than_resident": true,
+        "house_element": "Thủy",
+        "yin_yang": "Âm",
+        "dai_han_age": 45,
+        "tieu_han_branch": "Dậu",
+        "trang_sinh": "Tuyệt",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thái Âm",
+            "status": "Miếu"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Tướng Quân",
+            "status": null
+          },
+          {
+            "name": "Thái Tuế",
+            "status": null
+          },
+          {
+            "name": "Phượng Các",
+            "status": null
+          },
+          {
+            "name": "Giải Thần",
+            "status": null
+          },
+          {
+            "name": "Quốc Ấn",
+            "status": null
+          },
+          {
+            "name": "Hóa Kỵ",
+            "status": "Hãm"
+          }
+        ]
+      }
+    ],
+    "derived_tags": [
+      "phuc-duc_co_hoa_loc",
+      "than_cu_tai-bach"
+    ]
+  },
+  "chart_semantic": {
+    "chart_type": "TUVI",
+    "schema_role": "chart_semantic",
+    "schema_version": "2.0",
+    "core_identity": {
+      "name": "Phạm Hoàng Bách",
+      "birth_date": "1995-07-22",
+      "birth_time": "08:15",
+      "gender": "nam",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "menh_branch": "Mão",
+      "than_branch": "Hợi",
+      "ban_menh": "Sơn Đầu Hỏa",
+      "ngu_hanh_ban_menh": "Hỏa",
+      "cuc": "Thổ ngũ cục",
+      "ngu_hanh_cuc": "Thổ",
+      "am_duong_nam_nu": "Thuận Lý Nam",
+      "menh_cuc_relation": "Mệnh sinh Cục",
+      "chu_menh": "Cu Mon",
+      "chu_than": "Thien Co",
+      "lai_nhan_cung": "Mệnh (Mão)",
+      "than_cu": "Tài Bạch (Hợi)",
+      "can_chi_menh": "Kỷ Mão",
+      "can_luong": "4 luong 9 chi"
+    },
+    "birth_year_tu_hoa": {
+      "Hóa Quyền": {
+        "house_name": "Mệnh",
+        "earthly_branch": "Mão"
+      },
+      "Hóa Lộc": {
+        "house_name": "Phúc Đức",
+        "earthly_branch": "Tý"
+      },
+      "Hóa Khoa": {
+        "house_name": "Điền Trạch",
+        "earthly_branch": "Ngọ"
+      },
+      "Hóa Kỵ": {
+        "house_name": "Tài Bạch",
+        "earthly_branch": "Hợi"
+      }
+    },
+    "focus_relations": {
+      "menh": {
+        "tam_hop_branches": [
+          "Hợi",
+          "Mão",
+          "Mùi"
+        ],
+        "xung_chieu_branch": "Dậu",
+        "nhi_hop_branch": "Tuất",
+        "luc_hai_branch": "Thìn",
+        "giap_branches": [
+          "Dần",
+          "Thìn"
+        ]
+      },
+      "than": {
+        "tam_hop_branches": [
+          "Hợi",
+          "Mão",
+          "Mùi"
+        ],
+        "xung_chieu_branch": "Tỵ",
+        "nhi_hop_branch": "Dần",
+        "luc_hai_branch": "Thân",
+        "giap_branches": [
+          "Tuất",
+          "Tý"
+        ]
+      }
+    },
+    "palace_semantics": [
+      {
+        "house_name": "Tử Tức",
+        "earthly_branch": "Tý",
+        "heavenly_stem": null,
+        "house_element": "Thủy",
+        "yin_yang": "Dương",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 35,
+        "tieu_han_branch": "Tuất",
+        "trang_sinh": "Mộ",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Tham Lang",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Tiểu Hao",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiếu Dương",
+            "status": null
+          },
+          {
+            "name": "Thiên Không",
+            "status": null
+          },
+          {
+            "name": "Thiên Khôi",
+            "status": null
+          },
+          {
+            "name": "Địa Giải",
+            "status": null
+          },
+          {
+            "name": "Đào Hoa",
+            "status": null
+          },
+          {
+            "name": "L.thiên Hư",
+            "status": null
+          },
+          {
+            "name": "L.thiên Khốc",
+            "status": null
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Thân",
+            "Tý",
+            "Thìn"
+          ],
+          "xung_chieu_branch": "Ngọ",
+          "nhi_hop_branch": "Sửu",
+          "luc_hai_branch": "Mùi",
+          "giap_branches": [
+            "Hợi",
+            "Sửu"
+          ]
+        },
+        "elemental_flags": [
+          "cung_sinh_sao",
+          "sao_tuong_sinh_ban_menh"
+        ],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": []
+        }
+      },
+      {
+        "house_name": "Phu Thê",
+        "earthly_branch": "Sửu",
+        "heavenly_stem": null,
+        "house_element": "Thổ",
+        "yin_yang": "Âm",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 25,
+        "tieu_han_branch": "Hợi",
+        "trang_sinh": "Tử",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thiên Đồng",
+            "status": "Hãm"
+          },
+          {
+            "name": "Cự Môn",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Thanh Long",
+            "status": null
+          },
+          {
+            "name": "Tang Môn",
+            "status": "Hãm"
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Tỵ",
+            "Dậu",
+            "Sửu"
+          ],
+          "xung_chieu_branch": "Mùi",
+          "nhi_hop_branch": "Tý",
+          "luc_hai_branch": "Ngọ",
+          "giap_branches": [
+            "Tý",
+            "Dần"
+          ]
+        },
+        "elemental_flags": [
+          "cung_khac_sao",
+          "sao_khac_ban_menh"
+        ],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": []
+        }
+      },
+      {
+        "house_name": "Huynh Đệ",
+        "earthly_branch": "Dần",
+        "heavenly_stem": null,
+        "house_element": "Mộc",
+        "yin_yang": "Dương",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 15,
+        "tieu_han_branch": "Tý",
+        "trang_sinh": "Bệnh",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Vũ Khúc",
+            "status": "Vượng"
+          },
+          {
+            "name": "Thiên Tướng",
+            "status": "Miếu"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Lực Sĩ",
+            "status": null
+          },
+          {
+            "name": "Thiếu Âm",
+            "status": null
+          },
+          {
+            "name": "Đà La",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Tài",
+            "status": null
+          },
+          {
+            "name": "Thiên Hình",
+            "status": "Đắc"
+          },
+          {
+            "name": "Cô Thần",
+            "status": null
+          },
+          {
+            "name": "Linh Tinh",
+            "status": null
+          },
+          {
+            "name": "L.bạch Hổ",
+            "status": "Hãm"
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Dần",
+            "Ngọ",
+            "Tuất"
+          ],
+          "xung_chieu_branch": "Thân",
+          "nhi_hop_branch": "Hợi",
+          "luc_hai_branch": "Tỵ",
+          "giap_branches": [
+            "Sửu",
+            "Mão"
+          ]
+        },
+        "elemental_flags": [
+          "sao_khac_ban_menh"
+        ],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": [
+            "L.bạch Hổ"
+          ]
+        }
+      },
+      {
+        "house_name": "Mệnh",
+        "earthly_branch": "Mão",
+        "heavenly_stem": null,
+        "house_element": "Mộc",
+        "yin_yang": "Âm",
+        "is_menh": true,
+        "is_than_resident": false,
+        "dai_han_age": 5,
+        "tieu_han_branch": "Sửu",
+        "trang_sinh": "Suy",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thái Dương",
+            "status": "Vượng"
+          },
+          {
+            "name": "Thiên Lương",
+            "status": "Vượng"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Lộc Tồn",
+            "status": "Miếu"
+          },
+          {
+            "name": "Bác Sỹ",
+            "status": null
+          },
+          {
+            "name": "Quan Phù",
+            "status": null
+          },
+          {
+            "name": "Địa Kiếp",
+            "status": "Hãm"
+          },
+          {
+            "name": "Long Trì",
+            "status": null
+          },
+          {
+            "name": "Hóa Quyền",
+            "status": "Vượng"
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Hợi",
+            "Mão",
+            "Mùi"
+          ],
+          "xung_chieu_branch": "Dậu",
+          "nhi_hop_branch": "Tuất",
+          "luc_hai_branch": "Thìn",
+          "giap_branches": [
+            "Dần",
+            "Thìn"
+          ]
+        },
+        "elemental_flags": [
+          "cung_khac_sao",
+          "cung_sinh_sao"
+        ],
+        "tu_hoa_birth_year": [
+          {
+            "name": "Hóa Quyền",
+            "status": "Vượng"
+          }
+        ],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": []
+        }
+      },
+      {
+        "house_name": "Phụ Mẫu",
+        "earthly_branch": "Thìn",
+        "heavenly_stem": null,
+        "house_element": "Thổ",
+        "yin_yang": "Dương",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 115,
+        "tieu_han_branch": "Dần",
+        "trang_sinh": "Đế vượng",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thất Sát",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Quan Phù",
+            "status": null
+          },
+          {
+            "name": "Tử Phù",
+            "status": null
+          },
+          {
+            "name": "Nguyệt Đức",
+            "status": null
+          },
+          {
+            "name": "Kình Dương",
+            "status": "Đắc"
+          },
+          {
+            "name": "Hồng Loan",
+            "status": null
+          },
+          {
+            "name": "Thiên Quan",
+            "status": null
+          },
+          {
+            "name": "Thiên La",
+            "status": null
+          },
+          {
+            "name": "L.đà La",
+            "status": null
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Thân",
+            "Tý",
+            "Thìn"
+          ],
+          "xung_chieu_branch": "Tuất",
+          "nhi_hop_branch": "Dậu",
+          "luc_hai_branch": "Mão",
+          "giap_branches": [
+            "Mão",
+            "Tỵ"
+          ]
+        },
+        "elemental_flags": [
+          "cung_sinh_sao"
+        ],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": [
+            "L.đà La"
+          ]
+        }
+      },
+      {
+        "house_name": "Phúc Đức",
+        "earthly_branch": "Tý",
+        "heavenly_stem": null,
+        "house_element": "Hỏa",
+        "yin_yang": "Âm",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 105,
+        "tieu_han_branch": "Mão",
+        "trang_sinh": "Lâm quan",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thiên Cơ",
+            "status": "Vượng"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Phục Binh",
+            "status": null
+          },
+          {
+            "name": "Tuế Phá",
+            "status": null
+          },
+          {
+            "name": "Hữu Bật",
+            "status": null
+          },
+          {
+            "name": "Bát Tọa",
+            "status": null
+          },
+          {
+            "name": "Ân Quang",
+            "status": null
+          },
+          {
+            "name": "Thiên Hư",
+            "status": null
+          },
+          {
+            "name": "Thiên Mã",
+            "status": "Hãm"
+          },
+          {
+            "name": "Hóa Lộc",
+            "status": "Đắc"
+          },
+          {
+            "name": "Hỏa Tinh",
+            "status": null
+          },
+          {
+            "name": "L.lộc Tồn",
+            "status": "Miếu"
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Thân",
+            "Tý",
+            "Thìn"
+          ],
+          "xung_chieu_branch": "Ngọ",
+          "nhi_hop_branch": "Sửu",
+          "luc_hai_branch": "Mùi",
+          "giap_branches": [
+            "Hợi",
+            "Sửu"
+          ]
+        },
+        "elemental_flags": [
+          "sao_tuong_sinh_ban_menh"
+        ],
+        "tu_hoa_birth_year": [
+          {
+            "name": "Hóa Lộc",
+            "status": "Đắc"
+          }
+        ],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": [
+            "L.lộc Tồn"
+          ]
+        }
+      },
+      {
+        "house_name": "Điền Trạch",
+        "earthly_branch": "Ngọ",
+        "heavenly_stem": null,
+        "house_element": "Hỏa",
+        "yin_yang": "Dương",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 95,
+        "tieu_han_branch": "Thìn",
+        "trang_sinh": "Quan đới",
+        "tuan_khong": false,
+        "triet_khong": true,
+        "major_stars": [
+          {
+            "name": "Tử Vi",
+            "status": "Miếu"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Đại Hao",
+            "status": "Hãm"
+          },
+          {
+            "name": "Long Đức",
+            "status": null
+          },
+          {
+            "name": "Văn Xương",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Riêu",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Y",
+            "status": null
+          },
+          {
+            "name": "Văn Tinh",
+            "status": null
+          },
+          {
+            "name": "Phong Cáo",
+            "status": null
+          },
+          {
+            "name": "Thiên Giải",
+            "status": null
+          },
+          {
+            "name": "Hóa Khoa",
+            "status": "Đắc"
+          },
+          {
+            "name": "Thiên Trù",
+            "status": null
+          },
+          {
+            "name": "L.thái Tuế",
+            "status": null
+          },
+          {
+            "name": "L.kình Dương",
+            "status": null
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Dần",
+            "Ngọ",
+            "Tuất"
+          ],
+          "xung_chieu_branch": "Tý",
+          "nhi_hop_branch": "Mùi",
+          "luc_hai_branch": "Sửu",
+          "giap_branches": [
+            "Tỵ",
+            "Mùi"
+          ]
+        },
+        "elemental_flags": [
+          "cung_sinh_sao",
+          "sao_tuong_sinh_ban_menh"
+        ],
+        "tu_hoa_birth_year": [
+          {
+            "name": "Hóa Khoa",
+            "status": "Đắc"
+          }
+        ],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": [
+            "L.kình Dương",
+            "L.thái Tuế"
+          ]
+        }
+      },
+      {
+        "house_name": "Quan Lộc",
+        "earthly_branch": "Mùi",
+        "heavenly_stem": null,
+        "house_element": "Thổ",
+        "yin_yang": "Âm",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 85,
+        "tieu_han_branch": "Tý",
+        "trang_sinh": "Mộc dục",
+        "tuan_khong": false,
+        "triet_khong": true,
+        "major_stars": [],
+        "aux_stars": [
+          {
+            "name": "Bệnh Phù",
+            "status": null
+          },
+          {
+            "name": "Bạch Hổ",
+            "status": "Hãm"
+          },
+          {
+            "name": "Địa Không",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Khốc",
+            "status": "Đắc"
+          },
+          {
+            "name": "Hoa Cái",
+            "status": null
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Hợi",
+            "Mão",
+            "Mùi"
+          ],
+          "xung_chieu_branch": "Sửu",
+          "nhi_hop_branch": "Ngọ",
+          "luc_hai_branch": "Tý",
+          "giap_branches": [
+            "Ngọ",
+            "Thân"
+          ]
+        },
+        "elemental_flags": [],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": []
+        }
+      },
+      {
+        "house_name": "Nô Bộc",
+        "earthly_branch": "Thân",
+        "heavenly_stem": null,
+        "house_element": "Kim",
+        "yin_yang": "Dương",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 75,
+        "tieu_han_branch": "Ngọ",
+        "trang_sinh": "Tràng sinh",
+        "tuan_khong": true,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Phá Quân",
+            "status": "Hãm"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Hỷ Thần",
+            "status": null
+          },
+          {
+            "name": "Phúc Đức",
+            "status": null
+          },
+          {
+            "name": "Thiên Đức",
+            "status": null
+          },
+          {
+            "name": "Văn Khúc",
+            "status": "Hãm"
+          },
+          {
+            "name": "Thiên Việt",
+            "status": null
+          },
+          {
+            "name": "Thiên Phúc",
+            "status": null
+          },
+          {
+            "name": "Đường Phù",
+            "status": null
+          },
+          {
+            "name": "Thiên Thương",
+            "status": null
+          },
+          {
+            "name": "Kiếp Sát",
+            "status": null
+          },
+          {
+            "name": "L.tang Môn",
+            "status": "Hãm"
+          },
+          {
+            "name": "L.thiên Mã",
+            "status": "Hãm"
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Thân",
+            "Tý",
+            "Thìn"
+          ],
+          "xung_chieu_branch": "Dần",
+          "nhi_hop_branch": "Tỵ",
+          "luc_hai_branch": "Hợi",
+          "giap_branches": [
+            "Mùi",
+            "Dậu"
+          ]
+        },
+        "elemental_flags": [
+          "cung_sinh_sao",
+          "sao_khac_ban_menh"
+        ],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": [
+            "L.tang Môn",
+            "L.thiên Mã"
+          ]
+        }
+      },
+      {
+        "house_name": "Thiên Di",
+        "earthly_branch": "Dậu",
+        "heavenly_stem": null,
+        "house_element": "Kim",
+        "yin_yang": "Âm",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 65,
+        "tieu_han_branch": "Mùi",
+        "trang_sinh": "Dưỡng",
+        "tuan_khong": true,
+        "triet_khong": false,
+        "major_stars": [],
+        "aux_stars": [
+          {
+            "name": "Phi Liêm",
+            "status": null
+          },
+          {
+            "name": "Điếu Khách",
+            "status": null
+          },
+          {
+            "name": "Tả Phù",
+            "status": null
+          },
+          {
+            "name": "Tam Thai",
+            "status": null
+          },
+          {
+            "name": "Thiên Quý",
+            "status": null
+          },
+          {
+            "name": "Phá Toái",
+            "status": null
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Tỵ",
+            "Dậu",
+            "Sửu"
+          ],
+          "xung_chieu_branch": "Mão",
+          "nhi_hop_branch": "Thìn",
+          "luc_hai_branch": "Tuất",
+          "giap_branches": [
+            "Thân",
+            "Tuất"
+          ]
+        },
+        "elemental_flags": [],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": []
+        }
+      },
+      {
+        "house_name": "Tật Ách",
+        "earthly_branch": "Tuất",
+        "heavenly_stem": null,
+        "house_element": "Thổ",
+        "yin_yang": "Dương",
+        "is_menh": false,
+        "is_than_resident": false,
+        "dai_han_age": 55,
+        "tieu_han_branch": "Thân",
+        "trang_sinh": "Thai",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Liêm Trinh",
+            "status": "Miếu"
+          },
+          {
+            "name": "Thiên Phủ",
+            "status": null
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Tấu Thư",
+            "status": null
+          },
+          {
+            "name": "Trực Phù",
+            "status": null
+          },
+          {
+            "name": "Thiên Thọ",
+            "status": null
+          },
+          {
+            "name": "Thiên Hỷ",
+            "status": null
+          },
+          {
+            "name": "Quả Tú",
+            "status": null
+          },
+          {
+            "name": "Thai Phụ",
+            "status": null
+          },
+          {
+            "name": "Địa Võng",
+            "status": null
+          },
+          {
+            "name": "Thiên Sứ",
+            "status": null
+          },
+          {
+            "name": "Đẩu Quân",
+            "status": null
+          },
+          {
+            "name": "Lưu Hà",
+            "status": null
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Dần",
+            "Ngọ",
+            "Tuất"
+          ],
+          "xung_chieu_branch": "Thìn",
+          "nhi_hop_branch": "Mão",
+          "luc_hai_branch": "Dậu",
+          "giap_branches": [
+            "Dậu",
+            "Hợi"
+          ]
+        },
+        "elemental_flags": [],
+        "tu_hoa_birth_year": [],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": []
+        }
+      },
+      {
+        "house_name": "Tài Bạch",
+        "earthly_branch": "Hợi",
+        "heavenly_stem": null,
+        "house_element": "Thủy",
+        "yin_yang": "Âm",
+        "is_menh": false,
+        "is_than_resident": true,
+        "dai_han_age": 45,
+        "tieu_han_branch": "Dậu",
+        "trang_sinh": "Tuyệt",
+        "tuan_khong": false,
+        "triet_khong": false,
+        "major_stars": [
+          {
+            "name": "Thái Âm",
+            "status": "Miếu"
+          }
+        ],
+        "aux_stars": [
+          {
+            "name": "Tướng Quân",
+            "status": null
+          },
+          {
+            "name": "Thái Tuế",
+            "status": null
+          },
+          {
+            "name": "Phượng Các",
+            "status": null
+          },
+          {
+            "name": "Giải Thần",
+            "status": null
+          },
+          {
+            "name": "Quốc Ấn",
+            "status": null
+          },
+          {
+            "name": "Hóa Kỵ",
+            "status": "Hãm"
+          }
+        ],
+        "house_relations": {
+          "tam_hop_branches": [
+            "Hợi",
+            "Mão",
+            "Mùi"
+          ],
+          "xung_chieu_branch": "Tỵ",
+          "nhi_hop_branch": "Dần",
+          "luc_hai_branch": "Thân",
+          "giap_branches": [
+            "Tuất",
+            "Tý"
+          ]
+        },
+        "elemental_flags": [
+          "sao_khac_ban_menh"
+        ],
+        "tu_hoa_birth_year": [
+          {
+            "name": "Hóa Kỵ",
+            "status": "Hãm"
+          }
+        ],
+        "phi_hoa": {
+          "available": false,
+          "note": "Requires can-cung + phi-hoa rule tables/helper. Left empty to avoid fabricated semantics.",
+          "hoa_loc_to": null,
+          "hoa_quyen_to": null,
+          "hoa_khoa_to": null,
+          "hoa_ky_to": null
+        },
+        "tu_hoa_self": [],
+        "yearly_transit": {
+          "nam_xem_han": 2026,
+          "stars": []
+        }
+      }
+    ],
+    "star_index": {
+      "Bác Sỹ": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Bát Tọa": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Bạch Hổ": [
+        {
+          "house_name": "Quan Lộc",
+          "earthly_branch": "Mùi",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Bệnh Phù": [
+        {
+          "house_name": "Quan Lộc",
+          "earthly_branch": "Mùi",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Cô Thần": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Cự Môn": [
+        {
+          "house_name": "Phu Thê",
+          "earthly_branch": "Sửu",
+          "status": "Hãm",
+          "star_group": "major",
+          "star_element": "Thủy"
+        }
+      ],
+      "Giải Thần": [
+        {
+          "house_name": "Tài Bạch",
+          "earthly_branch": "Hợi",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Hoa Cái": [
+        {
+          "house_name": "Quan Lộc",
+          "earthly_branch": "Mùi",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Hóa Khoa": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": "Đắc",
+          "star_group": "aux",
+          "star_element": "Mộc"
+        }
+      ],
+      "Hóa Kỵ": [
+        {
+          "house_name": "Tài Bạch",
+          "earthly_branch": "Hợi",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": "Thủy"
+        }
+      ],
+      "Hóa Lộc": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": "Đắc",
+          "star_group": "aux",
+          "star_element": "Mộc"
+        }
+      ],
+      "Hóa Quyền": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": "Vượng",
+          "star_group": "aux",
+          "star_element": "Hỏa"
+        }
+      ],
+      "Hỏa Tinh": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Hồng Loan": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Hữu Bật": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Hỷ Thần": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Kiếp Sát": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Kình Dương": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": "Đắc",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.bạch Hổ": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.kình Dương": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.lộc Tồn": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": "Miếu",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.tang Môn": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.thiên Hư": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.thiên Khốc": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.thiên Mã": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.thái Tuế": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "L.đà La": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Linh Tinh": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Liêm Trinh": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": "Miếu",
+          "star_group": "major",
+          "star_element": "Hỏa"
+        }
+      ],
+      "Long Trì": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Long Đức": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Lưu Hà": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Lộc Tồn": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": "Miếu",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Lực Sĩ": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Nguyệt Đức": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Phi Liêm": [
+        {
+          "house_name": "Thiên Di",
+          "earthly_branch": "Dậu",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Phong Cáo": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Phá Quân": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": "Hãm",
+          "star_group": "major",
+          "star_element": "Thủy"
+        }
+      ],
+      "Phá Toái": [
+        {
+          "house_name": "Thiên Di",
+          "earthly_branch": "Dậu",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Phúc Đức": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Phượng Các": [
+        {
+          "house_name": "Tài Bạch",
+          "earthly_branch": "Hợi",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Phục Binh": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Quan Phù": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        },
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Quả Tú": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Quốc Ấn": [
+        {
+          "house_name": "Tài Bạch",
+          "earthly_branch": "Hợi",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tam Thai": [
+        {
+          "house_name": "Thiên Di",
+          "earthly_branch": "Dậu",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tang Môn": [
+        {
+          "house_name": "Phu Thê",
+          "earthly_branch": "Sửu",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thai Phụ": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tham Lang": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": "Hãm",
+          "star_group": "major",
+          "star_element": "Mộc"
+        }
+      ],
+      "Thanh Long": [
+        {
+          "house_name": "Phu Thê",
+          "earthly_branch": "Sửu",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Cơ": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": "Vượng",
+          "star_group": "major",
+          "star_element": "Mộc"
+        }
+      ],
+      "Thiên Giải": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Hình": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": "Đắc",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Hư": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Hỷ": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Khôi": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Không": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Khốc": [
+        {
+          "house_name": "Quan Lộc",
+          "earthly_branch": "Mùi",
+          "status": "Đắc",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên La": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Lương": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": "Vượng",
+          "star_group": "major",
+          "star_element": "Thổ"
+        }
+      ],
+      "Thiên Mã": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Phúc": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Phủ": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "major",
+          "star_element": "Thổ"
+        }
+      ],
+      "Thiên Quan": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Quý": [
+        {
+          "house_name": "Thiên Di",
+          "earthly_branch": "Dậu",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Riêu": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Sứ": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Thương": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Thọ": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Trù": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Tài": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Tướng": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": "Miếu",
+          "star_group": "major",
+          "star_element": "Thủy"
+        }
+      ],
+      "Thiên Việt": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Y": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiên Đồng": [
+        {
+          "house_name": "Phu Thê",
+          "earthly_branch": "Sửu",
+          "status": "Hãm",
+          "star_group": "major",
+          "star_element": "Thủy"
+        }
+      ],
+      "Thiên Đức": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiếu Dương": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thiếu Âm": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thái Dương": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": "Vượng",
+          "star_group": "major",
+          "star_element": "Hỏa"
+        }
+      ],
+      "Thái Tuế": [
+        {
+          "house_name": "Tài Bạch",
+          "earthly_branch": "Hợi",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Thái Âm": [
+        {
+          "house_name": "Tài Bạch",
+          "earthly_branch": "Hợi",
+          "status": "Miếu",
+          "star_group": "major",
+          "star_element": "Thủy"
+        }
+      ],
+      "Thất Sát": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": "Hãm",
+          "star_group": "major",
+          "star_element": "Kim"
+        }
+      ],
+      "Tiểu Hao": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Trực Phù": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tuế Phá": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tướng Quân": [
+        {
+          "house_name": "Tài Bạch",
+          "earthly_branch": "Hợi",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tả Phù": [
+        {
+          "house_name": "Thiên Di",
+          "earthly_branch": "Dậu",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tấu Thư": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tử Phù": [
+        {
+          "house_name": "Phụ Mẫu",
+          "earthly_branch": "Thìn",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Tử Vi": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": "Miếu",
+          "star_group": "major",
+          "star_element": "Thổ"
+        }
+      ],
+      "Văn Khúc": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Văn Tinh": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Văn Xương": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Vũ Khúc": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": "Vượng",
+          "star_group": "major",
+          "star_element": "Kim"
+        }
+      ],
+      "Ân Quang": [
+        {
+          "house_name": "Phúc Đức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Điếu Khách": [
+        {
+          "house_name": "Thiên Di",
+          "earthly_branch": "Dậu",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Đà La": [
+        {
+          "house_name": "Huynh Đệ",
+          "earthly_branch": "Dần",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Đào Hoa": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Đường Phù": [
+        {
+          "house_name": "Nô Bộc",
+          "earthly_branch": "Thân",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Đại Hao": [
+        {
+          "house_name": "Điền Trạch",
+          "earthly_branch": "Ngọ",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Đẩu Quân": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Địa Giải": [
+        {
+          "house_name": "Tử Tức",
+          "earthly_branch": "Tý",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Địa Không": [
+        {
+          "house_name": "Quan Lộc",
+          "earthly_branch": "Mùi",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Địa Kiếp": [
+        {
+          "house_name": "Mệnh",
+          "earthly_branch": "Mão",
+          "status": "Hãm",
+          "star_group": "aux",
+          "star_element": null
+        }
+      ],
+      "Địa Võng": [
+        {
+          "house_name": "Tật Ách",
+          "earthly_branch": "Tuất",
+          "status": null,
+          "star_group": "aux",
+          "star_element": null
+        }
+      ]
+    },
+    "notable_patterns": [
+      {
+        "pattern_code": "tu_phu_vu_tuong_present",
+        "evidence": [
+          "Tử Vi",
+          "Thiên Phủ",
+          "Vũ Khúc",
+          "Thiên Tướng"
+        ]
+      },
+      {
+        "pattern_code": "sat_pha_tham_present",
+        "evidence": [
+          "Thất Sát",
+          "Phá Quân",
+          "Tham Lang"
+        ]
+      },
+      {
+        "pattern_code": "co_nguyet_dong_luong_present",
+        "evidence": [
+          "Thiên Cơ",
+          "Thái Âm",
+          "Thiên Đồng",
+          "Thiên Lương"
+        ]
+      },
+      {
+        "pattern_code": "cu_nhat_present",
+        "evidence": [
+          "Cự Môn",
+          "Thái Dương"
+        ]
+      },
+      {
+        "pattern_code": "than_cu_tai-bach",
+        "evidence": [
+          "Tài Bạch"
+        ]
+      }
+    ],
+    "retrieval_hints": {
+      "career": {
+        "priority_houses": [
+          "Quan Lộc",
+          "Mệnh",
+          "Thiên Di"
+        ],
+        "priority_relations": {
+          "Quan Lộc": {
+            "tam_hop_branches": [
+              "Hợi",
+              "Mão",
+              "Mùi"
+            ],
+            "xung_chieu_branch": "Sửu",
+            "nhi_hop_branch": "Ngọ",
+            "luc_hai_branch": "Tý",
+            "giap_branches": [
+              "Ngọ",
+              "Thân"
+            ]
+          },
+          "Mệnh": {
+            "tam_hop_branches": [
+              "Hợi",
+              "Mão",
+              "Mùi"
+            ],
+            "xung_chieu_branch": "Dậu",
+            "nhi_hop_branch": "Tuất",
+            "luc_hai_branch": "Thìn",
+            "giap_branches": [
+              "Dần",
+              "Thìn"
+            ]
+          },
+          "Thiên Di": {
+            "tam_hop_branches": [
+              "Tỵ",
+              "Dậu",
+              "Sửu"
+            ],
+            "xung_chieu_branch": "Mão",
+            "nhi_hop_branch": "Thìn",
+            "luc_hai_branch": "Tuất",
+            "giap_branches": [
+              "Thân",
+              "Tuất"
+            ]
+          }
+        },
+        "key_stars": [
+          "Bác Sỹ",
+          "Bạch Hổ",
+          "Bệnh Phù",
+          "Hoa Cái",
+          "Hóa Quyền",
+          "Long Trì",
+          "Lộc Tồn",
+          "Phi Liêm",
+          "Phá Toái",
+          "Quan Phù",
+          "Tam Thai",
+          "Thiên Khốc",
+          "Thiên Lương",
+          "Thiên Quý",
+          "Thái Dương",
+          "Tả Phù",
+          "Điếu Khách",
+          "Địa Không",
+          "Địa Kiếp"
+        ]
+      },
+      "finance": {
+        "priority_houses": [
+          "Tài Bạch",
+          "Mệnh",
+          "Quan Lộc"
+        ],
+        "priority_relations": {
+          "Tài Bạch": {
+            "tam_hop_branches": [
+              "Hợi",
+              "Mão",
+              "Mùi"
+            ],
+            "xung_chieu_branch": "Tỵ",
+            "nhi_hop_branch": "Dần",
+            "luc_hai_branch": "Thân",
+            "giap_branches": [
+              "Tuất",
+              "Tý"
+            ]
+          },
+          "Mệnh": {
+            "tam_hop_branches": [
+              "Hợi",
+              "Mão",
+              "Mùi"
+            ],
+            "xung_chieu_branch": "Dậu",
+            "nhi_hop_branch": "Tuất",
+            "luc_hai_branch": "Thìn",
+            "giap_branches": [
+              "Dần",
+              "Thìn"
+            ]
+          },
+          "Quan Lộc": {
+            "tam_hop_branches": [
+              "Hợi",
+              "Mão",
+              "Mùi"
+            ],
+            "xung_chieu_branch": "Sửu",
+            "nhi_hop_branch": "Ngọ",
+            "luc_hai_branch": "Tý",
+            "giap_branches": [
+              "Ngọ",
+              "Thân"
+            ]
+          }
+        },
+        "key_stars": [
+          "Bác Sỹ",
+          "Bạch Hổ",
+          "Bệnh Phù",
+          "Giải Thần",
+          "Hoa Cái",
+          "Hóa Kỵ",
+          "Hóa Quyền",
+          "Long Trì",
+          "Lộc Tồn",
+          "Phượng Các",
+          "Quan Phù",
+          "Quốc Ấn",
+          "Thiên Khốc",
+          "Thiên Lương",
+          "Thái Dương",
+          "Thái Tuế",
+          "Thái Âm",
+          "Tướng Quân",
+          "Địa Không",
+          "Địa Kiếp"
+        ]
+      },
+      "marriage": {
+        "priority_houses": [
+          "Phu Thê",
+          "Mệnh",
+          "Thiên Di"
+        ],
+        "priority_relations": {
+          "Phu Thê": {
+            "tam_hop_branches": [
+              "Tỵ",
+              "Dậu",
+              "Sửu"
+            ],
+            "xung_chieu_branch": "Mùi",
+            "nhi_hop_branch": "Tý",
+            "luc_hai_branch": "Ngọ",
+            "giap_branches": [
+              "Tý",
+              "Dần"
+            ]
+          },
+          "Mệnh": {
+            "tam_hop_branches": [
+              "Hợi",
+              "Mão",
+              "Mùi"
+            ],
+            "xung_chieu_branch": "Dậu",
+            "nhi_hop_branch": "Tuất",
+            "luc_hai_branch": "Thìn",
+            "giap_branches": [
+              "Dần",
+              "Thìn"
+            ]
+          },
+          "Thiên Di": {
+            "tam_hop_branches": [
+              "Tỵ",
+              "Dậu",
+              "Sửu"
+            ],
+            "xung_chieu_branch": "Mão",
+            "nhi_hop_branch": "Thìn",
+            "luc_hai_branch": "Tuất",
+            "giap_branches": [
+              "Thân",
+              "Tuất"
+            ]
+          }
+        },
+        "key_stars": [
+          "Bác Sỹ",
+          "Cự Môn",
+          "Hóa Quyền",
+          "Long Trì",
+          "Lộc Tồn",
+          "Phi Liêm",
+          "Phá Toái",
+          "Quan Phù",
+          "Tam Thai",
+          "Tang Môn",
+          "Thanh Long",
+          "Thiên Lương",
+          "Thiên Quý",
+          "Thiên Đồng",
+          "Thái Dương",
+          "Tả Phù",
+          "Điếu Khách",
+          "Địa Kiếp"
+        ]
+      },
+      "health": {
+        "priority_houses": [
+          "Tật Ách",
+          "Mệnh",
+          "Phúc Đức"
+        ],
+        "priority_relations": {
+          "Tật Ách": {
+            "tam_hop_branches": [
+              "Dần",
+              "Ngọ",
+              "Tuất"
+            ],
+            "xung_chieu_branch": "Thìn",
+            "nhi_hop_branch": "Mão",
+            "luc_hai_branch": "Dậu",
+            "giap_branches": [
+              "Dậu",
+              "Hợi"
+            ]
+          },
+          "Mệnh": {
+            "tam_hop_branches": [
+              "Hợi",
+              "Mão",
+              "Mùi"
+            ],
+            "xung_chieu_branch": "Dậu",
+            "nhi_hop_branch": "Tuất",
+            "luc_hai_branch": "Thìn",
+            "giap_branches": [
+              "Dần",
+              "Thìn"
+            ]
+          },
+          "Phúc Đức": {
+            "tam_hop_branches": [
+              "Thân",
+              "Tý",
+              "Thìn"
+            ],
+            "xung_chieu_branch": "Ngọ",
+            "nhi_hop_branch": "Sửu",
+            "luc_hai_branch": "Mùi",
+            "giap_branches": [
+              "Hợi",
+              "Sửu"
+            ]
+          }
+        },
+        "key_stars": [
+          "Bác Sỹ",
+          "Bát Tọa",
+          "Hóa Lộc",
+          "Hóa Quyền",
+          "Hỏa Tinh",
+          "Hữu Bật",
+          "L.lộc Tồn",
+          "Liêm Trinh",
+          "Long Trì",
+          "Lưu Hà",
+          "Lộc Tồn",
+          "Phục Binh",
+          "Quan Phù",
+          "Quả Tú",
+          "Thai Phụ",
+          "Thiên Cơ",
+          "Thiên Hư",
+          "Thiên Hỷ",
+          "Thiên Lương",
+          "Thiên Mã",
+          "Thiên Phủ",
+          "Thiên Sứ",
+          "Thiên Thọ",
+          "Thái Dương",
+          "Trực Phù",
+          "Tuế Phá",
+          "Tấu Thư",
+          "Ân Quang",
+          "Đẩu Quân",
+          "Địa Kiếp",
+          "Địa Võng"
+        ]
+      },
+      "family": {
+        "priority_houses": [
+          "Phụ Mẫu",
+          "Phúc Đức",
+          "Huynh Đệ"
+        ],
+        "priority_relations": {
+          "Phụ Mẫu": {
+            "tam_hop_branches": [
+              "Thân",
+              "Tý",
+              "Thìn"
+            ],
+            "xung_chieu_branch": "Tuất",
+            "nhi_hop_branch": "Dậu",
+            "luc_hai_branch": "Mão",
+            "giap_branches": [
+              "Mão",
+              "Tỵ"
+            ]
+          },
+          "Phúc Đức": {
+            "tam_hop_branches": [
+              "Thân",
+              "Tý",
+              "Thìn"
+            ],
+            "xung_chieu_branch": "Ngọ",
+            "nhi_hop_branch": "Sửu",
+            "luc_hai_branch": "Mùi",
+            "giap_branches": [
+              "Hợi",
+              "Sửu"
+            ]
+          },
+          "Huynh Đệ": {
+            "tam_hop_branches": [
+              "Dần",
+              "Ngọ",
+              "Tuất"
+            ],
+            "xung_chieu_branch": "Thân",
+            "nhi_hop_branch": "Hợi",
+            "luc_hai_branch": "Tỵ",
+            "giap_branches": [
+              "Sửu",
+              "Mão"
+            ]
+          }
+        },
+        "key_stars": [
+          "Bát Tọa",
+          "Cô Thần",
+          "Hóa Lộc",
+          "Hỏa Tinh",
+          "Hồng Loan",
+          "Hữu Bật",
+          "Kình Dương",
+          "L.bạch Hổ",
+          "L.lộc Tồn",
+          "L.đà La",
+          "Linh Tinh",
+          "Lực Sĩ",
+          "Nguyệt Đức",
+          "Phục Binh",
+          "Quan Phù",
+          "Thiên Cơ",
+          "Thiên Hình",
+          "Thiên Hư",
+          "Thiên La",
+          "Thiên Mã",
+          "Thiên Quan",
+          "Thiên Tài",
+          "Thiên Tướng",
+          "Thiếu Âm",
+          "Thất Sát",
+          "Tuế Phá",
+          "Tử Phù",
+          "Vũ Khúc",
+          "Ân Quang",
+          "Đà La"
+        ]
+      },
+      "query_strategy": [
+        "Ưu tiên lấy core_identity + cung đích + tam hợp/xung chiếu/nhị hợp/lục hại/giáp của cung đích.",
+        "Nếu câu hỏi nhắc sao cụ thể, tra star_index trước rồi mới nạp palace_semantics liên quan.",
+        "Chỉ nạp phi_hoa khi helper chuyên biệt đã được triển khai; không suy diễn bằng LLM nếu field còn rỗng."
+      ]
+    }
+  }
+}
