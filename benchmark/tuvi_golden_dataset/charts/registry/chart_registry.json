@@ -1,0 +1,162 @@
+[
+  {
+    "chart_id": "CHART-001",
+    "chart_file": "chart_repr/CHART-001.json",
+    "birth_info": {
+      "name": "Bùi Xuân Trường",
+      "birth_date": "1998-03-18",
+      "birth_time": "18:05",
+      "gender": "nam",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-001.semantic.json",
+    "bundle_file": "bundles/CHART-001.bundle.json"
+  },
+  {
+    "chart_id": "CHART-002",
+    "chart_file": "chart_repr/CHART-002.json",
+    "birth_info": {
+      "name": "Đặng Thái Sơn",
+      "birth_date": "1992-04-05",
+      "birth_time": "04:20",
+      "gender": "nam",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-002.semantic.json",
+    "bundle_file": "bundles/CHART-002.bundle.json"
+  },
+  {
+    "chart_id": "CHART-003",
+    "chart_file": "chart_repr/CHART-003.json",
+    "birth_info": {
+      "name": "Đỗ Tuyết Lan",
+      "birth_date": "1982-10-25",
+      "birth_time": "20:30",
+      "gender": "nu",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-003.semantic.json",
+    "bundle_file": "bundles/CHART-003.bundle.json"
+  },
+  {
+    "chart_id": "CHART-004",
+    "chart_file": "chart_repr/CHART-004.json",
+    "birth_info": {
+      "name": "Dương Bích Hạnh",
+      "birth_date": "1993-06-14",
+      "birth_time": "10:45",
+      "gender": "nu",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-004.semantic.json",
+    "bundle_file": "bundles/CHART-004.bundle.json"
+  },
+  {
+    "chart_id": "CHART-005",
+    "chart_file": "chart_repr/CHART-005.json",
+    "birth_info": {
+      "name": "Hồ Quang Trí",
+      "birth_date": "2000-01-08",
+      "birth_time": "22:15",
+      "gender": "nam",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-005.semantic.json",
+    "bundle_file": "bundles/CHART-005.bundle.json"
+  },
+  {
+    "chart_id": "CHART-006",
+    "chart_file": "chart_repr/CHART-006.json",
+    "birth_info": {
+      "name": "Lâm Tuệ Mẫn",
+      "birth_date": "1997-09-02",
+      "birth_time": "00:30",
+      "gender": "nu",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-006.semantic.json",
+    "bundle_file": "bundles/CHART-006.bundle.json"
+  },
+  {
+    "chart_id": "CHART-007",
+    "chart_file": "chart_repr/CHART-007.json",
+    "birth_info": {
+      "name": "Ngô Phương Thảo",
+      "birth_date": "1985-12-01",
+      "birth_time": "16:15",
+      "gender": "nữ",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-007.semantic.json",
+    "bundle_file": "bundles/CHART-007.bundle.json"
+  },
+  {
+    "chart_id": "CHART-008",
+    "chart_file": "chart_repr/CHART-008.json",
+    "birth_info": {
+      "name": "Phạm Hoàng Bách",
+      "birth_date": "1995-07-22",
+      "birth_time": "08:15",
+      "gender": "nam",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-008.semantic.json",
+    "bundle_file": "bundles/CHART-008.bundle.json"
+  },
+  {
+    "chart_id": "CHART-009",
+    "chart_file": "chart_repr/CHART-009.json",
+    "birth_info": {
+      "name": "Phan Quoc Tuan",
+      "birth_date": "1989-11-11",
+      "birth_time": "13:50",
+      "gender": "nam",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-009.semantic.json",
+    "bundle_file": "bundles/CHART-009.bundle.json"
+  },
+  {
+    "chart_id": "CHART-010",
+    "chart_file": "chart_repr/CHART-010.json",
+    "birth_info": {
+      "name": "Vũ Ngọc Mai",
+      "birth_date": "1988-09-09",
+      "birth_time": "11:30",
+      "gender": "nữ",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "nam_xem_han": null
+    },
+    "status": "verified",
+    "coverage_tags": [],
+    "semantic_file": "chart_semantic/CHART-010.semantic.json",
+    "bundle_file": "bundles/CHART-010.bundle.json"
+  }
+]
