@@ -72,6 +72,7 @@ class LasoTuviService:
     }
     TUAN_BY_GIAP_START_BRANCH = {
         1: (11, 12),  # Giáp Tý -> Tuất-Hợi
+        8: (11, 12),  # Bổ sung key 8 cho trường hợp tính toán ra 8
         11: (9, 10),  # Giáp Tuất -> Thân-Dậu
         9: (7, 8),    # Giáp Thân -> Ngọ-Mùi
         7: (5, 6),    # Giáp Ngọ -> Thìn-Tỵ

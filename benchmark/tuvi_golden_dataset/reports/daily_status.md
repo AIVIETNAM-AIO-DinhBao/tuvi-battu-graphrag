@@ -12,8 +12,12 @@
 - **next:** Day 2
 
 ### B
-- **done:** Rà lại tên file 4 sách, metadata gốc
-- **next:** Hỗ trợ A chi tiết section_id và span_id (GD-SRC-02, GD-SRC-04)
+- **done:** 
+  - Rà lại tên file 4 sách, metadata gốc
+  - GD-PDF-02: Xuất file TVHS_raw_pages.json và TVGM_raw_pages.json trong folder Corpus
+- **blocked** None
+- **next:** Day 2
+  - Hỗ trợ A chi tiết section_id và span_id (GD-SRC-02, GD-SRC-04)
 
 ### C
 - **done:** Chuẩn bị skeleton scripts
