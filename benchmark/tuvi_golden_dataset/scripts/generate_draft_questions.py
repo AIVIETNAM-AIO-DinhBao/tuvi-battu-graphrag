@@ -306,10 +306,12 @@ def collect_allowed_chart_signals(
         if value:
             signals.add(str(value))
 
-    for literal in ["Mệnh", "Thân", "Bản Mệnh", "Cục", "Tuần", "Triệt", "Tràng Sinh"]:
+    for literal in ["Mệnh", "Thân", "Thân cư", "Bản Mệnh", "Cục", "Tuần", "Triệt", "Tràng Sinh"]:
         signals.add(literal)
 
     for house in chart_repr_summary.get("houses", []):
+        if house.get("is_than_resident") and house.get("house_name"):
+            signals.add(f"Thân cư {house['house_name']}")
         for key in ["house_name", "earthly_branch", "trang_sinh"]:
             value = house.get(key)
             if value:
