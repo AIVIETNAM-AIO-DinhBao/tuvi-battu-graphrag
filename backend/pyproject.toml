@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
   "fastapi",
   "google-generativeai",
+  "google-genai",
   "uvicorn[standard]",
   "python-dotenv",
   "neo4j",

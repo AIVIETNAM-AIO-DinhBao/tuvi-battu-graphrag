@@ -346,6 +346,7 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 
 **What to do:**
 - Tạo embedding cho chunk.
+- Default implementation dùng Gemini embedding model cấu hình được; hiện tại chọn `gemini-embedding-2` với `output_dimensionality = 768` để khớp Neo4j `chunkVector`. Model embedding vẫn là biến ablation, không bị pin trong specification tổng.
 - Ghi embedding vào Neo4j.
 - Bảo đảm vector/fulltext query filter được theo `chunk_strategy_id`.
 - Viết smoke test retrieval cho 5 câu hỏi đơn giản.

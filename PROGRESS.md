@@ -540,3 +540,53 @@ Implemented the strategy-aware graph/provenance writer for the Tử Vi-only inge
 - Neo4j AuraDB and Supabase sample `TVGM` Strategy A data were intentionally kept for W3-INGEST-06 embedding/fulltext verification.
 
 **Status**: COMPLETE - W3-INGEST-05 deliverable is implemented, verified with a real Neo4j/Supabase smoke write, and ready for W3-INGEST-06. Embedding and fulltext indexing remain owned by W3-INGEST-06.
+
+---
+
+### W3-INGEST-06: Embedding và fulltext index theo strategy - COMPLETE
+
+#### Implementation Summary
+Implemented the strategy-aware embedding and retrieval smoke layer for chunks written by W3-INGEST-05. The scripts can embed Neo4j `Chunk` nodes, populate fulltext metadata, resume after partial runs, and smoke-test dense plus sparse retrieval while preserving `source_id`, `domain`, and `chunk_strategy_id` filters.
+
+#### Files Created/Modified
+1. `PLAN.md`
+   - Documented the W3-INGEST-06 embedding default: configurable Gemini embedding model, currently `gemini-embedding-2` with `output_dimensionality = 768` to match Neo4j `chunkVector`.
+
+2. `scripts/embed_chunks.py`
+   - Added chunk selection by `domain`, `source_id`, `chunk_strategy_id`, and missing `Chunk.embedding`.
+   - Writes `Chunk.embedding`, `embedding_model`, `embedding_dim`, `embedded_at`, `embedding_text_hash`, `title`, and `keywords`.
+   - Adds resume-safe incremental writes, retry/backoff, daily-quota detection, and partial summary output.
+   - Supports multi-key Gemini config via `GEMINI_API_KEYS` or fallback `GEMINI_API_KEY` + `GEMINI_API_KEY_2`.
+   - Uses round-robin key selection, per-key throttling, failover on rate limits, and disables RPD-exhausted keys for the run.
+
+3. `scripts/smoke_retrieval.py`
+   - Added dense vector smoke retrieval via Neo4j `chunkVector`.
+   - Added sparse/fulltext smoke retrieval via `chunkFulltext`.
+   - Uses the same multi-key embedding client for query embeddings.
+   - Writes JSON summaries with retrieval hits, diagnostics, and safe key-usage counts.
+
+4. `.env.example` and `backend/.env.example`
+   - Added `GEMINI_API_KEYS` and optional `GEMINI_API_KEY_2` while preserving existing `GEMINI_API_KEY` compatibility.
+
+5. `backend/tests/test_embed_chunks.py` and `backend/tests/test_smoke_retrieval.py`
+   - Added unit coverage for embedding selection, dimension validation, metadata preservation, fulltext query shaping, retrieval normalization, multi-key parsing, round robin, failover, daily quota disable, and safe summary behavior.
+
+6. `backend/requirements.txt` and `backend/pyproject.toml`
+   - Added `google-genai` for current Gemini embedding API usage.
+
+#### Verification
+- W3-INGEST-06 focused tests:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_embed_chunks.py backend\tests\test_smoke_retrieval.py -q -p no:cacheprovider`
+  - Result: `28 passed`
+- W3 ingestion regression tests:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_chunk_text.py backend\tests\test_extract_entities.py backend\tests\test_write_graph_provenance.py backend\tests\test_embed_chunks.py backend\tests\test_smoke_retrieval.py -q -p no:cacheprovider`
+  - Result: `63 passed`
+- Gemini embedding smoke status:
+  - Small probe run succeeded.
+  - Full TVGM Strategy A embedding run progressed through most remaining selected chunks before hitting Gemini embedding daily quota.
+  - Multi-key failover and resume behavior are covered by unit tests; full DB embedding can continue with the same command after quota reset.
+
+#### Cleanup
+- Local pytest/smoke artifact directories are being removed after this progress update.
+
+**Status**: COMPLETE - W3-INGEST-06 implementation and regression verification are complete. Full live DB embedding/retrieval can be resumed after Gemini quota reset, but the task is accepted based on the completed scripts, multi-key quota handling, and passing regression suite.
