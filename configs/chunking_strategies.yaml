@@ -1,0 +1,155 @@
+version: chunking_v1
+default_strategy: chunk_structure_parent_child
+
+strategies:
+  chunk_structure_parent_child:
+    label: Structure-first recursive parent-child
+    implemented: true
+    chunking_version: chunk_structure_parent_child_v1
+    parent:
+      min_tokens: 400
+      target_tokens: 456
+      max_tokens: 512
+      overlap_tokens: 80
+    child:
+      min_tokens: 120
+      target_tokens: 150
+      max_tokens: 180
+      overlap_tokens: 30
+
+  chunk_fixed_256:
+    label: Fixed-size sliding window 256
+    implemented: false
+    chunking_version: chunk_fixed_256_v1
+    max_tokens: 256
+    overlap_ratio: 0.12
+
+  chunk_fixed_512:
+    label: Fixed-size sliding window 512
+    implemented: false
+    chunking_version: chunk_fixed_512_v1
+    max_tokens: 512
+    overlap_ratio: 0.12
+
+  chunk_fixed_1024:
+    label: Fixed-size sliding window 1024
+    implemented: false
+    chunking_version: chunk_fixed_1024_v1
+    max_tokens: 1024
+    overlap_ratio: 0.12
+
+  chunk_sentence_merge:
+    label: Sentence dynamic merge
+    implemented: false
+    chunking_version: chunk_sentence_merge_v1
+    min_tokens: 200
+    target_tokens: 300
+    max_tokens: 400
+
+  chunk_semantic:
+    label: Semantic chunking with embedding similarity
+    implemented: false
+    chunking_version: chunk_semantic_v1
+    min_tokens: 300
+    target_tokens: 400
+    max_tokens: 500
+
+protected_terms:
+  sao:
+    - Tử Vi
+    - Thiên Cơ
+    - Thái Dương
+    - Vũ Khúc
+    - Thiên Đồng
+    - Liêm Trinh
+    - Thiên Phủ
+    - Thái Âm
+    - Tham Lang
+    - Cự Môn
+    - Thiên Tướng
+    - Thiên Lương
+    - Thất Sát
+    - Phá Quân
+    - Văn Xương
+    - Văn Khúc
+    - Tả Phụ
+    - Hữu Bật
+    - Thiên Khôi
+    - Thiên Việt
+    - Lộc Tồn
+    - Hóa Lộc
+    - Hóa Quyền
+    - Hóa Khoa
+    - Hóa Kỵ
+    - Kình Dương
+    - Đà La
+    - Hỏa Tinh
+    - Linh Tinh
+    - Địa Không
+    - Địa Kiếp
+    - Thiên Không
+    - Thiên Mã
+    - Tuần
+    - Triệt
+
+  cung:
+    - Cung Mệnh
+    - Cung Thân
+    - Cung Phụ Mẫu
+    - Cung Phúc Đức
+    - Cung Điền Trạch
+    - Cung Quan Lộc
+    - Cung Nô Bộc
+    - Cung Thiên Di
+    - Cung Tật Ách
+    - Cung Tài Bạch
+    - Cung Tử Tức
+    - Cung Phu Thê
+    - Cung Huynh Đệ
+    - Cung Tý
+    - Cung Sửu
+    - Cung Dần
+    - Cung Mão
+    - Cung Thìn
+    - Cung Tỵ
+    - Cung Ngọ
+    - Cung Mùi
+    - Cung Thân
+    - Cung Dậu
+    - Cung Tuất
+    - Cung Hợi
+
+  thien_can:
+    - Giáp
+    - Ất
+    - Bính
+    - Đinh
+    - Mậu
+    - Kỷ
+    - Canh
+    - Tân
+    - Nhâm
+    - Quý
+
+  dia_chi:
+    - Tý
+    - Sửu
+    - Dần
+    - Mão
+    - Thìn
+    - Tỵ
+    - Ngọ
+    - Mùi
+    - Thân
+    - Dậu
+    - Tuất
+    - Hợi
+
+  ngu_hanh:
+    - Kim
+    - Mộc
+    - Thủy
+    - Hỏa
+    - Thổ
+    - Âm Dương
+    - Ngũ Hành

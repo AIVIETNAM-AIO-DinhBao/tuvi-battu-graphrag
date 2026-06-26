@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { BatuBoard, type BatuChartData } from "../../../components/BatuBoard";
 import { TuViBoard, type TuViChartData } from "../../../components/TuViBoard";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -122,7 +121,7 @@ export default function ChartDetailPage() {
             </div>
           </dl>
 
-          <ChartVisualizer chartSystem={chart.chart_system} chartData={chart.chart_data} />
+          <ChartVisualizer chartData={chart.chart_data} />
 
           <details className="debug-details">
             <summary>Dữ liệu debug của chart</summary>
@@ -135,53 +134,15 @@ export default function ChartDetailPage() {
 }
 
 function ChartVisualizer({
-  chartSystem,
   chartData,
 }: {
-  chartSystem: string;
   chartData: unknown;
 }) {
-  if (chartSystem === "TUVI") {
-    if (isTuViChartData(chartData)) {
-      return <TuViBoard chart={chartData} />;
-    }
-
-    return <VisualizerError message="Dữ liệu Tử Vi không đúng định dạng." />;
+  if (isTuViChartData(chartData)) {
+    return <TuViBoard chart={chartData} />;
   }
 
-  if (chartSystem === "BATU") {
-    if (isBatuChartData(chartData)) {
-      return <BatuBoard chart={chartData} />;
-    }
-
-    return <VisualizerError message="Dữ liệu Bát Tự không đúng định dạng." />;
-  }
-
-  if (chartSystem === "TUVI_BATU") {
-    if (!isRecord(chartData)) {
-      return <VisualizerError message="Dữ liệu chart kết hợp không đúng định dạng." />;
-    }
-
-    const tuvi = chartData.tuvi;
-    const batu = chartData.batu;
-
-    return (
-      <div className="combined-boards">
-        {isTuViChartData(tuvi) ? (
-          <TuViBoard chart={tuvi} />
-        ) : (
-          <VisualizerError message="Dữ liệu Tử Vi trong chart kết hợp không đúng định dạng." />
-        )}
-        {isBatuChartData(batu) ? (
-          <BatuBoard chart={batu} />
-        ) : (
-          <VisualizerError message="Dữ liệu Bát Tự trong chart kết hợp không đúng định dạng." />
-        )}
-      </div>
-    );
-  }
-
-  return <VisualizerError message={`Chart system chưa được hỗ trợ: ${chartSystem}`} />;
+  return <VisualizerError message="Dữ liệu Tử Vi không đúng định dạng." />;
 }
 
 function VisualizerError({ message }: { message: string }) {
@@ -203,17 +164,11 @@ function formatGender(value: string) {
 
 function formatChartSystem(value: string) {
   if (value === "TUVI") return "Tử Vi";
-  if (value === "BATU") return "Bát Tự";
-  if (value === "TUVI_BATU") return "Tử Vi + Bát Tự";
   return value || "N/A";
 }
 
 function isTuViChartData(value: unknown): value is TuViChartData {
   return isRecord(value) && value.chart_type === "TUVI" && isRecord(value.palaces);
-}
-
-function isBatuChartData(value: unknown): value is BatuChartData {
-  return isRecord(value) && value.chart_type === "BATU" && isRecord(value.pillars);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

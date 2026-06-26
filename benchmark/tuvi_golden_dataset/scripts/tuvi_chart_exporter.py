@@ -35,7 +35,7 @@ python tuvi_chart_exporter.py \
   --output-dir ./benchmark/tuvi_golden_dataset/charts/exports \
   --semantic-format both
 """
-
+# Vũ Ngọc Mai	                Nữ	         1988-09-09	     11:30	           Ngọ
 from __future__ import annotations
 
 import argparse
@@ -47,6 +47,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+import os
 
 
 # ---------------------------------------------------------------------------

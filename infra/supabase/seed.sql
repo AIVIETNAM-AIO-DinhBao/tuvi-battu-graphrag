@@ -13,13 +13,13 @@ INSERT INTO la_so (id, user_id, label, birth_date, birth_time, gender, chart_sys
 VALUES (
   '00000000-0000-0000-0000-000000000010',
   '00000000-0000-0000-0000-000000000001',
-  'Chart 1',
+  'Lá số Tử Vi mẫu',
   '1990-01-01',
   '08:00',
-  'MALE',
+  'male',
   'TUVI',
   '{"source":"seed","description":"Sample chart data"}',
-  'v1'
+  'tuvi-v1'
 )
 ON CONFLICT (id) DO NOTHING;
 

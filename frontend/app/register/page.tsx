@@ -51,9 +51,9 @@ export default function RegisterPage() {
       <section className="auth-shell" aria-labelledby="register-title">
         <div className="auth-panel">
           <div className="auth-copy">
-            <p className="auth-kicker">TuVi / BaTu GraphRAG</p>
+            <p className="auth-kicker">TuVi GraphRAG</p>
             <h1 id="register-title">Tạo tài khoản</h1>
-            <p>Bắt đầu lưu chart cá nhân và mở lại các phân tích Tử Vi, Bát Tự khi cần.</p>
+            <p>Bắt đầu lưu lá số cá nhân và mở lại các phân tích Tử Vi khi cần.</p>
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
@@ -106,7 +106,7 @@ export default function RegisterPage() {
             <p className="auth-kicker">Personal chart library</p>
             <h2>Một nơi gọn để giữ và đọc lá số.</h2>
             <p>
-              Sau khi xác nhận email, bạn có thể tạo chart, lưu lịch sử và mở lại bảng
+              Sau khi xác nhận email, bạn có thể tạo lá số, lưu lịch sử và mở lại bảng
               trực quan trên mọi kích thước màn hình.
             </p>
           </div>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
             </div>
             <div className="auth-console-row">
               <span>Engine</span>
-              <strong>Hybrid calculations</strong>
+              <strong>Tử Vi calculation</strong>
             </div>
           </div>
         </aside>
