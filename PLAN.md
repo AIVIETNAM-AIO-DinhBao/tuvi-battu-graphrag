@@ -355,20 +355,24 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 **Depends on:** W3-INGEST-05
 **Done when:** Retrieval trả chunk có source và strategy đúng.
 
-### W3-INGEST-07 - Baseline ingest bằng Strategy A
+### W3-INGEST-07 - Full corpus baseline ingest với strategy đại diện
 
 **When:** Tuần 3, ngày 5
 **Môi trường:** Local hoặc Kaggle
 
 **What to do:**
-- Chọn 1-2 sách Tử Vi đại diện cho MVP early corpus.
-- Chạy pipeline Strategy A từ extract đến index.
-- Ghi số page, chunk, node, relation, embedding.
-- Review 20 chunk ngẫu nhiên.
+- Dùng toàn bộ 4 sách Tử Vi nền đã chuẩn hóa trong `benchmark/tuvi_golden_dataset/corpus`: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
+- Không xóa hoặc rebuild corpus nền; chỉ tạo lại dữ liệu derived từ chunk/entity/relation/embedding/index.
+- Chạy pipeline từ chunk đến index cho 2 strategy đại diện:
+  - `chunk_structure_parent_child` làm baseline cấu trúc chính.
+  - `chunk_fixed_512` làm đối chứng fixed-size trung tính.
+- Với mỗi source-strategy pair, chạy chunking, entity extraction, graph/provenance writer, embedding và retrieval smoke.
+- Ghi số page, chunk, node, relation, Supabase `source_chunks`, embedding và retrieval smoke theo từng `source_id` + `chunk_strategy_id`.
+- Review tối thiểu 20 chunk/entity/relation sample cho mỗi strategy.
 
-**Deliverable:** Baseline corpus Tử Vi đã ingest.
+**Deliverable:** Full corpus Tử Vi đã ingest với 2 strategy đại diện.
 **Depends on:** W3-INGEST-06
-**Done when:** App/RAG retrieve được từ corpus baseline.
+**Done when:** Neo4j và Supabase có dữ liệu đầy đủ cho 8 cặp source-strategy, dense/sparse retrieval smoke pass cho từng cặp, và App/RAG retrieve được từ corpus baseline.
 
 ***
 
@@ -638,14 +642,20 @@ Mục tiêu: có golden dataset Tử Vi, runner đo metric, experiment matrix v1
 **Môi trường:** Kaggle hoặc Local
 
 **What to do:**
-- Ingest 1-2 sách đại diện bằng nhiều chunking strategy.
-- Chạy cùng golden subset trên từng strategy.
+- Giữ nguyên full corpus 4 sách đã dùng ở W3-INGEST-07: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
+- Bổ sung các strategy còn lại để đủ 6 strategy:
+  - `chunk_fixed_256`
+  - `chunk_fixed_1024`
+  - `chunk_sentence_merge`
+  - `chunk_semantic`
+- Không thay đổi corpus khi so sánh strategy; biến chính của ablation phải là `chunk_strategy_id`.
+- Chạy cùng golden subset trên toàn bộ 6 strategy, bao gồm 2 strategy đã ingest từ W3.
 - So sánh Context Recall, Citation Coverage, latency và graph hit.
 - Chọn chunking candidate cho production.
 
-**Deliverable:** Report chunking ablation.
-**Depends on:** W3-INGEST-03, W6-EVAL-02
-**Done when:** Có ranking strategy và lý do chọn candidate.
+**Deliverable:** Report chunking ablation trên cùng full corpus 4 sách.
+**Depends on:** W3-INGEST-07, W6-EVAL-02
+**Done when:** Có đủ dữ liệu cho 24 cặp source-strategy, cùng golden dataset/corpus/config được dùng để so sánh 6 strategy, và có ranking strategy kèm lý do chọn candidate.
 
 ### W6-INT-01 - Integration test với production candidate config
 
@@ -918,7 +928,7 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 | D-15 | Entity extraction Tử Vi có provenance | W3 |
 | D-16 | Graph write và Supabase provenance strategy-aware | W3 |
 | D-17 | Embedding/fulltext index filter theo `chunk_strategy_id` | W3 |
-| D-18 | Baseline ingest Strategy A cho corpus Tử Vi | W3 |
+| D-18 | Full corpus baseline ingest với 2 strategy đại diện | W3 |
 | D-19 | Migration `experiment_runs` và `ExperimentConfig` schema | W4 |
 | D-20 | LangGraph/RAGState config-aware | W4 |
 | D-21 | Query rewrite và entity extraction toggles | W4 |
@@ -935,7 +945,7 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 | D-32 | Evaluation runner config-aware | W6 |
 | D-33 | Experiment matrix v1 | W6 |
 | D-34 | Ablation retrieval/fusion/reranker v1 | W6 |
-| D-35 | Ablation chunking strategy v1 | W6 |
+| D-35 | Full-corpus chunking ablation đủ 6 strategy | W6 |
 | D-36 | Integration test với production candidate | W6 |
 | D-37 | Ablation generation model và prompt template | W7 |
 | D-38 | Production config final | W7 |

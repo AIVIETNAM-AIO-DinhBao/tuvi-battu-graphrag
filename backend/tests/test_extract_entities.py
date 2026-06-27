@@ -56,6 +56,29 @@ def smoke_dir(name: str) -> Path:
     return path
 
 
+class FakeGeminiClient:
+    extraction_model = "fake-gemini"
+
+    def __init__(self, responses: list[object] | None = None) -> None:
+        self.responses = list(responses or [[]])
+        self.calls = 0
+
+    def extract(self, chunk: dict, config: dict) -> list[dict]:
+        self.calls += 1
+        response = self.responses.pop(0) if self.responses else []
+        if isinstance(response, Exception):
+            raise response
+        return response  # type: ignore[return-value]
+
+
+def no_sleep(_: float) -> None:
+    return None
+
+
+def fake_time() -> float:
+    return 0.0
+
+
 def test_canonicalize_core_aliases() -> None:
     config = load_config()
 
@@ -89,6 +112,91 @@ def test_validate_rejects_missing_provenance() -> None:
 
     with pytest.raises(ValueError, match="missing required keys: chunk_hash"):
         extract_entities.validate_chunk(chunk)
+
+
+def test_load_gemini_api_keys_supports_combined_and_numbered_keys() -> None:
+    env = {
+        "GEMINI_API_KEYS": "key-c, key-a",
+        "GEMINI_API_KEY": "key-a",
+        "GEMINI_API_KEY_2": "key-b",
+        "GEMINI_API_KEY_3": "key-c",
+        "GEMINI_API_KEY_10": "key-d",
+        "GEMINI_API_KEY_EXTRA": "ignored",
+    }
+
+    assert extract_entities.load_gemini_api_keys(env) == ["key-c", "key-a", "key-b", "key-d"]
+
+
+def test_multi_key_adapter_round_robins_successful_requests() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    clients = [FakeGeminiClient([[], []]), FakeGeminiClient([[], []])]
+    adapter = extract_entities.MultiKeyGeminiLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    for _ in range(4):
+        assert adapter.extract(chunk, config) == []
+
+    assert [client.calls for client in clients] == [2, 2]
+    assert adapter.get_usage_summary()["api_key_usage_counts"] == {"key_1": 2, "key_2": 2}
+
+
+def test_multi_key_adapter_fails_over_on_rate_limit() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    clients = [FakeGeminiClient([RuntimeError("429 rate limit")]), FakeGeminiClient([[]])]
+    adapter = extract_entities.MultiKeyGeminiLLMAdapter(
+        clients,
+        max_retries=1,
+        retry_base_seconds=1,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    assert adapter.extract(chunk, config) == []
+    summary = adapter.get_usage_summary()
+    assert [client.calls for client in clients] == [1, 1]
+    assert summary["api_key_usage_counts"] == {"key_1": 0, "key_2": 1}
+    assert summary["disabled_key_count"] == 0
+    assert summary["quota_failover_count"] == 1
+
+
+def test_multi_key_adapter_disables_daily_quota_key() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    clients = [FakeGeminiClient([RuntimeError("requests per day quota")]), FakeGeminiClient([[]])]
+    adapter = extract_entities.MultiKeyGeminiLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    assert adapter.extract(chunk, config) == []
+    summary = adapter.get_usage_summary()
+    assert [client.calls for client in clients] == [1, 1]
+    assert summary["disabled_key_count"] == 1
+    assert summary["quota_failover_count"] == 1
+
+
+def test_multi_key_adapter_raises_when_all_keys_unavailable() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    clients = [
+        FakeGeminiClient([RuntimeError("requests per day quota")]),
+        FakeGeminiClient([RuntimeError("daily quota exhausted")]),
+    ]
+    adapter = extract_entities.MultiKeyGeminiLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    with pytest.raises(extract_entities.GeminiKeysUnavailableError):
+        adapter.extract(chunk, config)
+    assert adapter.get_usage_summary()["disabled_key_count"] == 2
 
 
 def test_postprocess_drops_entity_not_present_in_chunk_text() -> None:
@@ -224,3 +332,58 @@ def test_mock_cli_filters_by_chunking_strategy() -> None:
     assert summary["chunk_count"] == 1
     assert records
     assert {record["chunk_strategy_id"] for record in records} == {"chunk_fixed_256"}
+
+
+def test_run_loads_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[Path] = []
+    monkeypatch.setattr(extract_entities, "load_dotenv", lambda path: calls.append(path))
+    work_dir = smoke_dir("dotenv-load")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    write_jsonl(input_path, [make_chunk("Thien Co o Cung Menh.")])
+
+    extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--mock-llm",
+        ]
+    )
+
+    assert calls == [ROOT_DIR / ".env"]
+
+
+def test_run_stops_cleanly_when_all_keys_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    work_dir = smoke_dir("all-keys-unavailable")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    chunks = [
+        make_chunk("Thien Co o Cung Menh.", chunk_id="a"),
+        make_chunk("Thai Duong o Cung Ngo.", chunk_id="b"),
+    ]
+    write_jsonl(input_path, chunks)
+    adapter = extract_entities.MultiKeyGeminiLLMAdapter(
+        [
+            FakeGeminiClient([RuntimeError("requests per day quota")]),
+            FakeGeminiClient([RuntimeError("daily quota exhausted")]),
+        ],
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+    monkeypatch.setattr(extract_entities, "make_llm_adapter", lambda args, config: adapter)
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert summary["completed"] is False
+    assert summary["error_count"] == 1
+    assert summary["disabled_key_count"] == 2
+    assert read_jsonl(output_path) == []

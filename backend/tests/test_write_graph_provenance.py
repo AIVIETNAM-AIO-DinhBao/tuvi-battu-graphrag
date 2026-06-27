@@ -90,6 +90,29 @@ def smoke_dir(name: str) -> Path:
     return path
 
 
+class FakeRelationClient:
+    model_name = "fake-relation"
+
+    def __init__(self, responses: list[object] | None = None) -> None:
+        self.responses = list(responses or [[]])
+        self.calls = 0
+
+    def extract(self, chunk: dict, entities: list[dict]) -> list[dict]:
+        self.calls += 1
+        response = self.responses.pop(0) if self.responses else []
+        if isinstance(response, Exception):
+            raise response
+        return response  # type: ignore[return-value]
+
+
+def no_sleep(_: float) -> None:
+    return None
+
+
+def fake_time() -> float:
+    return 0.0
+
+
 def relation_types(payload: dict) -> set[str]:
     return {relation["relation_type"] for relation in payload["relation_records"]}
 
@@ -151,6 +174,91 @@ def test_strategy_filter_and_dry_run_do_not_require_databases() -> None:
     assert summary["entity_count"] == 2
     assert written_summary["chunk_count"] == 1
     assert summary["db_write_counts"] == {}
+
+
+def test_load_gemini_api_keys_supports_combined_and_numbered_keys() -> None:
+    env = {
+        "GEMINI_API_KEYS": "key-c, key-a",
+        "GEMINI_API_KEY": "key-a",
+        "GEMINI_API_KEY_2": "key-b",
+        "GEMINI_API_KEY_3": "key-c",
+        "GEMINI_API_KEY_10": "key-d",
+        "GEMINI_API_KEY_EXTRA": "ignored",
+    }
+
+    assert writer.load_gemini_api_keys(env) == ["key-c", "key-a", "key-b", "key-d"]
+
+
+def test_relation_multi_key_adapter_round_robins_successful_requests() -> None:
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    entities = [make_entity(chunk, "Cung", "Cung")]
+    clients = [FakeRelationClient([[], []]), FakeRelationClient([[], []])]
+    adapter = writer.MultiKeyGeminiRelationLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    for _ in range(4):
+        assert adapter.extract(chunk, entities) == []
+
+    assert [client.calls for client in clients] == [2, 2]
+    assert adapter.get_usage_summary()["api_key_usage_counts"] == {"key_1": 2, "key_2": 2}
+
+
+def test_relation_multi_key_adapter_fails_over_on_rate_limit() -> None:
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    entities = [make_entity(chunk, "Cung", "Cung")]
+    clients = [FakeRelationClient([RuntimeError("429 rate limit")]), FakeRelationClient([[]])]
+    adapter = writer.MultiKeyGeminiRelationLLMAdapter(
+        clients,
+        max_retries=1,
+        retry_base_seconds=1,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    assert adapter.extract(chunk, entities) == []
+    summary = adapter.get_usage_summary()
+    assert [client.calls for client in clients] == [1, 1]
+    assert summary["api_key_usage_counts"] == {"key_1": 0, "key_2": 1}
+    assert summary["disabled_key_count"] == 0
+    assert summary["quota_failover_count"] == 1
+
+
+def test_relation_multi_key_adapter_disables_daily_quota_key() -> None:
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    entities = [make_entity(chunk, "Cung", "Cung")]
+    clients = [FakeRelationClient([RuntimeError("requests per day quota")]), FakeRelationClient([[]])]
+    adapter = writer.MultiKeyGeminiRelationLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    assert adapter.extract(chunk, entities) == []
+    summary = adapter.get_usage_summary()
+    assert [client.calls for client in clients] == [1, 1]
+    assert summary["disabled_key_count"] == 1
+    assert summary["quota_failover_count"] == 1
+
+
+def test_relation_multi_key_adapter_raises_when_all_keys_unavailable() -> None:
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    entities = [make_entity(chunk, "Cung", "Cung")]
+    clients = [
+        FakeRelationClient([RuntimeError("requests per day quota")]),
+        FakeRelationClient([RuntimeError("daily quota exhausted")]),
+    ]
+    adapter = writer.MultiKeyGeminiRelationLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    with pytest.raises(writer.GeminiKeysUnavailableError):
+        adapter.extract(chunk, entities)
+    assert adapter.get_usage_summary()["disabled_key_count"] == 2
 
 
 def test_rule_derives_thuoc_cung_for_star_at_palace() -> None:

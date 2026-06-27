@@ -14,12 +14,13 @@ import json
 import os
 import re
 import sys
+import time
 import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from dotenv import load_dotenv
 
@@ -29,6 +30,8 @@ DEFAULT_SOURCE_REGISTRY = (
     ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "guideline" / "source_registry.json"
 )
 DEFAULT_RELATION_MODEL = "gemini-2.0-flash-lite"
+DEFAULT_REQUESTS_PER_MINUTE = 30.0
+DEFAULT_MAX_RETRY_SLEEP_SECONDS = 300.0
 ONTOLOGY_SOURCE_ID = "tuvi_ontology_v1"
 
 ENTITY_TYPES = {
@@ -131,6 +134,66 @@ class SentenceSpan:
 
 def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def load_gemini_api_keys(env: Mapping[str, str | None] | None = None) -> list[str]:
+    source = env if env is not None else os.environ
+    raw_keys: list[str] = []
+    raw_keys.extend(str(source.get("GEMINI_API_KEYS") or "").split(","))
+    raw_keys.append(str(source.get("GEMINI_API_KEY") or ""))
+
+    numbered: list[tuple[int, str]] = []
+    for key, value in source.items():
+        match = re.fullmatch(r"GEMINI_API_KEY_(\d+)", str(key))
+        if not match:
+            continue
+        numbered.append((int(match.group(1)), str(value or "")))
+    raw_keys.extend(value for _, value in sorted(numbered))
+
+    keys: list[str] = []
+    seen: set[str] = set()
+    for raw_key in raw_keys:
+        key = raw_key.strip()
+        if not key or key in seen:
+            continue
+        keys.append(key)
+        seen.add(key)
+    return keys
+
+
+def is_rate_limit_error(exc: Exception) -> bool:
+    message = f"{type(exc).__name__}: {exc}".casefold()
+    return any(
+        token in message
+        for token in (
+            "429",
+            "quota",
+            "rate limit",
+            "rate_limit",
+            "resourceexhausted",
+            "resource exhausted",
+            "requests per minute",
+            "rpm",
+        )
+    )
+
+
+def is_daily_quota_error(exc: Exception) -> bool:
+    message = f"{type(exc).__name__}: {exc}".casefold()
+    return any(
+        token in message
+        for token in (
+            "daily",
+            "per day",
+            "perday",
+            "requests per day",
+            "requests_per_day",
+            "generatedrequestsperday",
+            "generaterequestsperday",
+            "free_tier_requests",
+            "rpd",
+        )
+    )
 
 
 def normalize_text(value: Any) -> str:
@@ -633,25 +696,174 @@ class MockRelationLLMAdapter:
         return []
 
 
+class GeminiKeysUnavailableError(RuntimeError):
+    """Raised when every configured Gemini API key is unavailable for this run."""
+
+
+class RequestRateLimiter:
+    def __init__(self, requests_per_minute: float | None) -> None:
+        self.min_interval_seconds = 0.0
+        if requests_per_minute and requests_per_minute > 0:
+            self.min_interval_seconds = 60.0 / requests_per_minute
+        self._last_request_at = 0.0
+
+    def wait(self) -> None:
+        if self.min_interval_seconds <= 0:
+            return
+        now = time.monotonic()
+        sleep_for = self.min_interval_seconds - (now - self._last_request_at)
+        if sleep_for > 0:
+            time.sleep(sleep_for)
+        self._last_request_at = time.monotonic()
+
+
 class GeminiRelationLLMAdapter:
-    def __init__(self, api_key: str | None, model_name: str) -> None:
+    def __init__(
+        self,
+        api_key: str | None,
+        model_name: str,
+        *,
+        requests_per_minute: float | None = DEFAULT_REQUESTS_PER_MINUTE,
+    ) -> None:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is required unless --mock-llm or --relation-mode rule is used.")
         try:
             import google.generativeai as genai  # type: ignore[import-not-found]
         except ImportError as exc:
             raise RuntimeError("google-generativeai is not installed.") from exc
-        genai.configure(api_key=api_key)
-        self._model = genai.GenerativeModel(model_name)
+        self._api_key = api_key
+        self._genai = genai
+        self._rate_limiter = RequestRateLimiter(requests_per_minute)
         self.model_name = model_name
 
     def extract(self, chunk: dict[str, Any], entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        response = self._model.generate_content(build_relation_prompt(chunk, entities))
+        self._rate_limiter.wait()
+        self._genai.configure(api_key=self._api_key)
+        model = self._genai.GenerativeModel(self.model_name)
+        response = model.generate_content(build_relation_prompt(chunk, entities))
         payload = parse_json_payload(getattr(response, "text", ""))
         relations = payload.get("relations", payload if isinstance(payload, list) else [])
         if not isinstance(relations, list):
             raise ValueError("Gemini relation response must contain a relations list.")
         return [relation for relation in relations if isinstance(relation, dict)]
+
+
+class MultiKeyGeminiRelationLLMAdapter:
+    def __init__(
+        self,
+        clients: list[Any],
+        *,
+        max_retries: int = 6,
+        retry_base_seconds: float = 10.0,
+        max_retry_sleep_seconds: float = DEFAULT_MAX_RETRY_SLEEP_SECONDS,
+        stop_on_daily_quota: bool = True,
+        sleep_fn: Any = time.sleep,
+        time_fn: Any = time.monotonic,
+    ) -> None:
+        if not clients:
+            raise ValueError("GEMINI_API_KEYS or GEMINI_API_KEY is required unless --mock-llm or --relation-mode rule is used.")
+        self.clients = clients
+        self.model_name = str(getattr(clients[0], "model_name", DEFAULT_RELATION_MODEL))
+        self.max_retries = max(0, max_retries)
+        self.retry_base_seconds = max(0.0, retry_base_seconds)
+        self.max_retry_sleep_seconds = max(0.0, max_retry_sleep_seconds)
+        self.stop_on_daily_quota = stop_on_daily_quota
+        self._sleep = sleep_fn
+        self._time = time_fn
+        self._cursor = 0
+        self._disabled = [False for _ in clients]
+        self._available_after = [0.0 for _ in clients]
+        self._rate_limit_attempts = [0 for _ in clients]
+        self.api_key_usage_counts = {self._key_label(index): 0 for index in range(len(clients))}
+        self.quota_failover_count = 0
+
+    @property
+    def api_key_count(self) -> int:
+        return len(self.clients)
+
+    @property
+    def disabled_key_count(self) -> int:
+        return sum(1 for disabled in self._disabled if disabled)
+
+    def get_usage_summary(self) -> dict[str, Any]:
+        return {
+            "api_key_count": self.api_key_count,
+            "api_key_usage_counts": dict(self.api_key_usage_counts),
+            "disabled_key_count": self.disabled_key_count,
+            "quota_failover_count": self.quota_failover_count,
+        }
+
+    def _key_label(self, index: int) -> str:
+        return f"key_{index + 1}"
+
+    def _next_available_index(self) -> int:
+        if all(self._disabled):
+            raise GeminiKeysUnavailableError("All Gemini API keys are unavailable for this run.")
+
+        while True:
+            now = self._time()
+            next_available_time: float | None = None
+            for offset in range(len(self.clients)):
+                index = (self._cursor + offset) % len(self.clients)
+                if self._disabled[index]:
+                    continue
+                available_at = self._available_after[index]
+                if available_at <= now:
+                    self._cursor = (index + 1) % len(self.clients)
+                    return index
+                if next_available_time is None or available_at < next_available_time:
+                    next_available_time = available_at
+
+            if next_available_time is None:
+                raise GeminiKeysUnavailableError("All Gemini API keys are unavailable for this run.")
+            self._sleep(max(0.0, next_available_time - now))
+
+    def _sleep_for_rate_limit(self, index: int) -> None:
+        attempt = self._rate_limit_attempts[index]
+        if attempt >= self.max_retries:
+            self._disabled[index] = True
+            return
+
+        client = self.clients[index]
+        rate_limiter = getattr(client, "_rate_limiter", None)
+        min_interval = float(getattr(rate_limiter, "min_interval_seconds", 0.0) or 0.0)
+        sleep_for = min(
+            self.max_retry_sleep_seconds,
+            max(min_interval, self.retry_base_seconds * (2**attempt)),
+        )
+        self._rate_limit_attempts[index] += 1
+        self._available_after[index] = self._time() + sleep_for
+
+    def extract(self, chunk: dict[str, Any], entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        while True:
+            index = self._next_available_index()
+            client = self.clients[index]
+            label = self._key_label(index)
+            try:
+                relations = client.extract(chunk, entities)
+                self._rate_limit_attempts[index] = 0
+                self.api_key_usage_counts[label] += 1
+                return relations
+            except Exception as exc:
+                if self.stop_on_daily_quota and is_daily_quota_error(exc):
+                    self._disabled[index] = True
+                    self.quota_failover_count += 1
+                    print(
+                        f"Daily quota exhausted for Gemini API {label}; trying another key.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    continue
+                if is_rate_limit_error(exc):
+                    self.quota_failover_count += 1
+                    self._sleep_for_rate_limit(index)
+                    print(
+                        f"Rate limit for Gemini API {label}; trying another key.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    continue
+                raise
 
 
 def build_relation_prompt(chunk: dict[str, Any], entities: list[dict[str, Any]]) -> str:
@@ -750,6 +962,11 @@ def extract_llm_relations(
     *,
     mock_llm: bool,
     model_name: str,
+    requests_per_minute: float | None = DEFAULT_REQUESTS_PER_MINUTE,
+    max_retries: int = 6,
+    retry_base_seconds: float = 10.0,
+    max_retry_sleep_seconds: float = DEFAULT_MAX_RETRY_SLEEP_SECONDS,
+    stop_on_daily_quota: bool = True,
 ) -> list[dict[str, Any]]:
     by_chunk: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entity in entities:
@@ -759,7 +976,21 @@ def extract_llm_relations(
     if mock_llm:
         adapter = MockRelationLLMAdapter()
     else:
-        adapter = GeminiRelationLLMAdapter(os.getenv("GEMINI_API_KEY"), model_name)
+        clients = [
+            GeminiRelationLLMAdapter(
+                api_key,
+                model_name,
+                requests_per_minute=requests_per_minute,
+            )
+            for api_key in load_gemini_api_keys()
+        ]
+        adapter = MultiKeyGeminiRelationLLMAdapter(
+            clients,
+            max_retries=max_retries,
+            retry_base_seconds=retry_base_seconds,
+            max_retry_sleep_seconds=max_retry_sleep_seconds,
+            stop_on_daily_quota=stop_on_daily_quota,
+        )
 
     relations: list[dict[str, Any]] = []
     for chunk in chunks:
@@ -999,6 +1230,11 @@ def build_ingest_payload(
     relation_mode: str = "hybrid",
     mock_llm: bool = False,
     model_name: str = DEFAULT_RELATION_MODEL,
+    requests_per_minute: float | None = DEFAULT_REQUESTS_PER_MINUTE,
+    max_retries: int = 6,
+    retry_base_seconds: float = 10.0,
+    max_retry_sleep_seconds: float = DEFAULT_MAX_RETRY_SLEEP_SECONDS,
+    stop_on_daily_quota: bool = True,
     include_ontology: bool = True,
     registry: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -1008,7 +1244,17 @@ def build_ingest_payload(
 
     rule_relations = derive_rule_relations(chunks, entities) if relation_mode in {"rule", "hybrid"} else []
     llm_relations = (
-        extract_llm_relations(chunks, entities, mock_llm=mock_llm, model_name=model_name)
+        extract_llm_relations(
+            chunks,
+            entities,
+            mock_llm=mock_llm,
+            model_name=model_name,
+            requests_per_minute=requests_per_minute,
+            max_retries=max_retries,
+            retry_base_seconds=retry_base_seconds,
+            max_retry_sleep_seconds=max_retry_sleep_seconds,
+            stop_on_daily_quota=stop_on_daily_quota,
+        )
         if relation_mode in {"llm", "hybrid"}
         else []
     )
@@ -1335,6 +1581,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-supabase", action="store_true")
     parser.add_argument("--skip-ontology", action="store_true")
     parser.add_argument("--batch-size", type=int, default=500)
+    parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
+    parser.add_argument("--max-retries", type=int, default=6)
+    parser.add_argument("--retry-base-seconds", type=float, default=10.0)
+    parser.add_argument("--max-retry-sleep-seconds", type=float, default=DEFAULT_MAX_RETRY_SLEEP_SECONDS)
+    parser.add_argument("--stop-on-daily-quota", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--summary-output", type=Path, default=None)
     return parser.parse_args(argv)
 
@@ -1358,6 +1609,11 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         relation_mode=args.relation_mode,
         mock_llm=args.mock_llm,
         model_name=args.model,
+        requests_per_minute=args.requests_per_minute,
+        max_retries=args.max_retries,
+        retry_base_seconds=args.retry_base_seconds,
+        max_retry_sleep_seconds=args.max_retry_sleep_seconds,
+        stop_on_daily_quota=args.stop_on_daily_quota,
         include_ontology=not args.skip_ontology,
         registry=load_source_registry(args.source_registry),
     )
