@@ -1,13 +1,24 @@
 # System Specification: Hệ Thống Hỏi Đáp Tử Vi với Hybrid GraphRAG
 
-**Version:** 7.0
-**Date:** 2026-06-23
+**Version:** 7.1
+**Date:** 2026-06-29
 **Team size:** 4 người
 **Budget:** $0 (MVP / free-tier first)
 
 ***
 
-## Changelog v7.0
+## Changelog
+
+### v7.1
+
+- Rework phương pháp ingestion cho `W3-INGEST-02`, `W3-INGEST-04`, `W3-INGEST-05` và `W3-INGEST-06` theo hướng evidence-first, strategy-aware và reviewable.
+- Chốt 3 chunking strategy đại diện cho baseline/ablation: `chunk_fixed_512`, `chunk_structure_parent_child`, `chunk_semantic_embedding`.
+- Chuẩn hóa parent-child retrieval policy: embed/retrieve child mặc định, expand parent theo `parent_id`, cite child và dùng parent làm context bổ sung.
+- Định nghĩa `chunk_semantic_embedding` là semantic chunking chuẩn dựa trên embedding similarity; `chunk_semantic` cũ chỉ là lexical topic-shift experiment nếu chưa được nâng cấp.
+- Nâng entity extraction thành hybrid dictionary/rule-first + LLM augmentation, mọi entity/claim phải có evidence span trong `chunk_text`.
+- Nâng graph provenance/relation extraction với relation type-pair validation, evidence relation + canonical relation aggregation, parent-child graph edges và relation review artifact.
+
+### v7.0
 
 - Thu hẹp phạm vi chính thức của MVP xuống **Tử Vi-only**.
 - Loại bỏ khỏi tài liệu các engine, API route, visualizer, schema option, demo flow, corpus và runtime domain không phục vụ trực tiếp Tử Vi.
@@ -383,25 +394,60 @@ Workflow:
 3. Extract text bằng `pdfplumber` hoặc `pymupdf`.
 4. Normalize Unicode tiếng Việt và clean artifacts.
 5. Parse cấu trúc sách, chương, mục, trang.
-6. Tạo chunks theo `chunking_strategy`.
-7. Gắn metadata, `domain = "TUVI"` và `chunk_strategy_id`.
-8. Trích entity/relation bằng model nhẹ theo taxonomy Tử Vi strategy-aware.
-9. Canonicalize và dedup trước khi ghi graph.
-10. Ghi node/edge/chunk vào Neo4j.
-11. Ghi provenance vào Supabase.
-12. Tạo embeddings và fulltext index.
-13. Chạy sample QA review sau ingestion.
+6. Tạo chunks theo strategy đại diện, luôn gắn `domain = "TUVI"`, `chunk_strategy_id`, stable `chunk_hash` và provenance.
+7. Extract entity theo cơ chế hybrid dictionary/rule-first + LLM augmentation, evidence-only.
+8. Build graph provenance và relation theo schema validated, có evidence relation, canonical relation aggregation và review report.
+9. Ghi node/edge/chunk vào Neo4j và source chunk provenance vào Supabase.
+10. Tạo embeddings/fulltext metadata theo strategy-aware retrieval policy.
+11. Chạy retrieval smoke, sample QA review và ghi evidence artifacts cho từng `source_id + chunk_strategy_id`.
 
-Chunking strategies cho ablation:
+### 12.1 Chunking strategy policy
 
-| ID | Strategy | Tag |
-|----|----------|-----|
-| A | Structure-aware parent-child | `chunk_structure_parent_child` |
-| B1 | Fixed-size 256 | `chunk_fixed_256` |
-| B2 | Fixed-size 512 | `chunk_fixed_512` |
-| B3 | Fixed-size 1024 | `chunk_fixed_1024` |
-| C | Sentence-merge | `chunk_sentence_merge` |
-| D | Semantic | `chunk_semantic` |
+Ba strategy đại diện chính thức cho baseline/ablation:
+
+| ID | Strategy | Tag | Purpose |
+|----|----------|-----|---------|
+| B2 | Fixed-size baseline | `chunk_fixed_512` | Đối chứng token-based đơn giản, deterministic, dễ debug. |
+| A | Structure-aware parent-child | `chunk_structure_parent_child` | Retrieve bằng child nhỏ, expand parent để giữ ngữ cảnh dài. |
+| D2 | Embedding-based semantic | `chunk_semantic_embedding` | Cắt theo topic shift bằng cosine similarity giữa embedding của sentence/paragraph atoms. |
+
+Các strategy `chunk_fixed_256`, `chunk_fixed_1024`, `chunk_sentence_merge` và `chunk_semantic` có thể giữ làm experiment mở rộng. `chunk_semantic` cũ chỉ được xem là lexical topic-shift vì dùng token overlap/Jaccard; không được gọi là semantic chunking chuẩn nếu chưa dùng embedding similarity.
+
+Output contract bắt buộc cho mọi chunk:
+
+- `chunk_id`
+- `parent_id`
+- `chunk_type`
+- `chunk_text` / `text`
+- `source_id`
+- `source_name`
+- `source_page`
+- `domain = "TUVI"`
+- `chunk_strategy_id`
+- `chunk_hash`
+- `char_start`
+- `char_end`
+- `token_count`
+- `provenance`
+- `metadata.strategy_config_snapshot`
+
+Parent-child best-practice policy:
+
+- Generate cả parent và child chunks.
+- Embed và retrieve `chunk_type = "child"` mặc định.
+- Expand parent bằng `parent_id` trong retrieval/context assembly.
+- Citation mặc định trỏ về child evidence; parent chỉ dùng làm context bổ sung.
+- Graph phải có parent-child edge rõ ràng, ví dụ `HAS_PARENT` hoặc `CONTAINS_CHILD`, thay vì chỉ giữ `parent_id` property.
+
+Embedding-based semantic chunking policy:
+
+- Atomize text thành sentence/paragraph atoms và giữ protected terms không bị cắt vỡ.
+- Embed từng atom bằng model embedding cấu hình được.
+- Cắt chunk khi cosine similarity/running centroid similarity xuống dưới threshold sau khi đã đạt `min_tokens`, hoặc khi vượt `max_tokens`.
+- Lưu metadata tối thiểu: `embedding_model_for_chunking`, `semantic_similarity_threshold`, `semantic_break_score`, `min_tokens`, `target_tokens`, `max_tokens`.
+- Ghi `<strategy>_semantic_similarity_report.json` để review phân phối similarity và ngưỡng cắt.
+
+### 12.2 Entity extraction policy
 
 Entity extraction phải giữ provenance theo chunk strategy và chỉ trích các entity có bằng chứng trong `chunk_text`. Taxonomy ingestion gồm:
 
@@ -417,7 +463,57 @@ Entity extraction phải giữ provenance theo chunk strategy và chỉ trích c
 - `KhaiNiem`: fallback có kiểm soát cho thuật ngữ canonical như vô chính diệu, sinh nhập, sinh xuất, tứ sinh, tứ chính, tứ mộ.
 - `LuanGiai`: interpretive claim có evidence, ví dụ cấu trúc `X chủ về Y`, `X thì Y`, `gặp X thì Y`, `nên luận là Y`, `có nghĩa là Y`; không biến mọi đoạn văn dài thành node và không tạo claim do model tự suy ra.
 
+Best-practice extraction policy:
+
+- Chạy deterministic dictionary/rule extractor trước cho thuật ngữ Tử Vi cố định như sao, cung, can/chi, ngũ hành, Tứ Hóa, trạng thái sao và quan hệ cung.
+- Dùng LLM augmentation để bổ sung entity khó, ambiguous cases và `LuanGiai`; LLM không được tạo entity không có span/evidence trong text.
+- Merge/dedupe dictionary output và LLM output theo `entity_type + canonical_name + char_start + char_end`.
+- Mỗi entity giữ `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `section_id`, `char_start`, `char_end`, `evidence_text`, `entity_dict_version`, `prompt_version`, `extraction_model`, `extraction_run_id`.
+- Với `chunk_structure_parent_child`, mặc định extract trên child chunks; parent chỉ dùng context expansion, trừ khi config bật parent-level extraction để phục vụ relation analysis.
+- Extraction phải resumable: skip chunk đã có complete entity output hợp lệ, ghi partial summary khi quota hoặc lỗi batch xảy ra.
+
 Canonicalization: dùng tên canonical cho sao, cung, thiên can, địa chi, ngũ hành, quan hệ cung, trạng thái sao, Tứ Hóa, Cục/Bản Mệnh và vận hạn; `MERGE` entity theo `canonical_name + entity_type + domain`; `Chunk` dùng `chunk_hash` có bao gồm `chunk_strategy_id`.
+
+### 12.3 Graph provenance and relation extraction policy
+
+Graph writer phải ghi đồng thời:
+
+- Source/chunk provenance phục vụ citation trong Supabase `source_chunks`.
+- Evidence-level graph trong Neo4j, gồm `Chunk`, canonical `Entity`, `MENTIONS` và relation có `evidence_text`.
+- Canonical relation aggregation cho retrieval, gom các relation cùng `head + relation_type + tail + domain` và giữ evidence count/source coverage.
+
+Relation extraction dùng hybrid policy:
+
+- `rule`: pattern deterministic cho quan hệ cấu trúc rõ.
+- `llm`: chỉ bổ sung relation giữa các `entity_id` đã có, không tạo entity mới, phải có evidence text nguyên văn.
+- `ontology`: chỉ dùng cho quan hệ nền Tử Vi ổn định như chu kỳ 12 cung và đối cung.
+- Mọi relation phải pass whitelist, relation type-pair schema, evidence validation và review sampling.
+
+Required relation artifacts:
+
+- `<strategy>_relation_review.json`
+- `<strategy>_graph_write_summary.json`
+- relation counts theo `relation_type`, `relation_source`, `chunk_type`, `source_id`
+
+### 12.4 Embedding and retrieval indexing policy
+
+Embedding/indexing phải strategy-aware:
+
+- Flat strategies như `chunk_fixed_512` và `chunk_semantic_embedding`: embed toàn bộ chunks hợp lệ.
+- Parent-child strategy: embed/retrieve child chunks mặc định, không embed parent mặc định để tránh vector bị loãng và duplicate retrieval.
+- Fulltext metadata phải gồm `title`, source/section hints và canonical entity names từ `MENTIONS` làm `keywords`.
+- Dense và sparse retrieval đều phải filter được theo `domain`, `source_id`, `chunk_strategy_id` và `chunk_type` khi cần.
+- Smoke retrieval phải ghi diagnostics về total chunks, embedded chunks, text chunks, keyword coverage, parent expansion hit rate.
+
+Expected evidence artifacts:
+
+- `<strategy>_chunk_summary.json`
+- `<strategy>_semantic_similarity_report.json` cho `chunk_semantic_embedding`
+- `<strategy>_entity_review.json`
+- `<strategy>_relation_review.json`
+- `<strategy>_graph_write_summary.json`
+- `embed_<source>_<strategy>.json`
+- `retrieval_<source>_<strategy>.json`
 
 ***
 
@@ -454,11 +550,29 @@ Relation types MVP:
 - `LUU_Y`
 - `HAS_SOURCE`
 - `HAS_CHUNK`
+- `HAS_PARENT`
+- `CONTAINS_CHILD`
 - `MENTIONS`
 - `APPLIES_TO`
 - `RELATED_TO`
 
 Graph chỉ giữ relation có giá trị retrieval rõ ràng, tránh quan hệ suy diễn khó debug.
+
+Relation validation policy:
+
+- `THUOC_CUNG`: head thuộc `Sao`, `ToHop`, `TuHoa`, `TrangThaiSao` hoặc `CucBanMenh`; tail phải là `Cung`.
+- `DOI_CHIEU`: hai đầu ưu tiên `Cung`; ontology chỉ tạo từ chu kỳ cung đã định nghĩa.
+- `LIEN_KE`: dùng cho quan hệ giáp/liền kề giữa cung hoặc entity có evidence rõ.
+- `GIAI_THICH`: head là entity nền, tail là `LuanGiai`.
+- `APPLIES_TO`: head là `LuanGiai`, tail là entity nền.
+- `LUU_Y`: head có thể là `Chunk` hoặc entity cảnh báo, tail là entity được cảnh báo.
+- `RELATED_TO`: chỉ dùng khi có pattern/LLM evidence hợp lệ, không dùng co-occurrence rộng.
+- `HAS_PARENT` / `CONTAINS_CHILD`: chỉ nối `Chunk` parent-child cùng `source_id`, `chunk_strategy_id` và provenance hợp lệ.
+
+Graph provenance lưu hai lớp quan hệ:
+
+- Evidence relation: từng relation xuất hiện trong một chunk cụ thể, có `chunk_hash`, `source_id`, `source_page`, `evidence_text`, `relation_source`, `relation_subtype`, `confidence`.
+- Canonical relation: aggregation theo `head + relation_type + tail + domain`, giữ `evidence_count`, `source_ids`, `chunk_strategy_ids` và confidence tổng hợp để phục vụ graph retrieval.
 
 ***
 
@@ -485,7 +599,7 @@ Latency target:
 
 Model routing default:
 
-- Query rewrite, entity extraction, ingestion annotation: Gemini Flash-Lite.
+- Query rewrite, LLM augmentation cho entity/relation extraction và ingestion annotation: Gemini Flash-Lite.
 - Simple factual generation: Gemini Flash-Lite nếu query complexity thấp.
 - Interpretive và multi-hop generation: Gemini Flash.
 - Experiment có thể override model qua `ExperimentConfig`.
@@ -499,7 +613,7 @@ Prompt generation phải:
 - Gắn citations theo chunk/source map.
 - Nói rõ khi thiếu bằng chứng.
 
-Entity extraction prompt phải dùng taxonomy Tử Vi, `domain = "TUVI"`, alias phổ biến, rule canonicalization, và guardrail không suy diễn entity/claim ngoài văn bản gốc.
+Entity extraction prompt chỉ là lớp augmentation sau dictionary/rule extractor; prompt phải dùng taxonomy Tử Vi, `domain = "TUVI"`, alias phổ biến, rule canonicalization, structured JSON output, evidence span bắt buộc và guardrail không suy diễn entity/claim ngoài văn bản gốc.
 
 ***
 

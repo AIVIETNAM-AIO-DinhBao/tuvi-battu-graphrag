@@ -1,8 +1,8 @@
 # Kế Hoạch Công Việc: Hệ Thống Hỏi Đáp Tử Vi với Hybrid GraphRAG
 
-**Dựa trên:** Specification v7.0
-**Phiên bản:** 4.0
-**Ngày:** 2026-06-23
+**Dựa trên:** Specification v7.1
+**Phiên bản:** 4.1
+**Ngày:** 2026-06-29
 **Thời gian thực hiện:** 7-8 tuần
 **Định dạng:** Task chia theo tuần, không gán theo thành viên. Team tự phân công nội bộ.
 
@@ -261,101 +261,98 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 **Depends on:** -
 **Done when:** Test trên ít nhất 2 file trong `data/tuvi`.
 
-### W3-INGEST-02 - Chunking framework strategy-aware
+### W3-INGEST-02 - Chunking framework và 3 strategy đại diện
 
 **When:** Tuần 3, ngày 1-3
-**Môi trường:** Local
+**Môi trường:** Local hoặc Kaggle
 
 **What to do:**
-- Viết `scripts/chunk_text.py` nhận text normalized và `--chunking-strategy`.
-- Output `{chunk_id, parent_id, chunk_type, chunk_text, source_name, source_page, domain, chunk_strategy_id, chunk_hash, metadata}`.
-- Luôn đặt `domain = "TUVI"`.
-- Bảo đảm `chunk_hash` bao gồm `chunk_strategy_id`.
-- Tạo `configs/chunking_strategies.yaml`.
-- Implement Strategy A `chunk_structure_parent_child`.
+- Rework `scripts/chunk_text.py` và `configs/chunking_strategies.yaml` để 3 strategy đại diện là nguồn chính thức cho baseline/ablation:
+  - `chunk_fixed_512` làm fixed-size baseline.
+  - `chunk_structure_parent_child` làm structure-aware parent-child.
+  - `chunk_semantic_embedding` làm embedding-based semantic chunking chuẩn.
+- Giữ `chunk_semantic` cũ chỉ như lexical topic-shift legacy experiment nếu chưa dùng embedding similarity.
+- Output contract bắt buộc: `chunk_id`, `parent_id`, `chunk_type`, `chunk_text`, `text`, `source_id`, `source_name`, `source_page`, `domain`, `chunk_strategy_id`, `chunk_hash`, `char_start`, `char_end`, `token_count`, `provenance`, `metadata.strategy_config_snapshot`.
+- Bảo đảm `chunk_hash` stable và bao gồm `chunk_strategy_id`, chunking version, source provenance và text span.
+- Parent-child policy: generate parent + child, giữ `parent_id`, chuẩn bị edge `HAS_PARENT`/`CONTAINS_CHILD`, và đánh dấu child là đơn vị retrieval mặc định.
+- Semantic embedding policy: atomize sentence/paragraph, embed atoms, cắt theo cosine similarity/topic shift với min/target/max tokens, và ghi `embedding_model_for_chunking`, `semantic_similarity_threshold`, `semantic_break_score`.
 
-**Deliverable:** Chunking framework chạy được Strategy A.
+**Deliverable:** Chunking framework chạy được 3 strategy đại diện và xuất evidence summary.
 **Depends on:** W3-INGEST-01
-**Done when:** Output có `chunk_strategy_id`, `chunk_hash` ổn định và parent-child map đúng.
+**Done when:** `chunk_fixed_512` deterministic; parent-child map đúng; `chunk_semantic_embedding` có similarity report; mọi strategy giữ stable hash, provenance đầy đủ và `<strategy>_chunk_summary.json`.
 
-### W3-INGEST-03 - Implement các chunking strategy còn lại
+### W3-INGEST-03 - Strategy mở rộng cho ablation phụ
 
 **When:** Tuần 3, ngày 2-4
 **Môi trường:** Local
 
 **What to do:**
-- Implement `chunk_fixed_256`, `chunk_fixed_512`, `chunk_fixed_1024`, `chunk_sentence_merge`, `chunk_semantic`.
-- Viết smoke test cho mỗi strategy.
-- Đảm bảo mọi strategy giữ provenance page/source.
+- Giữ hoặc bổ sung các strategy mở rộng: `chunk_fixed_256`, `chunk_fixed_1024`, `chunk_sentence_merge`, `chunk_semantic` legacy lexical.
+- Không dùng các strategy này làm baseline chính nếu chưa có evidence tốt hơn bộ 3 đại diện.
+- Viết smoke test để bảo đảm output contract/provenance giống W3-INGEST-02.
 
-**Deliverable:** 6 chunking strategy chạy được.
+**Deliverable:** Strategy mở rộng chạy được khi cần ablation phụ.
 **Depends on:** W3-INGEST-02
-**Done when:** Cùng một input xuất được chunk JSON cho cả 6 strategy.
+**Done when:** Cùng một input xuất được chunk JSON hợp lệ cho strategy mở rộng, không phá contract của 3 strategy đại diện.
 
-### W3-INGEST-04 - Trích xuất entity theo chunk strategy
+### W3-INGEST-04 - Entity extraction hybrid evidence-first
 
 **When:** Tuần 3, ngày 3-5
 **Môi trường:** Local hoặc Kaggle
 
 **What to do:**
-- Viết entity extraction prompt cho Tử Vi.
-- Extract taxonomy mở rộng: `Sao`, `Cung`, `ThienCan`, `DiaChi`, `NguHanh`, `ToHop`, `QuanHeCung`, `TrangThaiSao`, `TuHoa`, `VanHan`, `DaiHan`, `CucBanMenh`, `KhaiNiem`, `LuanGiai`.
-- Định nghĩa `LuanGiai` là interpretive claim có evidence, chỉ nhận các cấu trúc như `X chủ về Y`, `X thì Y`, `gặp X thì Y`, `nên luận là Y`, `có nghĩa là Y`.
-- Mỗi entity giữ `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `section_id` và evidence span.
-- Thêm `entity_dict_version`, `prompt_version`, `extraction_model` vào output.
-- Canonicalize alias bằng dictionary versioned cho sao, cung, Tứ Hóa, trạng thái sao, can/chi/ngũ hành, quan hệ cung và khái niệm canonical.
-- Không suy diễn entity, quan hệ hoặc luận giải ngoài văn bản gốc.
+- Rework entity extraction thành hybrid:
+  - dictionary/rule-first cho thuật ngữ Tử Vi cố định;
+  - LLM augmentation cho entity khó, ambiguous cases và `LuanGiai`;
+  - merge/dedupe dictionary + LLM output theo `entity_type + canonical_name + span`.
+- Extract taxonomy: `Sao`, `Cung`, `ThienCan`, `DiaChi`, `NguHanh`, `ToHop`, `QuanHeCung`, `TrangThaiSao`, `TuHoa`, `VanHan`, `DaiHan`, `CucBanMenh`, `KhaiNiem`, `LuanGiai`.
+- `LuanGiai` chỉ là interpretive claim có evidence, ví dụ `X chủ về Y`, `X thì Y`, `gặp X thì Y`, `nên luận là Y`, `có nghĩa là Y`.
+- Mỗi entity giữ `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `section_id`, `char_start`, `char_end`, `evidence_text`, `entity_dict_version`, `prompt_version`, `extraction_model`, `extraction_run_id`.
+- Với `chunk_structure_parent_child`, mặc định extract child only; parent chỉ dùng context expansion trừ khi config bật parent-level extraction.
+- Thêm resume/skip processed chunks và partial summary khi quota/lỗi batch xảy ra.
 
-**Deliverable:** Entity JSON có provenance.
+**Deliverable:** Entity JSONL strategy-aware, evidence-only, canonicalized, resumable.
 **Depends on:** W3-INGEST-02
-**Done when:** Sample 20 chunks được review thủ công, mọi entity có provenance đầy đủ, alias canonical hợp lý và không có entity suy diễn ngoài văn bản gốc.
+**Done when:** `<strategy>_entity_review.json` và extraction summary pass; sample tối thiểu 20 chunks/strategy được review; mọi entity có provenance/span hợp lệ; không có entity hoặc `LuanGiai` suy diễn ngoài văn bản gốc.
 
-### W3-INGEST-05 - Graph writer, provenance và relation extraction hybrid
+### W3-INGEST-05 - Validated graph provenance và relation extraction
 
 **When:** Tuần 3, ngày 4-5
 **Môi trường:** Local hoặc Kaggle
 
 **What to do:**
-- Cập nhật graph/provenance writer để ghi chunks, sources, entities và relations vào Neo4j + Supabase.
-- Bổ sung relation candidates strategy-aware từ output chunk/entity.
-- `MERGE` canonical nodes theo `canonical_name + entity_type + domain`.
-- `MERGE` chunk theo `chunk_hash`.
-- Ghi đủ relation MVP: `MENTIONS`, `THUOC_CUNG`, `DOI_CHIEU`, `LIEN_KE`, `GIAI_THICH`, `APPLIES_TO`, `RELATED_TO`, `LUU_Y`, `HAS_SOURCE`, `HAS_CHUNK`.
-- Mọi relation extracted phải giữ `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `evidence_text`, `relation_source = rule|llm|ontology`.
-- Dùng hybrid relation extraction:
-  - `rule`: pattern deterministic cho quan hệ cấu trúc rõ.
-  - `llm`: Gemini Flash-Lite strict JSON cho luận giải mềm, chỉ dùng relation whitelist.
-  - `hybrid`: rule trước, LLM chỉ bổ sung cho câu chưa phủ hoặc `LuanGiai`.
-- Policy relation:
-  - `THUOC_CUNG`: sao/tổ hợp/cách/cục tại hoặc thuộc cung.
-  - `DOI_CHIEU`: chính chiếu, xung chiếu, đối cung.
-  - `LIEN_KE`: giáp, liền kề, ontology 12 cung.
-  - `GIAI_THICH` / `APPLIES_TO`: nối `LuanGiai` với entity được luận.
-  - `LUU_Y`: cảnh báo/ngoại lệ có trigger như "cần xét", "lưu ý", "không nên", "kỵ".
-  - `RELATED_TO`: chỉ khi có pattern rõ hoặc LLM evidence hợp lệ, không dùng co-occurrence rộng.
+- Rework graph/provenance writer để ghi chunks, sources, canonical entities, mentions, evidence relations và canonical relation aggregation vào Neo4j + Supabase.
 - Ghi source chunk provenance vào Supabase với đủ metadata citation.
+- `MERGE` canonical entity theo `canonical_name + entity_type + domain`; `MERGE` chunk theo `chunk_hash`.
+- Ghi relation MVP: `MENTIONS`, `THUOC_CUNG`, `DOI_CHIEU`, `LIEN_KE`, `GIAI_THICH`, `APPLIES_TO`, `RELATED_TO`, `LUU_Y`, `HAS_SOURCE`, `HAS_CHUNK`, `HAS_PARENT`, `CONTAINS_CHILD`.
+- Mọi relation extracted phải giữ `chunk_id`, `chunk_hash`, `chunk_strategy_id`, `source_id`, `source_page`, `evidence_text`, `relation_source = rule|llm|ontology`, `relation_subtype`, `confidence`, `extraction_run_id`.
+- Thêm relation type-pair schema validation, ví dụ `THUOC_CUNG` chỉ cho `Sao|ToHop|TuHoa|TrangThaiSao|CucBanMenh -> Cung`.
+- Dùng hybrid relation extraction: rule trước, LLM chỉ bổ sung relation giữa entity có sẵn, ontology chỉ cho quan hệ nền ổn định.
+- Tạo relation review report với evidence samples, invalid/drop counts và relation counts theo type/source/chunk_type.
 
-**Deliverable:** Graph, relation và provenance strategy-aware được ghi đúng.
+**Deliverable:** Graph, relation và provenance strategy-aware được ghi đúng, reviewable.
 **Depends on:** W3-INGEST-04, W1-DB-02
-**Done when:** Query Neo4j từ entity truy được chunk/source; query từ cung truy được sao/luận giải liên quan; relation sample review không có relation suy diễn ngoài evidence; Supabase `source_chunks` có provenance đủ cho citation.
+**Done when:** Query Neo4j từ entity truy được chunk/source; parent-child edge expand được parent; relation type-pair validation pass; relation sample review không có relation suy diễn ngoài evidence; Supabase `source_chunks` có provenance đủ cho citation.
 
-### W3-INGEST-06 - Embedding và fulltext index theo strategy
+### W3-INGEST-06 - Strategy-aware embedding và retrieval indexing
 
 **When:** Tuần 3, ngày 4-5
 **Môi trường:** Local hoặc Kaggle
 
 **What to do:**
-- Tạo embedding cho chunk.
-- Default implementation dùng Gemini embedding model cấu hình được; hiện tại chọn `gemini-embedding-2` với `output_dimensionality = 768` để khớp Neo4j `chunkVector`. Model embedding vẫn là biến ablation, không bị pin trong specification tổng.
-- Ghi embedding vào Neo4j.
-- Bảo đảm vector/fulltext query filter được theo `chunk_strategy_id`.
-- Viết smoke test retrieval cho 5 câu hỏi đơn giản.
+- Tạo embedding cho chunk theo strategy-aware policy.
+- Default implementation dùng Gemini embedding model cấu hình được; hiện tại chọn `gemini-embedding-2` với `output_dimensionality = 768` để khớp Neo4j `chunkVector`.
+- Flat strategies như `chunk_fixed_512` và `chunk_semantic_embedding`: embed toàn bộ chunks hợp lệ.
+- Parent-child strategy: embed/retrieve `chunk_type = "child"` mặc định; parent được fetch bằng `parent_id` trong parent expansion.
+- Ghi embedding vào Neo4j kèm `embedding_model`, `embedding_dim`, `embedded_at`, `embedding_text_hash`, `title`, `keywords`.
+- Fulltext metadata dùng source/section title và canonical entity names từ `MENTIONS` làm keywords.
+- Retrieval smoke phải kiểm tra dense, sparse, filter theo `chunk_strategy_id`, filter theo `chunk_type`, và parent expansion diagnostics.
 
-**Deliverable:** Dense và sparse index hoạt động.
+**Deliverable:** Dense và sparse index hoạt động theo strategy, child-only parent-child policy và parent expansion.
 **Depends on:** W3-INGEST-05
-**Done when:** Retrieval trả chunk có source và strategy đúng.
+**Done when:** `embed_<source>_<strategy>.json` có `completed=true`; `retrieval_<source>_<strategy>.json` có dense/sparse hits, source/strategy/chunk_type đúng và parent expansion diagnostics pass với parent-child strategy.
 
-### W3-INGEST-07 - Full corpus baseline ingest với strategy đại diện
+### W3-INGEST-07 - Full corpus baseline ingest với 3 strategy đại diện
 
 **When:** Tuần 3, ngày 5
 **Môi trường:** Local hoặc Kaggle
@@ -363,16 +360,18 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 **What to do:**
 - Dùng toàn bộ 4 sách Tử Vi nền đã chuẩn hóa trong `benchmark/tuvi_golden_dataset/corpus`: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
 - Không xóa hoặc rebuild corpus nền; chỉ tạo lại dữ liệu derived từ chunk/entity/relation/embedding/index.
-- Chạy pipeline từ chunk đến index cho 2 strategy đại diện:
-  - `chunk_structure_parent_child` làm baseline cấu trúc chính.
-  - `chunk_fixed_512` làm đối chứng fixed-size trung tính.
+- Chạy pipeline từ chunk đến index cho 3 strategy đại diện:
+  - `chunk_fixed_512`
+  - `chunk_structure_parent_child`
+  - `chunk_semantic_embedding`
 - Với mỗi source-strategy pair, chạy chunking, entity extraction, graph/provenance writer, embedding và retrieval smoke.
-- Ghi số page, chunk, node, relation, Supabase `source_chunks`, embedding và retrieval smoke theo từng `source_id` + `chunk_strategy_id`.
+- Ghi số page, chunk, node, relation, Supabase `source_chunks`, embedding và retrieval smoke theo từng `source_id + chunk_strategy_id`.
 - Review tối thiểu 20 chunk/entity/relation sample cho mỗi strategy.
+- Evidence folder `reports/w3_ingest_07` phải có `<strategy>_chunk_summary.json`, `<strategy>_semantic_similarity_report.json` khi áp dụng, `<strategy>_entity_review.json`, `<strategy>_relation_review.json`, `<strategy>_graph_write_summary.json`, `embed_<source>_<strategy>.json`, `retrieval_<source>_<strategy>.json`.
 
-**Deliverable:** Full corpus Tử Vi đã ingest với 2 strategy đại diện.
+**Deliverable:** Full corpus Tử Vi đã ingest với 3 strategy đại diện.
 **Depends on:** W3-INGEST-06
-**Done when:** Neo4j và Supabase có dữ liệu đầy đủ cho 8 cặp source-strategy, dense/sparse retrieval smoke pass cho từng cặp, và App/RAG retrieve được từ corpus baseline.
+**Done when:** Neo4j và Supabase có dữ liệu đầy đủ cho 12 cặp source-strategy, dense/sparse retrieval smoke pass cho từng cặp, parent-child expansion pass, và App/RAG retrieve được từ corpus baseline.
 
 ***
 
@@ -643,19 +642,19 @@ Mục tiêu: có golden dataset Tử Vi, runner đo metric, experiment matrix v1
 
 **What to do:**
 - Giữ nguyên full corpus 4 sách đã dùng ở W3-INGEST-07: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
-- Bổ sung các strategy còn lại để đủ 6 strategy:
-  - `chunk_fixed_256`
-  - `chunk_fixed_1024`
-  - `chunk_sentence_merge`
-  - `chunk_semantic`
+- So sánh chính thức 3 strategy đại diện đã được ingest từ W3:
+  - `chunk_fixed_512`
+  - `chunk_structure_parent_child`
+  - `chunk_semantic_embedding`
+- Các strategy mở rộng như `chunk_fixed_256`, `chunk_fixed_1024`, `chunk_sentence_merge`, `chunk_semantic` legacy chỉ chạy thêm nếu còn quota/thời gian và phải báo cáo riêng như ablation phụ.
 - Không thay đổi corpus khi so sánh strategy; biến chính của ablation phải là `chunk_strategy_id`.
-- Chạy cùng golden subset trên toàn bộ 6 strategy, bao gồm 2 strategy đã ingest từ W3.
+- Chạy cùng golden subset trên toàn bộ 3 strategy đại diện.
 - So sánh Context Recall, Citation Coverage, latency và graph hit.
 - Chọn chunking candidate cho production.
 
 **Deliverable:** Report chunking ablation trên cùng full corpus 4 sách.
 **Depends on:** W3-INGEST-07, W6-EVAL-02
-**Done when:** Có đủ dữ liệu cho 24 cặp source-strategy, cùng golden dataset/corpus/config được dùng để so sánh 6 strategy, và có ranking strategy kèm lý do chọn candidate.
+**Done when:** Có đủ dữ liệu cho 12 cặp source-strategy chính thức, cùng golden dataset/corpus/config được dùng để so sánh 3 strategy đại diện, và có ranking strategy kèm lý do chọn candidate.
 
 ### W6-INT-01 - Integration test với production candidate config
 
@@ -924,11 +923,11 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 | D-11 | Dashboard hiển thị lá số đã lưu | W2 |
 | D-12 | PDF extraction và normalization script | W3 |
 | D-13 | Chunking framework strategy-aware | W3 |
-| D-14 | 6 chunking strategy được implement | W3 |
+| D-14 | 3 chunking strategy đại diện được implement và có evidence | W3 |
 | D-15 | Entity extraction Tử Vi có provenance | W3 |
 | D-16 | Graph write và Supabase provenance strategy-aware | W3 |
 | D-17 | Embedding/fulltext index filter theo `chunk_strategy_id` | W3 |
-| D-18 | Full corpus baseline ingest với 2 strategy đại diện | W3 |
+| D-18 | Full corpus baseline ingest với 3 strategy đại diện | W3 |
 | D-19 | Migration `experiment_runs` và `ExperimentConfig` schema | W4 |
 | D-20 | LangGraph/RAGState config-aware | W4 |
 | D-21 | Query rewrite và entity extraction toggles | W4 |
@@ -945,7 +944,7 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 | D-32 | Evaluation runner config-aware | W6 |
 | D-33 | Experiment matrix v1 | W6 |
 | D-34 | Ablation retrieval/fusion/reranker v1 | W6 |
-| D-35 | Full-corpus chunking ablation đủ 6 strategy | W6 |
+| D-35 | Full-corpus chunking ablation trên 3 strategy đại diện | W6 |
 | D-36 | Integration test với production candidate | W6 |
 | D-37 | Ablation generation model và prompt template | W7 |
 | D-38 | Production config final | W7 |
