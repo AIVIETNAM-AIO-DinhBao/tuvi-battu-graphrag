@@ -1,0 +1,10 @@
+# Optional Kaggle/local model dependencies for W3 ingestion.
+# Keep this separate from backend/requirements.txt so the API/backend install
+# stays lightweight.
+torch
+transformers
+accelerate
+bitsandbytes
+safetensors
+FlagEmbedding
+sentence-transformers

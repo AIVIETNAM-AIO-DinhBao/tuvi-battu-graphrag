@@ -70,6 +70,50 @@ def test_plan_mode_writes_manifest_without_running_subprocess(monkeypatch: pytes
     assert semantic_chunk["gemini_api_key_count"] == 4
 
 
+def test_local_kaggle_plan_uses_local_backends_without_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(runner, "load_gemini_api_keys", lambda: [])
+    monkeypatch.setattr(
+        runner,
+        "run_subprocess",
+        lambda command: pytest.fail(f"plan mode executed {command['command_id']}"),
+    )
+    work_dir = smoke_dir("local-kaggle-plan")
+
+    summary = runner.run(
+        [
+            "--mode",
+            "plan",
+            "--profile",
+            "local-kaggle",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+        ]
+    )
+
+    reports_dir = work_dir / "dataset" / "reports" / "w3_ingest_07_local_kaggle"
+    manifest = json.loads((reports_dir / "w3_ingest_07_command_manifest.json").read_text(encoding="utf-8"))
+    commands = manifest["commands"]
+    semantic = next(command for command in commands if command["command_id"] == "chunk_semantic_embedding_bge_m3:chunking")
+    entity = next(command for command in commands if command["command_id"] == "chunk_fixed_512:entity")
+    graph = next(command for command in commands if command["command_id"] == "chunk_fixed_512:graph")
+    embed = next(command for command in commands if command["phase"] == "embed_retrieval")
+
+    assert summary["completed"] is True
+    assert summary["profile"] == "local-kaggle"
+    assert manifest["gemini_api_key_count"] == 0
+    assert manifest["command_count"] == 21
+    assert all(command["requires_gemini"] is False for command in commands)
+    assert semantic["backend"] == "local"
+    assert semantic["model"] == "BAAI/bge-m3"
+    assert semantic["expected_dim"] == 1024
+    assert entity["backend"] == "local"
+    assert graph["backend"] == "local"
+    assert "--dry-run" in graph["argv"]
+    assert embed["backend"] == "local"
+    assert "--chunks-input" in embed["argv"]
+    assert "--expected-dim" in embed["argv"]
+
+
 def test_dry_run_commands_use_mock_flags_and_skip_db_embed() -> None:
     work_dir = smoke_dir("dry-run-commands")
     args = runner.parse_args(

@@ -564,3 +564,40 @@ def test_llm_relation_resume_skips_completed_chunk_state(monkeypatch: pytest.Mon
 
     assert calls["count"] == 0
     assert records == [relation]
+
+
+def test_local_qwen_relation_adapter_uses_existing_entity_ids() -> None:
+    chunk = make_chunk("ThiÃªn MÃ£ táº¡i Quan Lá»™c.")
+    entities = [
+        make_entity(chunk, "ThiÃªn MÃ£", "Sao"),
+        make_entity(chunk, "Quan Lá»™c", "Cung"),
+    ]
+
+    class FakeJsonClient:
+        model_name = "Qwen/Qwen2.5-7B-Instruct"
+
+        def get_usage_summary(self) -> dict:
+            return {"llm_backend": "local", "local_llm_call_count": 1}
+
+        def generate_json(self, prompt: str) -> dict:
+            assert entities[0]["entity_id"] in prompt
+            return {
+                "relations": [
+                    {
+                        "confidence": 0.9,
+                        "evidence_text": chunk["chunk_text"],
+                        "head_entity_id": entities[0]["entity_id"],
+                        "relation_type": "THUOC_CUNG",
+                        "tail_entity_id": entities[1]["entity_id"],
+                    }
+                ]
+            }
+
+    adapter = writer.LocalQwenRelationLLMAdapter(FakeJsonClient())
+    raw = adapter.extract(chunk, entities)
+    records = writer.postprocess_llm_relations(raw, chunk, entities)
+
+    assert len(records) == 1
+    assert records[0]["relation_source"] == "llm"
+    assert records[0]["relation_type"] == "THUOC_CUNG"
+    assert adapter.get_usage_summary()["llm_backend"] == "local"

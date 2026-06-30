@@ -25,6 +25,7 @@ from typing import Any, Iterable, Mapping
 from dotenv import load_dotenv
 
 from gemini_keys import load_gemini_api_keys as discover_gemini_api_keys
+from local_llm import DEFAULT_LOCAL_LLM_MAX_NEW_TOKENS, DEFAULT_LOCAL_LLM_MODEL, LocalQwenJsonClient
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -892,6 +893,23 @@ class MultiKeyGeminiRelationLLMAdapter:
                 raise
 
 
+class LocalQwenRelationLLMAdapter:
+    def __init__(self, client: LocalQwenJsonClient) -> None:
+        self.client = client
+        self.model_name = client.model_name
+        self.llm_backend = "local"
+
+    def get_usage_summary(self) -> dict[str, Any]:
+        return self.client.get_usage_summary()
+
+    def extract(self, chunk: dict[str, Any], entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        payload = self.client.generate_json(build_relation_prompt(chunk, entities))
+        relations = payload.get("relations", payload if isinstance(payload, list) else [])
+        if not isinstance(relations, list):
+            raise ValueError("Local Qwen relation response must contain a relations list.")
+        return [relation for relation in relations if isinstance(relation, dict)]
+
+
 def build_relation_prompt(chunk: dict[str, Any], entities: list[dict[str, Any]]) -> str:
     entity_payload = [
         {
@@ -995,6 +1013,14 @@ def extract_llm_relations(
     *,
     mock_llm: bool,
     model_name: str,
+    llm_backend: str = "gemini",
+    local_llm_model: str = DEFAULT_LOCAL_LLM_MODEL,
+    local_llm_device: str | None = None,
+    local_llm_quantization: str = "4bit",
+    local_llm_max_new_tokens: int = DEFAULT_LOCAL_LLM_MAX_NEW_TOKENS,
+    local_llm_temperature: float = 0.0,
+    local_llm_top_p: float = 0.9,
+    local_llm_max_json_retries: int = 1,
     requests_per_minute: float | None = DEFAULT_REQUESTS_PER_MINUTE,
     max_retries: int = 6,
     retry_base_seconds: float = 10.0,
@@ -1003,15 +1029,29 @@ def extract_llm_relations(
     drop_counts: Counter[str] | None = None,
     state_output: Path | None = None,
     resume: bool = False,
+    usage_summary: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     by_chunk: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entity in entities:
         by_chunk[str(entity["chunk_id"])].append(entity)
 
     adapter: Any
-    if mock_llm:
+    backend = "mock" if mock_llm else llm_backend
+    if backend == "mock":
         adapter = MockRelationLLMAdapter()
-    else:
+    elif backend == "local":
+        adapter = LocalQwenRelationLLMAdapter(
+            LocalQwenJsonClient(
+                model_name=model_name or local_llm_model,
+                device=local_llm_device,
+                quantization=local_llm_quantization,
+                max_new_tokens=local_llm_max_new_tokens,
+                temperature=local_llm_temperature,
+                top_p=local_llm_top_p,
+                max_json_retries=local_llm_max_json_retries,
+            )
+        )
+    elif backend == "gemini":
         clients = [
             GeminiRelationLLMAdapter(
                 api_key,
@@ -1027,6 +1067,8 @@ def extract_llm_relations(
             max_retry_sleep_seconds=max_retry_sleep_seconds,
             stop_on_daily_quota=stop_on_daily_quota,
         )
+    else:
+        raise ValueError("--llm-backend must be gemini, local, or mock.")
 
     relations: list[dict[str, Any]] = []
     state = load_relation_state(state_output)
@@ -1059,6 +1101,10 @@ def extract_llm_relations(
         }
         write_relation_state(state_output, state)
     write_relation_state(state_output, state)
+    if usage_summary is not None:
+        usage_summary.update({"llm_backend": backend, "relation_model": getattr(adapter, "model_name", model_name)})
+        if hasattr(adapter, "get_usage_summary"):
+            usage_summary.update(adapter.get_usage_summary())
     return deduplicate_relations(relations)
 
 
@@ -1473,7 +1519,15 @@ def build_ingest_payload(
     *,
     relation_mode: str = "hybrid",
     mock_llm: bool = False,
+    llm_backend: str = "gemini",
     model_name: str = DEFAULT_RELATION_MODEL,
+    local_llm_model: str = DEFAULT_LOCAL_LLM_MODEL,
+    local_llm_device: str | None = None,
+    local_llm_quantization: str = "4bit",
+    local_llm_max_new_tokens: int = DEFAULT_LOCAL_LLM_MAX_NEW_TOKENS,
+    local_llm_temperature: float = 0.0,
+    local_llm_top_p: float = 0.9,
+    local_llm_max_json_retries: int = 1,
     requests_per_minute: float | None = DEFAULT_REQUESTS_PER_MINUTE,
     max_retries: int = 6,
     retry_base_seconds: float = 10.0,
@@ -1489,6 +1543,7 @@ def build_ingest_payload(
     chunks_by_hash = {str(chunk["chunk_hash"]): chunk for chunk in chunks}
     graph_write_run_id = make_graph_write_run_id()
     relation_drop_counts: Counter[str] = Counter()
+    llm_usage_summary: dict[str, Any] = {}
 
     rule_relations = derive_rule_relations(chunks, entities) if relation_mode in {"rule", "hybrid"} else []
     llm_relations = (
@@ -1496,7 +1551,15 @@ def build_ingest_payload(
             chunks,
             entities,
             mock_llm=mock_llm,
+            llm_backend=llm_backend,
             model_name=model_name,
+            local_llm_model=local_llm_model,
+            local_llm_device=local_llm_device,
+            local_llm_quantization=local_llm_quantization,
+            local_llm_max_new_tokens=local_llm_max_new_tokens,
+            local_llm_temperature=local_llm_temperature,
+            local_llm_top_p=local_llm_top_p,
+            local_llm_max_json_retries=local_llm_max_json_retries,
             requests_per_minute=requests_per_minute,
             max_retries=max_retries,
             retry_base_seconds=retry_base_seconds,
@@ -1505,6 +1568,7 @@ def build_ingest_payload(
             drop_counts=relation_drop_counts,
             state_output=relation_state_output,
             resume=resume_relations,
+            usage_summary=llm_usage_summary,
         )
         if relation_mode in {"llm", "hybrid"}
         else []
@@ -1541,6 +1605,7 @@ def build_ingest_payload(
             canonical_relation_records,
             relation_drop_counts,
             graph_write_run_id,
+            llm_usage_summary,
         ),
     }
 
@@ -1556,13 +1621,14 @@ def build_summary(
     canonical_relations: list[dict[str, Any]],
     relation_drop_counts: Counter[str],
     graph_write_run_id: str,
+    llm_usage_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     relation_counts = Counter(relation["relation_type"] for relation in all_relations)
     source_counts = Counter(relation["relation_source"] for relation in all_relations)
     chunk_type_counts = Counter(str(relation.get("chunk_type") or "unknown") for relation in all_relations)
     source_id_counts = Counter(str(relation.get("source_id") or "unknown") for relation in all_relations)
     strategy_counts = Counter(str(relation.get("chunk_strategy_id") or "none") for relation in all_relations)
-    return {
+    summary = {
         "canonical_relation_count": len(canonical_relations),
         "chunk_count": len(chunks),
         "entity_count": len(entities),
@@ -1581,6 +1647,9 @@ def build_summary(
         "rule_relation_count": len(rule_relations),
         "total_relation_count": len(all_relations) + len(canonical_relations) + len(entities),
     }
+    if llm_usage_summary:
+        summary.update(llm_usage_summary)
+    return summary
 
 
 def write_supabase_source_chunks(database_url: str, chunk_records: list[dict[str, Any]], batch_size: int) -> int:
@@ -1915,6 +1984,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--relation-mode", choices=["rule", "llm", "hybrid"], default="hybrid")
     parser.add_argument("--model", default=DEFAULT_RELATION_MODEL)
     parser.add_argument("--mock-llm", action="store_true")
+    parser.add_argument("--llm-backend", choices=["gemini", "local", "mock"], default=None)
+    parser.add_argument("--local-llm-model", default=DEFAULT_LOCAL_LLM_MODEL)
+    parser.add_argument("--local-llm-device", default=None)
+    parser.add_argument("--local-llm-quantization", choices=["4bit", "8bit", "none"], default="4bit")
+    parser.add_argument("--local-llm-max-new-tokens", type=int, default=DEFAULT_LOCAL_LLM_MAX_NEW_TOKENS)
+    parser.add_argument("--local-llm-temperature", type=float, default=0.0)
+    parser.add_argument("--local-llm-top-p", type=float, default=0.9)
+    parser.add_argument("--local-llm-max-json-retries", type=int, default=1)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-neo4j", action="store_true")
     parser.add_argument("--skip-supabase", action="store_true")
@@ -1945,13 +2022,27 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         raise ValueError("No chunks matched the requested input/strategy.")
     if not entities:
         raise ValueError("No entities matched the requested input/strategy.")
+    resolved_llm_backend = "mock" if args.mock_llm else (args.llm_backend or "gemini")
+    resolved_model = (
+        args.local_llm_model
+        if resolved_llm_backend == "local" and args.model == DEFAULT_RELATION_MODEL
+        else args.model
+    )
 
     payload = build_ingest_payload(
         chunks,
         entities,
         relation_mode=args.relation_mode,
         mock_llm=args.mock_llm,
-        model_name=args.model,
+        llm_backend=resolved_llm_backend,
+        model_name=resolved_model,
+        local_llm_model=args.local_llm_model,
+        local_llm_device=args.local_llm_device,
+        local_llm_quantization=args.local_llm_quantization,
+        local_llm_max_new_tokens=args.local_llm_max_new_tokens,
+        local_llm_temperature=args.local_llm_temperature,
+        local_llm_top_p=args.local_llm_top_p,
+        local_llm_max_json_retries=args.local_llm_max_json_retries,
         requests_per_minute=args.requests_per_minute,
         max_retries=args.max_retries,
         retry_base_seconds=args.retry_base_seconds,

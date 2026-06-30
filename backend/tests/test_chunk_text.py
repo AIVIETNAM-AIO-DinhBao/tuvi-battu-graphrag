@@ -19,6 +19,7 @@ ALL_STRATEGIES = [
     "chunk_fixed_1024",
     "chunk_sentence_merge",
     "chunk_semantic_embedding",
+    "chunk_semantic_embedding_bge_m3",
     "chunk_semantic",
 ]
 OFFICIAL_STRATEGIES = {
@@ -73,7 +74,7 @@ def make_test_unit(text: str, section_id: str = "TVGM_TEST_SEC01") -> chunk_text
     )
 
 
-def test_config_declares_seven_implemented_strategies_with_three_official_baselines() -> None:
+def test_config_declares_implemented_strategies_with_three_official_baselines() -> None:
     config = chunk_text.load_chunking_config(CONFIG_PATH)
 
     assert set(config["strategies"]) == set(ALL_STRATEGIES)
@@ -86,6 +87,9 @@ def test_config_declares_seven_implemented_strategies_with_three_official_baseli
     assert official == OFFICIAL_STRATEGIES
     assert config["strategies"]["chunk_semantic"]["semantic_method"] == "lexical_legacy"
     assert config["strategies"]["chunk_semantic_embedding"]["semantic_method"] == "embedding_similarity"
+    assert config["strategies"]["chunk_semantic_embedding_bge_m3"]["official_baseline"] is False
+    assert config["strategies"]["chunk_semantic_embedding_bge_m3"]["embedding_backend"] == "local"
+    assert config["strategies"]["chunk_semantic_embedding_bge_m3"]["output_dimensionality"] == 1024
 
 
 def test_load_clean_json_records() -> None:
@@ -385,6 +389,31 @@ def test_semantic_similarity_report_includes_safe_key_usage_summary() -> None:
     assert report["api_key_count"] == 3
     assert report["api_key_usage_counts"] == {"key_1": 2, "key_2": 1, "key_3": 0}
     assert "secret" not in str(report)
+
+
+def test_semantic_embedding_local_backend_factory_uses_bge_m3(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: dict[str, object] = {}
+
+    class FakeLocalClient:
+        model_name = "BAAI/bge-m3"
+
+        def __init__(self, **kwargs: object) -> None:
+            created.update(kwargs)
+
+    monkeypatch.setattr(chunk_text, "LocalBgeM3EmbeddingClient", FakeLocalClient)
+
+    client = chunk_text.make_semantic_embedding_client(
+        {"embedding_backend": "local", "output_dimensionality": 1024},
+        mock_embedding=False,
+        embedding_backend="local",
+        local_embedding_model="BAAI/bge-m3",
+        local_embedding_batch_size=8,
+    )
+
+    assert isinstance(client, FakeLocalClient)
+    assert created["model_name"] == "BAAI/bge-m3"
+    assert created["expected_dim"] == 1024
+    assert created["batch_size"] == 8
 
 
 def test_parent_child_schema_and_parent_references() -> None:

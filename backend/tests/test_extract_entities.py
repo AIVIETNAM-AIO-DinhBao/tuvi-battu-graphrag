@@ -924,3 +924,41 @@ def test_run_stops_cleanly_when_all_keys_unavailable(monkeypatch: pytest.MonkeyP
     state = json.loads(state_path.read_text(encoding="utf-8"))
     assert partial_summary["completed"] is False
     assert state["completed_chunks"] == {}
+
+
+def test_local_qwen_adapter_adds_llm_entities_without_loading_model() -> None:
+    config = load_config()
+    chunk = make_chunk("Doan nay noi ve dac cach trong luan giai.")
+
+    class FakeJsonClient:
+        model_name = "Qwen/Qwen2.5-7B-Instruct"
+
+        def get_usage_summary(self) -> dict:
+            return {"llm_backend": "local", "local_llm_call_count": 1}
+
+        def generate_json(self, prompt: str) -> dict:
+            assert "chunk_text" in prompt
+            return {
+                "entities": [
+                    {
+                        "confidence": 0.8,
+                        "entity_type": "KhaiNiem",
+                        "evidence_text": "dac cach",
+                        "surface_text": "dac cach",
+                    }
+                ]
+            }
+
+    adapter = extract_entities.LocalQwenEntityLLMAdapter(FakeJsonClient())
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="local-run",
+    )
+
+    assert any(record["canonical_name"] == "dac cach" for record in records)
+    assert any(record["extraction_source"] == "llm" for record in records)
+    assert adapter.get_usage_summary()["llm_backend"] == "local"

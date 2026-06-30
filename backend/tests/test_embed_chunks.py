@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -275,6 +276,76 @@ def test_parse_args_defaults_to_safe_requests_per_minute() -> None:
     assert args.include_parent_chunks is False
     assert args.smoke_query == "Tu Vi"
     assert args.smoke_limit == 5
+    assert args.embedding_backend is None
+    assert args.vector_index_name == "chunkVector"
+
+
+def test_local_embedding_client_factory_uses_bge_m3(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: dict[str, object] = {}
+
+    class FakeLocalClient:
+        model_name = "BAAI/bge-m3"
+
+        def __init__(self, **kwargs: object) -> None:
+            created.update(kwargs)
+
+    monkeypatch.setattr(embed_chunks, "LocalBgeM3EmbeddingClient", FakeLocalClient)
+    args = embed_chunks.parse_args(
+        [
+            "--embedding-backend",
+            "local",
+            "--model",
+            "BAAI/bge-m3",
+            "--expected-dim",
+            "1024",
+            "--local-embedding-batch-size",
+            "4",
+        ]
+    )
+
+    client = embed_chunks.make_embedding_client(args)
+
+    assert isinstance(client, FakeLocalClient)
+    assert created["model_name"] == "BAAI/bge-m3"
+    assert created["expected_dim"] == 1024
+    assert created["batch_size"] == 4
+
+
+def test_offline_embedding_mode_writes_artifact_without_db_env() -> None:
+    work_dir = ROOT_DIR / "pytest-cache-files-embed-offline" / "artifact"
+    work_dir.mkdir(parents=True, exist_ok=True)
+    chunk_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "embeddings.jsonl"
+    summary_path = work_dir / "summary.json"
+    smoke_path = work_dir / "retrieval.json"
+    chunk = make_chunk()
+    chunk_path.write_text(json.dumps(chunk, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    summary = embed_chunks.run(
+        [
+            "--chunks-input",
+            str(chunk_path),
+            "--output",
+            str(output_path),
+            "--summary-output",
+            str(summary_path),
+            "--retrieval-smoke-output",
+            str(smoke_path),
+            "--mock-embedding",
+            "--source-id",
+            "TVGM",
+            "--chunking-strategy",
+            "chunk_structure_parent_child",
+        ]
+    )
+
+    records = [json.loads(line) for line in output_path.read_text(encoding="utf-8").splitlines()]
+    assert summary["mode"] == "offline_artifact"
+    assert summary["completed"] is True
+    assert summary["update_count"] == 1
+    assert records[0]["chunk_id"] == chunk["chunk_id"]
+    assert len(records[0]["embedding"]) == 768
+    assert json.loads(smoke_path.read_text(encoding="utf-8"))["diagnostics"]["mode"] == "offline_artifact"
 
 
 def test_build_run_summary_marks_partial_failure() -> None:

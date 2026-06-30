@@ -23,6 +23,12 @@ from typing import Any, Iterable
 import yaml
 
 from gemini_keys import is_daily_quota_error, is_rate_limit_error, load_gemini_api_keys
+from local_embeddings import (
+    DEFAULT_LOCAL_EMBEDDING_BATCH_SIZE,
+    DEFAULT_LOCAL_EMBEDDING_DIM,
+    DEFAULT_LOCAL_EMBEDDING_MODEL,
+    LocalBgeM3EmbeddingClient,
+)
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -36,6 +42,7 @@ STRATEGY_PARENT_CHILD = "chunk_structure_parent_child"
 FIXED_STRATEGIES = {"chunk_fixed_256", "chunk_fixed_512", "chunk_fixed_1024"}
 STRATEGY_SENTENCE_MERGE = "chunk_sentence_merge"
 STRATEGY_SEMANTIC_EMBEDDING = "chunk_semantic_embedding"
+STRATEGY_SEMANTIC_EMBEDDING_BGE_M3 = "chunk_semantic_embedding_bge_m3"
 STRATEGY_SEMANTIC = "chunk_semantic"
 MOCK_SEMANTIC_EMBEDDING_DIM = 64
 
@@ -528,6 +535,7 @@ class MockSemanticEmbeddingClient:
 
     def __init__(self, dimension: int = MOCK_SEMANTIC_EMBEDDING_DIM) -> None:
         self.model_name = f"mock-semantic-hash-{dimension}"
+        self.embedding_backend = "mock"
         self.dimension = dimension
 
     def embed_document(self, text: str) -> list[float]:
@@ -553,6 +561,7 @@ class GeminiSemanticEmbeddingClient:
         self._client = genai.Client(api_key=api_key)
         self._types = types
         self.model_name = model_name
+        self.embedding_backend = "gemini"
         self.output_dimensionality = output_dimensionality
 
     def embed_document(self, text: str) -> list[float]:
@@ -586,6 +595,7 @@ class MultiKeyGeminiSemanticEmbeddingClient:
             raise ValueError("GEMINI_API_KEYS or GEMINI_API_KEY is required unless --mock-embedding is used.")
         self.clients = clients
         self.model_name = str(getattr(clients[0], "model_name", "gemini-embedding-2"))
+        self.embedding_backend = "gemini"
         self.max_retries = max(0, max_retries)
         self.retry_base_seconds = max(0.0, retry_base_seconds)
         self.max_retry_sleep_seconds = max(0.0, max_retry_sleep_seconds)
@@ -681,9 +691,46 @@ class MultiKeyGeminiSemanticEmbeddingClient:
                 raise
 
 
-def make_semantic_embedding_client(strategy: dict[str, Any], *, mock_embedding: bool) -> Any:
-    if mock_embedding:
+def is_semantic_embedding_strategy(strategy_id: str, strategy: dict[str, Any]) -> bool:
+    return strategy_id == STRATEGY_SEMANTIC_EMBEDDING or (
+        str(strategy.get("semantic_method") or "") == "embedding_similarity"
+    )
+
+
+def resolve_embedding_backend(args: argparse.Namespace, strategy: dict[str, Any]) -> str:
+    if args.mock_embedding:
+        return "mock"
+    if args.embedding_backend:
+        return str(args.embedding_backend)
+    return str(strategy.get("embedding_backend") or "gemini")
+
+
+def make_semantic_embedding_client(
+    strategy: dict[str, Any],
+    *,
+    mock_embedding: bool,
+    embedding_backend: str | None = None,
+    local_embedding_model: str = DEFAULT_LOCAL_EMBEDDING_MODEL,
+    local_embedding_device: str | None = None,
+    local_embedding_batch_size: int = DEFAULT_LOCAL_EMBEDDING_BATCH_SIZE,
+    local_embedding_implementation: str = "auto",
+    local_embedding_normalize: bool = True,
+) -> Any:
+    backend = "mock" if mock_embedding else (embedding_backend or str(strategy.get("embedding_backend") or "gemini"))
+    if backend == "mock":
         return MockSemanticEmbeddingClient()
+    if backend == "local":
+        return LocalBgeM3EmbeddingClient(
+            model_name=local_embedding_model
+            or str(strategy.get("embedding_model_for_chunking") or DEFAULT_LOCAL_EMBEDDING_MODEL),
+            expected_dim=int(strategy.get("output_dimensionality") or DEFAULT_LOCAL_EMBEDDING_DIM),
+            batch_size=local_embedding_batch_size,
+            device=local_embedding_device,
+            implementation=local_embedding_implementation,
+            normalize=local_embedding_normalize,
+        )
+    if backend != "gemini":
+        raise ValueError("--embedding-backend must be gemini, local, or mock.")
     model_name = str(strategy.get("embedding_model_for_chunking") or "gemini-embedding-2")
     output_dimensionality = int(strategy.get("output_dimensionality") or 768)
     clients = [
@@ -1195,6 +1242,7 @@ def chunk_semantic_embedding(
                 protected_terms=protected_terms,
                 extra_metadata={
                     "centroid_policy": str(strategy.get("centroid_policy") or "running_centroid"),
+                    "embedding_backend": str(strategy.get("embedding_backend") or getattr(client, "embedding_backend", "")) or "gemini",
                     "embedding_model_for_chunking": str(getattr(client, "model_name", strategy.get("embedding_model_for_chunking"))),
                     "max_tokens": int(strategy["max_tokens"]),
                     "min_tokens": int(strategy["min_tokens"]),
@@ -1224,7 +1272,7 @@ def chunk_units(
         return chunk_fixed_size(units, config=config, strategy_id=strategy_id)
     if strategy_id == STRATEGY_SENTENCE_MERGE:
         return chunk_sentence_merge(units, config=config, strategy_id=strategy_id)
-    if strategy_id == STRATEGY_SEMANTIC_EMBEDDING:
+    if is_semantic_embedding_strategy(strategy_id, get_strategy_config(config, strategy_id)):
         return chunk_semantic_embedding(
             units,
             config=config,
@@ -1388,8 +1436,8 @@ def write_outputs(
             encoding="utf-8",
         )
     if semantic_report_output is not None:
-        if strategy_id != STRATEGY_SEMANTIC_EMBEDDING:
-            raise ValueError("--semantic-report-output is only valid for chunk_semantic_embedding.")
+        if not is_semantic_embedding_strategy(strategy_id, strategy):
+            raise ValueError("--semantic-report-output is only valid for embedding semantic strategies.")
         report = build_semantic_similarity_report(
             semantic_events or [],
             strategy_id=strategy_id,
@@ -1441,6 +1489,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Use deterministic local embeddings for chunk_semantic_embedding.",
     )
+    parser.add_argument(
+        "--embedding-backend",
+        choices=["gemini", "local", "mock"],
+        default=None,
+        help="Embedding provider for embedding semantic strategies. Defaults to strategy config.",
+    )
+    parser.add_argument("--local-embedding-model", default=DEFAULT_LOCAL_EMBEDDING_MODEL)
+    parser.add_argument("--local-embedding-device", default=None)
+    parser.add_argument("--local-embedding-batch-size", type=int, default=DEFAULT_LOCAL_EMBEDDING_BATCH_SIZE)
+    parser.add_argument(
+        "--local-embedding-implementation",
+        choices=["auto", "flagembedding", "sentence-transformers"],
+        default="auto",
+    )
+    parser.add_argument("--local-embedding-normalize", action=argparse.BooleanOptionalAction, default=True)
     return parser.parse_args(argv)
 
 
@@ -1461,8 +1524,17 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
 
     semantic_events: list[SemanticSimilarityEvent] = []
     embedding_client = None
-    if strategy_id == STRATEGY_SEMANTIC_EMBEDDING:
-        embedding_client = make_semantic_embedding_client(strategy, mock_embedding=args.mock_embedding)
+    if is_semantic_embedding_strategy(strategy_id, strategy):
+        embedding_client = make_semantic_embedding_client(
+            strategy,
+            mock_embedding=args.mock_embedding or resolve_embedding_backend(args, strategy) == "mock",
+            embedding_backend=resolve_embedding_backend(args, strategy),
+            local_embedding_model=args.local_embedding_model,
+            local_embedding_device=args.local_embedding_device,
+            local_embedding_batch_size=args.local_embedding_batch_size,
+            local_embedding_implementation=args.local_embedding_implementation,
+            local_embedding_normalize=args.local_embedding_normalize,
+        )
 
     chunks = chunk_units(
         units,

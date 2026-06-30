@@ -202,3 +202,33 @@ Khuyến nghị:
 2. Thêm Kaggle/open-source như auxiliary experiment, ví dụ `chunk_semantic_embedding_local`.
 3. Sinh artifact offline trên Kaggle, tải về repo, rồi chạy graph write/embed/retrieval smoke ở local/cloud.
 4. Chỉ promote thành baseline mới khi metrics retrieval và review report tốt hơn hoặc tương đương Gemini.
+## Local-Kaggle profile
+
+Repo co profile local/Kaggle rieng de chay khong can Gemini API:
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 scripts\run_w3_ingest_07.py --mode plan --profile local-kaggle
+```
+
+Profile nay dung:
+
+- `BAAI/bge-m3` cho semantic chunking va embeddings, `1024` dimensions.
+- `Qwen/Qwen2.5-7B-Instruct` cho entity/relation LLM augmentation.
+- `chunk_semantic_embedding_bge_m3` la auxiliary strategy rieng, khong doi official `chunk_semantic_embedding`.
+- Graph/relation trong local-Kaggle chay dry-run artifact, khong ghi Neo4j/Supabase.
+- Embedding trong local-Kaggle ghi JSONL artifact va offline retrieval smoke, khong can DB.
+
+Default artifact dirs:
+
+- `benchmark/tuvi_golden_dataset/local_kaggle/chunks`
+- `benchmark/tuvi_golden_dataset/local_kaggle/entities`
+- `benchmark/tuvi_golden_dataset/local_kaggle/embeddings`
+- `benchmark/tuvi_golden_dataset/reports/w3_ingest_07_local_kaggle`
+
+Kaggle notebooks nam o `notebooks/kaggle/`:
+
+1. `00_setup_and_smoke.ipynb`
+2. `01_chunk_bge_m3.ipynb`
+3. `02_entity_qwen.ipynb`
+4. `03_relation_qwen_hybrid.ipynb`
+5. `04_embed_and_pack_artifacts.ipynb`

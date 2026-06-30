@@ -641,3 +641,21 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
 ### Next Decision
 - Decide whether W3-INGEST-07 production baseline remains Gemini-only, or whether to add a separate local/Kaggle open-source backend path.
 - If using BGE-M3/Qwen, do not mix artifacts with Gemini baseline; add explicit backend/model metadata and strategy/version ids.
+
+## W3 Local-Kaggle Backend Update - 2026-06-30
+
+### Implementation Status
+- Added a separate local/Kaggle ingestion path, leaving Gemini baseline behavior intact.
+- Added auxiliary strategy `chunk_semantic_embedding_bge_m3` for BGE-M3 semantic chunking.
+- Added lazy local helpers:
+  - `scripts/local_embeddings.py` for `BAAI/bge-m3`.
+  - `scripts/local_llm.py` for `Qwen/Qwen2.5-7B-Instruct` JSON generation.
+- Extended chunking, embedding, entity extraction, graph/relation extraction, and retrieval smoke CLIs with local backend flags.
+- Added `run_w3_ingest_07.py --profile local-kaggle`, with separate artifact dirs and no Gemini requirement.
+- Added offline embedding artifact mode for Kaggle, including JSONL embeddings and in-memory retrieval smoke.
+- Added Kaggle notebook flow in `notebooks/kaggle/`.
+
+### Defaults
+- Embedding model: `BAAI/bge-m3`, dense normalized, 1024 dimensions.
+- LLM augmentation model: `Qwen/Qwen2.5-7B-Instruct`, 4-bit.
+- Graph DB writes are disabled in Kaggle/local profile; artifacts are generated for later local/cloud import.

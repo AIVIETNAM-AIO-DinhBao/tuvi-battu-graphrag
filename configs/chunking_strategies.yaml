@@ -65,6 +65,21 @@ strategies:
     max_tokens: 500
     similarity_threshold: 0.74
 
+  chunk_semantic_embedding_bge_m3:
+    label: Local BGE-M3 embedding-based semantic chunking
+    implemented: true
+    official_baseline: false
+    chunking_version: chunk_semantic_embedding_bge_m3_v1
+    semantic_method: embedding_similarity
+    embedding_backend: local
+    embedding_model_for_chunking: BAAI/bge-m3
+    output_dimensionality: 1024
+    centroid_policy: running_centroid
+    min_tokens: 300
+    target_tokens: 400
+    max_tokens: 500
+    similarity_threshold: 0.74
+
   chunk_semantic:
     label: Legacy lexical topic-shift chunking
     implemented: true

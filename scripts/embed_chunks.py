@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from collections import Counter
@@ -16,6 +17,13 @@ from typing import Any, Iterable, Mapping
 from dotenv import load_dotenv
 
 from gemini_keys import load_gemini_api_keys as discover_gemini_api_keys
+from local_embeddings import (
+    DEFAULT_LOCAL_EMBEDDING_BATCH_SIZE,
+    DEFAULT_LOCAL_EMBEDDING_DIM,
+    DEFAULT_LOCAL_EMBEDDING_MODEL,
+    LocalBgeM3EmbeddingClient,
+    l2_normalize,
+)
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +33,7 @@ DEFAULT_STRATEGY = "chunk_structure_parent_child"
 STRATEGY_PARENT_CHILD = "chunk_structure_parent_child"
 DEFAULT_EMBEDDING_MODEL = "gemini-embedding-2"
 DEFAULT_EXPECTED_DIM = 768
+DEFAULT_LOCAL_VECTOR_INDEX = "chunkVectorBgeM3"
 DEFAULT_REQUESTS_PER_MINUTE = 90.0
 DEFAULT_MAX_RETRY_SLEEP_SECONDS = 300.0
 REQUIRED_INDEXES = {"chunkVector", "chunkFulltext"}
@@ -80,6 +89,16 @@ def validate_embedding_dimension(vector: list[float], expected_dim: int) -> None
         raise ValueError(f"Embedding dimension mismatch: expected {expected_dim}, got {len(vector)}.")
 
 
+def safe_index_name(value: str) -> str:
+    if not value or not re.match(r"^[A-Za-z][A-Za-z0-9_]*$", value):
+        raise ValueError(f"Unsafe Neo4j index name: {value!r}")
+    return value
+
+
+def required_indexes(vector_index_name: str) -> set[str]:
+    return {safe_index_name(vector_index_name), "chunkFulltext"}
+
+
 def load_gemini_api_keys(env: Mapping[str, str | None] | None = None) -> list[str]:
     return discover_gemini_api_keys(env)
 
@@ -102,6 +121,7 @@ def mock_embedding(text: str, expected_dim: int = DEFAULT_EXPECTED_DIM) -> list[
 class MockEmbeddingClient:
     def __init__(self, expected_dim: int = DEFAULT_EXPECTED_DIM) -> None:
         self.model_name = "mock-embedding-768"
+        self.embedding_backend = "mock"
         self.expected_dim = expected_dim
 
     def embed_document(self, text: str, title: str | None = None) -> list[float]:
@@ -185,6 +205,7 @@ class GeminiEmbeddingClient:
         self._client = genai.Client(api_key=api_key)
         self._types = types
         self.model_name = model_name
+        self.embedding_backend = "gemini"
         self.output_dimensionality = output_dimensionality
         self.requests_per_minute = requests_per_minute
         self.max_retries = max(0, max_retries)
@@ -260,6 +281,7 @@ class MultiKeyGeminiEmbeddingClient:
             raise ValueError("GEMINI_API_KEYS or GEMINI_API_KEY is required unless --mock-embedding is used.")
         self.clients = clients
         self.model_name = str(getattr(clients[0], "model_name", DEFAULT_EMBEDDING_MODEL))
+        self.embedding_backend = "gemini"
         self.max_retries = max(0, max_retries)
         self.retry_base_seconds = max(0.0, retry_base_seconds)
         self.max_retry_sleep_seconds = max(0.0, max_retry_sleep_seconds)
@@ -461,7 +483,8 @@ def count_parent_skipped_tx(
     return int(record["parent_skipped_count"])
 
 
-def verify_indexes_tx(tx: Any) -> list[dict[str, Any]]:
+def verify_indexes_tx(tx: Any, index_names: Iterable[str] | None = None) -> list[dict[str, Any]]:
+    names = sorted(index_names or REQUIRED_INDEXES)
     result = tx.run(
         """
         SHOW INDEXES
@@ -470,14 +493,18 @@ def verify_indexes_tx(tx: Any) -> list[dict[str, Any]]:
         RETURN name, state, type, entityType, labelsOrTypes, properties
         ORDER BY name
         """,
-        index_names=sorted(REQUIRED_INDEXES),
+        index_names=names,
     )
     return [dict(record) for record in result]
 
 
-def assert_required_indexes_online(indexes: list[dict[str, Any]]) -> None:
+def assert_required_indexes_online(
+    indexes: list[dict[str, Any]],
+    index_names: Iterable[str] | None = None,
+) -> None:
+    expected = set(index_names or REQUIRED_INDEXES)
     by_name = {record.get("name"): record for record in indexes}
-    missing = sorted(REQUIRED_INDEXES - set(by_name))
+    missing = sorted(expected - set(by_name))
     if missing:
         raise ValueError(f"Missing Neo4j index(es): {', '.join(missing)}")
     offline = sorted(name for name, record in by_name.items() if record.get("state") != "ONLINE")
@@ -602,6 +629,8 @@ def build_run_summary(
         "domain": args.domain,
         "dry_run": args.dry_run,
         "embedding_model": embedding_model,
+        "embedding_backend": getattr(args, "embedding_backend", None)
+        or ("mock" if args.mock_embedding else "gemini"),
         "expected_dim": args.expected_dim,
         "force": args.force,
         "generated_at": utc_now(),
@@ -616,6 +645,7 @@ def build_run_summary(
         "selected_chunks": selected_chunks,
         "source_id": args.source_id,
         "update_count": update_count,
+        "vector_index_name": getattr(args, "vector_index_name", "chunkVector"),
     }
     if error is not None:
         summary["error"] = f"{type(error).__name__}: {error}"
@@ -624,10 +654,16 @@ def build_run_summary(
     return summary
 
 
-def build_dense_retrieval_smoke_cypher(*, child_only: bool, limit: int) -> str:
+def build_dense_retrieval_smoke_cypher(
+    *,
+    child_only: bool,
+    limit: int,
+    vector_index_name: str = "chunkVector",
+) -> str:
     child_filter = "AND (node.chunk_type = 'child' OR node.retrieval_unit = true)" if child_only else ""
+    index_name = safe_index_name(vector_index_name)
     return f"""
-        CALL db.index.vector.queryNodes('chunkVector', $limit, $query_embedding)
+        CALL db.index.vector.queryNodes('{index_name}', $limit, $query_embedding)
         YIELD node, score
         WHERE node.domain = $domain
           AND node.source_id = $source_id
@@ -687,7 +723,11 @@ def dense_retrieval_smoke_tx(
     child_only: bool,
 ) -> list[dict[str, Any]]:
     result = tx.run(
-        build_dense_retrieval_smoke_cypher(child_only=child_only, limit=args.smoke_limit),
+        build_dense_retrieval_smoke_cypher(
+            child_only=child_only,
+            limit=args.smoke_limit,
+            vector_index_name=args.vector_index_name,
+        ),
         domain=args.domain,
         source_id=args.source_id,
         chunk_strategy_id=args.chunking_strategy,
@@ -781,6 +821,230 @@ def write_retrieval_smoke(
     return payload
 
 
+def discover_chunk_files(inputs: Iterable[Path]) -> list[Path]:
+    discovered: list[Path] = []
+    for path in inputs:
+        if not path.exists():
+            raise FileNotFoundError(f"Chunks input does not exist: {path}")
+        if path.is_dir():
+            discovered.extend(sorted(path.rglob("*_chunks.jsonl")) or sorted(path.rglob("*.jsonl")))
+            continue
+        if path.suffix.lower() != ".jsonl":
+            raise ValueError(f"Chunks input must be JSONL or a directory: {path}")
+        discovered.append(path)
+    return sorted({path.resolve(): None for path in discovered})
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                records.append(json.loads(line))
+    return records
+
+
+def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+
+def load_offline_embedding_state(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {"completed_chunks": {}}
+    state = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(state.get("completed_chunks"), dict):
+        state["completed_chunks"] = {}
+    return state
+
+
+def write_offline_embedding_state(path: Path | None, state: dict[str, Any]) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def offline_state_key(chunk: dict[str, Any]) -> str:
+    return str(chunk.get("chunk_hash") or chunk.get("chunk_id"))
+
+
+def filter_offline_chunks(chunks: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+    selected = [
+        chunk
+        for chunk in chunks
+        if str(chunk.get("source_id")) == args.source_id
+        and str(chunk.get("domain") or DEFAULT_DOMAIN) == args.domain
+        and str(chunk.get("chunk_strategy_id")) == args.chunking_strategy
+    ]
+    if should_use_child_only_policy(args.chunking_strategy, args.include_parent_chunks):
+        selected = [
+            chunk
+            for chunk in selected
+            if str(chunk.get("chunk_type") or "").casefold() == "child" or chunk_retrieval_unit(chunk)
+        ]
+    if args.limit is not None:
+        selected = selected[: args.limit]
+    return selected
+
+
+def dot_product(left: list[float], right: list[float]) -> float:
+    if len(left) != len(right):
+        return 0.0
+    return sum(a * b for a, b in zip(left, right, strict=True))
+
+
+def lexical_sparse_score(query: str, text: str) -> float:
+    query_terms = {term.casefold() for term in re.findall(r"\w+", query, flags=re.UNICODE)}
+    text_terms = {term.casefold() for term in re.findall(r"\w+", text, flags=re.UNICODE)}
+    if not query_terms or not text_terms:
+        return 0.0
+    return len(query_terms & text_terms) / len(query_terms)
+
+
+def build_offline_retrieval_smoke(
+    updates: list[dict[str, Any]],
+    *,
+    args: argparse.Namespace,
+    client: Any,
+) -> dict[str, Any]:
+    query_embedding = l2_normalize(client.embed_query(args.smoke_query))
+    dense_hits = sorted(
+        (
+            {
+                "chunk_hash": update["chunk_hash"],
+                "chunk_id": update["chunk_id"],
+                "chunk_type": update.get("chunk_type"),
+                "parent_id": update.get("parent_id"),
+                "score": round(dot_product(l2_normalize(update["embedding"]), query_embedding), 6),
+            }
+            for update in updates
+        ),
+        key=lambda item: item["score"],
+        reverse=True,
+    )[: args.smoke_limit]
+    sparse_hits = sorted(
+        (
+            {
+                "chunk_hash": update["chunk_hash"],
+                "chunk_id": update["chunk_id"],
+                "chunk_type": update.get("chunk_type"),
+                "parent_id": update.get("parent_id"),
+                "score": round(lexical_sparse_score(args.smoke_query, str(update.get("embedding_text") or "")), 6),
+            }
+            for update in updates
+        ),
+        key=lambda item: item["score"],
+        reverse=True,
+    )[: args.smoke_limit]
+    return {
+        "chunk_strategy_id": args.chunking_strategy,
+        "dense_hits": dense_hits,
+        "diagnostics": {
+            "dense_hit_count": len([hit for hit in dense_hits if hit["score"] > 0]),
+            "mode": "offline_artifact",
+            "sparse_hit_count": len([hit for hit in sparse_hits if hit["score"] > 0]),
+        },
+        "domain": args.domain,
+        "embedding_model": client.model_name,
+        "generated_at": utc_now(),
+        "query": args.smoke_query,
+        "source_id": args.source_id,
+        "sparse_hits": sparse_hits,
+    }
+
+
+def run_offline_embedding(args: argparse.Namespace) -> dict[str, Any]:
+    if not args.output:
+        raise ValueError("--output is required when --chunks-input is used.")
+    chunk_files = discover_chunk_files(args.chunks_input or [])
+    chunks = []
+    for path in chunk_files:
+        chunks.extend(read_jsonl(path))
+    selected_chunks = filter_offline_chunks(chunks, args)
+    state = load_offline_embedding_state(args.state_output)
+    completed_chunks = state.setdefault("completed_chunks", {})
+    existing_updates = (
+        [
+            update
+            for update in read_jsonl(args.output)
+            if offline_state_key(update) in completed_chunks
+        ]
+        if args.resume and args.output.exists()
+        else []
+    )
+    updates = list(existing_updates)
+    client = make_embedding_client(args)
+    completed = True
+    error: Exception | None = None
+    processed = 0
+    pending_chunks = [
+        chunk
+        for chunk in selected_chunks
+        if not (args.resume and offline_state_key(chunk) in completed_chunks)
+    ]
+    try:
+        for chunk in pending_chunks:
+            update = prepare_embedding_update(chunk, client, expected_dim=args.expected_dim)
+            if not update:
+                continue
+            update["embedding_backend"] = getattr(client, "embedding_backend", args.embedding_backend or "gemini")
+            update["embedding_text"] = make_embedding_text(chunk)
+            updates.append(update)
+            completed_chunks[offline_state_key(chunk)] = {
+                "chunk_hash": chunk.get("chunk_hash"),
+                "chunk_id": chunk.get("chunk_id"),
+                "completed_at": utc_now(),
+                "embedding_model": client.model_name,
+            }
+            processed += 1
+            write_offline_embedding_state(args.state_output, state)
+    except Exception as exc:  # noqa: BLE001 - persist partial artifact before returning.
+        completed = False
+        error = exc
+
+    write_jsonl(args.output, updates)
+    write_offline_embedding_state(args.state_output, state)
+    smoke_payload = None
+    if args.retrieval_smoke_output:
+        smoke_payload = build_offline_retrieval_smoke(updates, args=args, client=client)
+        write_summary(args.retrieval_smoke_output, smoke_payload)
+    summary = build_run_summary(
+        args=args,
+        db_counts={"offline_artifact_embeddings": len(updates)},
+        embedding_model=client.model_name,
+        selected_chunks=len(selected_chunks),
+        update_count=len(updates),
+        completed=completed,
+        selected_chunk_records=selected_chunks,
+        updates=updates,
+        parent_skipped_count=0,
+        retrieval_smoke_output=str(args.retrieval_smoke_output) if args.retrieval_smoke_output else None,
+        embedding_client=client,
+        error=error,
+    )
+    summary.update(
+        {
+            "chunk_files": [str(path) for path in chunk_files],
+            "mode": "offline_artifact",
+            "output": str(args.output),
+            "processed_chunk_count": processed,
+            "resume": args.resume,
+            "state_output": str(args.state_output) if args.state_output else None,
+        }
+    )
+    if smoke_payload is not None:
+        summary["retrieval_smoke"] = smoke_payload["diagnostics"]
+    if args.summary_output:
+        write_summary(args.summary_output, summary)
+    if error is not None:
+        raise error
+    return summary
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Embed Neo4j Chunk nodes for Tử Vi retrieval.")
     parser.add_argument("--source-id", default=DEFAULT_SOURCE_ID)
@@ -789,11 +1053,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--model", default=DEFAULT_EMBEDDING_MODEL)
     parser.add_argument("--expected-dim", type=int, default=DEFAULT_EXPECTED_DIM)
     parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--chunks-input", nargs="+", type=Path, default=None)
+    parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--state-output", type=Path, default=None)
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--include-parent-chunks", action="store_true")
     parser.add_argument("--mock-embedding", action="store_true")
+    parser.add_argument("--embedding-backend", choices=["gemini", "local", "mock"], default=None)
+    parser.add_argument("--local-embedding-model", default=DEFAULT_LOCAL_EMBEDDING_MODEL)
+    parser.add_argument("--local-embedding-device", default=None)
+    parser.add_argument("--local-embedding-batch-size", type=int, default=DEFAULT_LOCAL_EMBEDDING_BATCH_SIZE)
+    parser.add_argument(
+        "--local-embedding-implementation",
+        choices=["auto", "flagembedding", "sentence-transformers"],
+        default="auto",
+    )
+    parser.add_argument("--local-embedding-normalize", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--vector-index-name", default="chunkVector")
     parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
@@ -809,8 +1088,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def make_embedding_client(args: argparse.Namespace) -> Any:
-    if args.mock_embedding:
+    backend = "mock" if args.mock_embedding else (args.embedding_backend or "gemini")
+    if backend == "mock":
         return MockEmbeddingClient(args.expected_dim)
+    if backend == "local":
+        return LocalBgeM3EmbeddingClient(
+            model_name=args.local_embedding_model,
+            expected_dim=args.expected_dim,
+            batch_size=args.local_embedding_batch_size,
+            device=args.local_embedding_device,
+            implementation=args.local_embedding_implementation,
+            normalize=args.local_embedding_normalize,
+        )
+    if backend != "gemini":
+        raise ValueError("--embedding-backend must be gemini, local, or mock.")
     clients = [
         GeminiEmbeddingClient(
             api_key,
@@ -836,6 +1127,9 @@ def make_embedding_client(args: argparse.Namespace) -> Any:
 def run(argv: list[str] | None = None) -> dict[str, Any]:
     load_dotenv(ROOT_DIR / ".env")
     args = parse_args(argv)
+    if args.chunks_input:
+        return run_offline_embedding(args)
+
     required_env = {
         "NEO4J_URI": os.getenv("NEO4J_URI"),
         "NEO4J_USERNAME": os.getenv("NEO4J_USERNAME") or os.getenv("NEO4J_USER"),
@@ -855,9 +1149,10 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     try:
         with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
             if not args.skip_index_check:
-                indexes = session.execute_read(verify_indexes_tx)
-                assert_required_indexes_online(indexes)
-                db_counts["verified_indexes"] = sorted(REQUIRED_INDEXES)
+                expected_indexes = required_indexes(args.vector_index_name)
+                indexes = session.execute_read(verify_indexes_tx, expected_indexes)
+                assert_required_indexes_online(indexes, expected_indexes)
+                db_counts["verified_indexes"] = sorted(expected_indexes)
 
             chunks = session.execute_read(
                 select_chunks_tx,

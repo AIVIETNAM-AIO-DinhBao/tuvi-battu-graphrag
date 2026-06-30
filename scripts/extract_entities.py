@@ -24,6 +24,7 @@ import yaml
 from dotenv import load_dotenv
 
 from gemini_keys import load_gemini_api_keys as discover_gemini_api_keys
+from local_llm import DEFAULT_LOCAL_LLM_MAX_NEW_TOKENS, DEFAULT_LOCAL_LLM_MODEL, LocalQwenJsonClient
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -530,6 +531,23 @@ class MultiKeyGeminiLLMAdapter:
                 raise
 
 
+class LocalQwenEntityLLMAdapter:
+    def __init__(self, client: LocalQwenJsonClient) -> None:
+        self.client = client
+        self.extraction_model = client.model_name
+        self.llm_backend = "local"
+
+    def get_usage_summary(self) -> dict[str, Any]:
+        return self.client.get_usage_summary()
+
+    def extract(self, chunk: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
+        payload = self.client.generate_json(build_extraction_prompt(chunk, config))
+        entities = payload.get("entities", payload if isinstance(payload, list) else [])
+        if not isinstance(entities, list):
+            raise ValueError("Local Qwen response must contain an entities list.")
+        return [entity for entity in entities if isinstance(entity, dict)]
+
+
 def build_extraction_prompt(chunk: dict[str, Any], config: dict[str, Any]) -> str:
     taxonomy = ", ".join(config["entity_types"])
     return (
@@ -925,9 +943,30 @@ def write_summary_report(path: Path | None, summary: dict[str, Any]) -> None:
     path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def make_llm_adapter(args: argparse.Namespace, config: dict[str, Any]) -> Any:
+def resolve_llm_backend(args: argparse.Namespace) -> str:
     if args.mock_llm:
+        return "mock"
+    return str(args.llm_backend or "gemini")
+
+
+def make_llm_adapter(args: argparse.Namespace, config: dict[str, Any]) -> Any:
+    backend = resolve_llm_backend(args)
+    if backend == "mock":
         return MockLLMAdapter()
+    if backend == "local":
+        return LocalQwenEntityLLMAdapter(
+            LocalQwenJsonClient(
+                model_name=args.model or args.local_llm_model,
+                device=args.local_llm_device,
+                quantization=args.local_llm_quantization,
+                max_new_tokens=args.local_llm_max_new_tokens,
+                temperature=args.local_llm_temperature,
+                top_p=args.local_llm_top_p,
+                max_json_retries=args.local_llm_max_json_retries,
+            )
+        )
+    if backend != "gemini":
+        raise ValueError("--llm-backend must be gemini, local, or mock.")
 
     model_name = args.model or str(config["default_model"])
     clients = [
@@ -961,7 +1000,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--include-parent-chunks", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--mock-llm", action="store_true")
+    parser.add_argument("--llm-backend", choices=["gemini", "local", "mock"], default=None)
     parser.add_argument("--model", default=None)
+    parser.add_argument("--local-llm-model", default=DEFAULT_LOCAL_LLM_MODEL)
+    parser.add_argument("--local-llm-device", default=None)
+    parser.add_argument("--local-llm-quantization", choices=["4bit", "8bit", "none"], default="4bit")
+    parser.add_argument("--local-llm-max-new-tokens", type=int, default=DEFAULT_LOCAL_LLM_MAX_NEW_TOKENS)
+    parser.add_argument("--local-llm-temperature", type=float, default=0.0)
+    parser.add_argument("--local-llm-top-p", type=float, default=0.9)
+    parser.add_argument("--local-llm-max-json-retries", type=int, default=1)
     parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
@@ -1055,6 +1102,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "extraction_run_id": extraction_run_id,
         "input_files": [str(path) for path in input_files],
         "input_chunk_count": len(chunks),
+        "llm_backend": resolve_llm_backend(args) if llm_augmentation_enabled else "off",
         "llm_augmentation_enabled": llm_augmentation_enabled,
         "output": str(args.output),
         "parent_skipped_count": len(parent_skipped_chunks),

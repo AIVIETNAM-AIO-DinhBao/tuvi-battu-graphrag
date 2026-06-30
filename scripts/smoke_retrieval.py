@@ -79,10 +79,12 @@ def dense_retrieval_tx(
     domain: str,
     source_id: str,
     chunk_strategy_id: str,
+    vector_index_name: str = "chunkVector",
 ) -> list[dict[str, Any]]:
+    index_name = embed_chunks.safe_index_name(vector_index_name)
     result = tx.run(
-        """
-        CALL db.index.vector.queryNodes('chunkVector', $candidate_k, $embedding)
+        f"""
+        CALL db.index.vector.queryNodes('{index_name}', $candidate_k, $embedding)
         YIELD node, score
         WHERE node.domain = $domain
           AND node.source_id = $source_id
@@ -205,6 +207,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--query", action="append", default=None)
     parser.add_argument("--mock-embedding", action="store_true")
+    parser.add_argument("--embedding-backend", choices=["gemini", "local", "mock"], default=None)
+    parser.add_argument("--local-embedding-model", default=embed_chunks.DEFAULT_LOCAL_EMBEDDING_MODEL)
+    parser.add_argument("--local-embedding-device", default=None)
+    parser.add_argument("--local-embedding-batch-size", type=int, default=embed_chunks.DEFAULT_LOCAL_EMBEDDING_BATCH_SIZE)
+    parser.add_argument(
+        "--local-embedding-implementation",
+        choices=["auto", "flagembedding", "sentence-transformers"],
+        default="auto",
+    )
+    parser.add_argument("--local-embedding-normalize", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--vector-index-name", default="chunkVector")
     parser.add_argument("--requests-per-minute", type=float, default=embed_chunks.DEFAULT_REQUESTS_PER_MINUTE)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
@@ -245,8 +258,9 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     try:
         with driver.session(database=os.getenv("NEO4J_DATABASE") or None) as session:
             if not args.skip_index_check:
-                indexes = session.execute_read(embed_chunks.verify_indexes_tx)
-                embed_chunks.assert_required_indexes_online(indexes)
+                expected_indexes = embed_chunks.required_indexes(args.vector_index_name)
+                indexes = session.execute_read(embed_chunks.verify_indexes_tx, expected_indexes)
+                embed_chunks.assert_required_indexes_online(indexes, expected_indexes)
 
             diagnostics = session.execute_read(
                 retrieval_diagnostics_tx,
@@ -266,6 +280,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                     domain=args.domain,
                     source_id=args.source_id,
                     chunk_strategy_id=args.chunking_strategy,
+                    vector_index_name=args.vector_index_name,
                 )
                 sparse_hits = session.execute_read(
                     sparse_retrieval_tx,
@@ -285,12 +300,14 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "diagnostics": diagnostics,
         "domain": args.domain,
         "embedding_model": client.model_name,
+        "embedding_backend": getattr(client, "embedding_backend", args.embedding_backend or "gemini"),
         "generated_at": utc_now(),
         "passed": all(result["passed"] for result in results),
         "query_count": len(results),
         "results": results,
         "source_id": args.source_id,
         "top_k": args.top_k,
+        "vector_index_name": args.vector_index_name,
     }
     if hasattr(client, "get_usage_summary"):
         summary.update(client.get_usage_summary())
