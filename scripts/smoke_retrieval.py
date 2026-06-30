@@ -168,27 +168,34 @@ def retrieval_diagnostics_tx(
     domain: str,
     source_id: str,
     chunk_strategy_id: str,
+    embedding_slot: str = embed_chunks.DEFAULT_EMBEDDING_SLOT,
 ) -> dict[str, Any]:
+    spec = embed_chunks.get_embedding_slot_spec(embedding_slot)
+    vector_property = embed_chunks.safe_property_name(spec.vector_property)
+    model_property = embed_chunks.safe_property_name(spec.model_property)
     result = tx.run(
-        """
+        f"""
         MATCH (c:Chunk)
         WHERE c.domain = $domain
           AND c.source_id = $source_id
           AND c.chunk_strategy_id = $chunk_strategy_id
         RETURN
           count(c) AS total_chunks,
-          sum(CASE WHEN c.embedding IS NULL THEN 0 ELSE 1 END) AS embedded_chunks,
+          sum(CASE WHEN c.{vector_property} IS NULL THEN 0 ELSE 1 END) AS embedded_chunks,
           sum(CASE WHEN coalesce(c.text, '') <> '' THEN 1 ELSE 0 END) AS text_chunks,
           sum(CASE WHEN coalesce(c.title, '') <> '' THEN 1 ELSE 0 END) AS title_chunks,
           sum(CASE WHEN coalesce(c.keywords, '') <> '' THEN 1 ELSE 0 END) AS keyword_chunks,
-          collect(DISTINCT c.embedding_model)[0..10] AS embedding_models
+          collect(DISTINCT c.{model_property})[0..10] AS embedding_models
         """,
         domain=domain,
         source_id=source_id,
         chunk_strategy_id=chunk_strategy_id,
     )
-    record = result.single()
-    return dict(record) if record else {}
+    record = result.single() if hasattr(result, "single") else (result[0] if result else None)
+    diagnostics = dict(record) if record else {}
+    diagnostics["embedding_property"] = spec.vector_property
+    diagnostics["embedding_slot"] = spec.slot
+    return diagnostics
 
 
 def write_summary(path: Path, summary: dict[str, Any]) -> None:
@@ -201,8 +208,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--source-id", default=embed_chunks.DEFAULT_SOURCE_ID)
     parser.add_argument("--chunking-strategy", default=embed_chunks.DEFAULT_STRATEGY)
     parser.add_argument("--domain", default=embed_chunks.DEFAULT_DOMAIN)
-    parser.add_argument("--model", default=embed_chunks.DEFAULT_EMBEDDING_MODEL)
-    parser.add_argument("--expected-dim", type=int, default=embed_chunks.DEFAULT_EXPECTED_DIM)
+    parser.add_argument(
+        "--embedding-slot",
+        choices=sorted(embed_chunks.EMBEDDING_SLOT_SPECS),
+        default=None,
+    )
+    parser.add_argument("--model", default=None)
+    parser.add_argument("--expected-dim", type=int, default=None)
     parser.add_argument("--candidate-k", type=int, default=DEFAULT_CANDIDATE_K)
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--query", action="append", default=None)
@@ -217,7 +229,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="auto",
     )
     parser.add_argument("--local-embedding-normalize", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--vector-index-name", default="chunkVector")
+    parser.add_argument("--vector-index-name", default=None)
     parser.add_argument("--requests-per-minute", type=float, default=embed_chunks.DEFAULT_REQUESTS_PER_MINUTE)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
@@ -226,7 +238,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-index-check", action="store_true")
     parser.add_argument("--allow-empty", action="store_true")
     parser.add_argument("--summary-output", type=Path, default=None)
-    return parser.parse_args(argv)
+    return embed_chunks.resolve_embedding_slot_args(parser.parse_args(argv))
 
 
 def make_embedding_client(args: argparse.Namespace) -> Any:
@@ -260,13 +272,19 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
             if not args.skip_index_check:
                 expected_indexes = embed_chunks.required_indexes(args.vector_index_name)
                 indexes = session.execute_read(embed_chunks.verify_indexes_tx, expected_indexes)
-                embed_chunks.assert_required_indexes_online(indexes, expected_indexes)
+                embed_chunks.assert_required_indexes_online(
+                    indexes,
+                    expected_indexes,
+                    embedding_slot=args.embedding_slot,
+                    vector_index_name=args.vector_index_name,
+                )
 
             diagnostics = session.execute_read(
                 retrieval_diagnostics_tx,
                 domain=args.domain,
                 source_id=args.source_id,
                 chunk_strategy_id=args.chunking_strategy,
+                embedding_slot=args.embedding_slot,
             )
 
             for query in queries:
@@ -299,8 +317,13 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "chunk_strategy_id": args.chunking_strategy,
         "diagnostics": diagnostics,
         "domain": args.domain,
+        "embedding_slot": args.embedding_slot,
         "embedding_model": client.model_name,
-        "embedding_backend": getattr(client, "embedding_backend", args.embedding_backend or "gemini"),
+        "embedding_backend": getattr(
+            client,
+            "embedding_backend",
+            args.embedding_backend or embed_chunks.get_embedding_slot_spec(args.embedding_slot).default_backend,
+        ),
         "generated_at": utc_now(),
         "passed": all(result["passed"] for result in results),
         "query_count": len(results),

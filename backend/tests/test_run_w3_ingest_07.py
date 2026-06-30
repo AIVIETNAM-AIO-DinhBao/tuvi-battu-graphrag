@@ -109,9 +109,37 @@ def test_local_kaggle_plan_uses_local_backends_without_gemini(monkeypatch: pytes
     assert entity["backend"] == "local"
     assert graph["backend"] == "local"
     assert "--dry-run" in graph["argv"]
+    assert "--payload-output-dir" in graph["argv"]
     assert embed["backend"] == "local"
+    assert embed["embedding_slot"] == "bge_m3"
     assert "--chunks-input" in embed["argv"]
+    assert "--embedding-slot" in embed["argv"]
     assert "--expected-dim" in embed["argv"]
+
+
+def test_gemini_plan_emits_gemini_embedding_slot() -> None:
+    work_dir = smoke_dir("gemini-slot-plan")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "plan",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+    embed = next(command for command in commands if command["phase"] == "embed_retrieval")
+    graph = next(command for command in commands if command["phase"] == "graph_relation")
+
+    assert embed["embedding_slot"] == "gemini"
+    assert "--embedding-slot" in embed["argv"]
+    assert "gemini" in embed["argv"]
+    assert "--payload-output-dir" in graph["argv"]
 
 
 def test_dry_run_commands_use_mock_flags_and_skip_db_embed() -> None:

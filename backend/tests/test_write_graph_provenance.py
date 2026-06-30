@@ -184,6 +184,42 @@ def test_strategy_filter_and_dry_run_do_not_require_databases() -> None:
     assert summary["db_write_counts"] == {}
 
 
+def test_dry_run_exports_portable_payload_dir() -> None:
+    chunk = make_chunk("ThiÃªn MÃ£ táº¡i Quan Lá»™c.")
+    entities = [
+        make_entity(chunk, "ThiÃªn MÃ£", "Sao"),
+        make_entity(chunk, "Quan Lá»™c", "Cung"),
+    ]
+    work_dir = smoke_dir("payload-export")
+    chunk_path = work_dir / "chunks.jsonl"
+    entity_path = work_dir / "entities.jsonl"
+    payload_dir = work_dir / "payload"
+    write_jsonl(chunk_path, [chunk])
+    write_jsonl(entity_path, entities)
+
+    summary = writer.run(
+        [
+            "--chunks-input",
+            str(chunk_path),
+            "--entities-input",
+            str(entity_path),
+            "--chunking-strategy",
+            "chunk_structure_parent_child",
+            "--dry-run",
+            "--mock-llm",
+            "--payload-output-dir",
+            str(payload_dir),
+        ]
+    )
+
+    payload = writer.load_payload_output_dir(payload_dir)
+    assert summary["payload_output_dir"] == str(payload_dir)
+    assert payload["summary"]["chunk_count"] == 1
+    assert len(payload["chunk_records"]) == 1
+    assert len(payload["entity_records"]) >= 2
+    assert len(payload["mention_records"]) >= 2
+
+
 def test_load_gemini_api_keys_supports_combined_and_numbered_keys() -> None:
     env = {
         "GEMINI_API_KEYS": "key-c, key-a",

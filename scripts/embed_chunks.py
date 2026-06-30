@@ -10,6 +10,7 @@ import re
 import sys
 import time
 from collections import Counter
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -33,15 +34,68 @@ DEFAULT_STRATEGY = "chunk_structure_parent_child"
 STRATEGY_PARENT_CHILD = "chunk_structure_parent_child"
 DEFAULT_EMBEDDING_MODEL = "gemini-embedding-2"
 DEFAULT_EXPECTED_DIM = 768
+DEFAULT_EMBEDDING_SLOT = "gemini"
 DEFAULT_LOCAL_VECTOR_INDEX = "chunkVectorBgeM3"
 DEFAULT_REQUESTS_PER_MINUTE = 90.0
 DEFAULT_MAX_RETRY_SLEEP_SECONDS = 300.0
-REQUIRED_INDEXES = {"chunkVector", "chunkFulltext"}
+DEFAULT_VECTOR_INDEX_NAME = "chunkVector"
+REQUIRED_INDEXES = {"chunkFulltext"}
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
+
+
+@dataclass(frozen=True)
+class EmbeddingSlotSpec:
+    slot: str
+    vector_property: str
+    vector_index_name: str
+    expected_dim: int
+    default_model: str
+    default_backend: str
+    model_property: str
+    dim_property: str
+    text_hash_property: str
+    embedded_at_property: str
+
+    @property
+    def metadata_fields(self) -> dict[str, str]:
+        return {
+            "embedded_at": self.embedded_at_property,
+            "embedding_dim": self.dim_property,
+            "embedding_model": self.model_property,
+            "embedding_text_hash": self.text_hash_property,
+        }
+
+
+EMBEDDING_SLOT_SPECS: dict[str, EmbeddingSlotSpec] = {
+    "gemini": EmbeddingSlotSpec(
+        slot="gemini",
+        vector_property="embedding",
+        vector_index_name=DEFAULT_VECTOR_INDEX_NAME,
+        expected_dim=DEFAULT_EXPECTED_DIM,
+        default_model=DEFAULT_EMBEDDING_MODEL,
+        default_backend="gemini",
+        model_property="embedding_model",
+        dim_property="embedding_dim",
+        text_hash_property="embedding_text_hash",
+        embedded_at_property="embedded_at",
+    ),
+    "bge_m3": EmbeddingSlotSpec(
+        slot="bge_m3",
+        vector_property="embedding_bge_m3",
+        vector_index_name=DEFAULT_LOCAL_VECTOR_INDEX,
+        expected_dim=DEFAULT_LOCAL_EMBEDDING_DIM,
+        default_model=DEFAULT_LOCAL_EMBEDDING_MODEL,
+        default_backend="local",
+        model_property="embedding_bge_m3_model",
+        dim_property="embedding_bge_m3_dim",
+        text_hash_property="embedding_bge_m3_text_hash",
+        embedded_at_property="embedding_bge_m3_embedded_at",
+    ),
+}
 
 
 def utc_now() -> str:
@@ -95,8 +149,104 @@ def safe_index_name(value: str) -> str:
     return value
 
 
+def safe_property_name(value: str) -> str:
+    if not value or not re.match(r"^[A-Za-z][A-Za-z0-9_]*$", value):
+        raise ValueError(f"Unsafe Neo4j property name: {value!r}")
+    return value
+
+
+def get_embedding_slot_spec(slot: str | None) -> EmbeddingSlotSpec:
+    key = str(slot or DEFAULT_EMBEDDING_SLOT).strip()
+    try:
+        return EMBEDDING_SLOT_SPECS[key]
+    except KeyError as exc:
+        supported = ", ".join(sorted(EMBEDDING_SLOT_SPECS))
+        raise ValueError(f"Unsupported embedding slot {key!r}. Expected one of: {supported}.") from exc
+
+
+def embedding_slot_config(slot: str | None) -> dict[str, Any]:
+    spec = get_embedding_slot_spec(slot)
+    return {
+        "default_backend": spec.default_backend,
+        "default_model": spec.default_model,
+        "expected_dim": spec.expected_dim,
+        "metadata_fields": spec.metadata_fields,
+        "slot": spec.slot,
+        "vector_index_name": spec.vector_index_name,
+        "vector_property": spec.vector_property,
+    }
+
+
+def infer_embedding_slot(args: argparse.Namespace) -> str:
+    if getattr(args, "embedding_slot", None):
+        return str(args.embedding_slot)
+    if (
+        getattr(args, "embedding_backend", None) == "local"
+        or getattr(args, "model", None) == DEFAULT_LOCAL_EMBEDDING_MODEL
+        or getattr(args, "expected_dim", None) == DEFAULT_LOCAL_EMBEDDING_DIM
+        or getattr(args, "vector_index_name", None) == DEFAULT_LOCAL_VECTOR_INDEX
+    ):
+        return "bge_m3"
+    return DEFAULT_EMBEDDING_SLOT
+
+
+def resolve_embedding_slot_args(args: argparse.Namespace) -> argparse.Namespace:
+    spec = get_embedding_slot_spec(infer_embedding_slot(args))
+    args.embedding_slot = spec.slot
+
+    vector_index_name = getattr(args, "vector_index_name", None)
+    if vector_index_name is None:
+        args.vector_index_name = spec.vector_index_name
+    elif vector_index_name != spec.vector_index_name:
+        raise ValueError(
+            f"--vector-index-name {vector_index_name!r} conflicts with --embedding-slot {spec.slot!r}; "
+            f"expected {spec.vector_index_name!r}."
+        )
+
+    expected_dim = getattr(args, "expected_dim", None)
+    if expected_dim is None:
+        args.expected_dim = spec.expected_dim
+    elif int(expected_dim) != spec.expected_dim:
+        raise ValueError(
+            f"--expected-dim {expected_dim!r} conflicts with --embedding-slot {spec.slot!r}; "
+            f"expected {spec.expected_dim}."
+        )
+
+    if getattr(args, "mock_embedding", False):
+        if getattr(args, "model", None) is None:
+            args.model = spec.default_model
+        return args
+
+    embedding_backend = getattr(args, "embedding_backend", None)
+    if embedding_backend is not None and embedding_backend != spec.default_backend:
+        raise ValueError(
+            f"--embedding-backend {embedding_backend!r} conflicts with --embedding-slot {spec.slot!r}; "
+            f"expected {spec.default_backend!r}."
+        )
+
+    if getattr(args, "model", None) is None:
+        args.model = spec.default_model
+    elif args.model != spec.default_model:
+        raise ValueError(
+            f"--model {args.model!r} conflicts with --embedding-slot {spec.slot!r}; "
+            f"expected {spec.default_model!r}."
+        )
+
+    if spec.slot == "bge_m3":
+        local_model = getattr(args, "local_embedding_model", None)
+        if local_model is None:
+            args.local_embedding_model = spec.default_model
+        elif local_model != spec.default_model:
+            raise ValueError(
+                f"--local-embedding-model {local_model!r} conflicts with --embedding-slot {spec.slot!r}; "
+                f"expected {spec.default_model!r}."
+            )
+
+    return args
+
+
 def required_indexes(vector_index_name: str) -> set[str]:
-    return {safe_index_name(vector_index_name), "chunkFulltext"}
+    return REQUIRED_INDEXES | {safe_index_name(vector_index_name)}
 
 
 def load_gemini_api_keys(env: Mapping[str, str | None] | None = None) -> list[str]:
@@ -120,7 +270,7 @@ def mock_embedding(text: str, expected_dim: int = DEFAULT_EXPECTED_DIM) -> list[
 
 class MockEmbeddingClient:
     def __init__(self, expected_dim: int = DEFAULT_EXPECTED_DIM) -> None:
-        self.model_name = "mock-embedding-768"
+        self.model_name = f"mock-embedding-{expected_dim}"
         self.embedding_backend = "mock"
         self.expected_dim = expected_dim
 
@@ -390,8 +540,16 @@ class MultiKeyGeminiEmbeddingClient:
         return self._embed("embed_query", text)
 
 
-def build_select_chunks_cypher(*, force: bool, limit: int | None, child_only: bool = False) -> str:
-    embedding_filter = "" if force else "AND c.embedding IS NULL"
+def build_select_chunks_cypher(
+    *,
+    force: bool,
+    limit: int | None,
+    child_only: bool = False,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
+) -> str:
+    spec = get_embedding_slot_spec(embedding_slot)
+    embedding_property = safe_property_name(spec.vector_property)
+    embedding_filter = "" if force else f"AND c.{embedding_property} IS NULL"
     child_filter = "AND (c.chunk_type = 'child' OR c.retrieval_unit = true)" if child_only else ""
     limit_clause = "\nLIMIT $limit" if limit is not None else ""
     return f"""
@@ -438,10 +596,16 @@ def select_chunks_tx(
     force: bool,
     limit: int | None,
     include_parent_chunks: bool = False,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
 ) -> list[dict[str, Any]]:
     child_only = should_use_child_only_policy(chunk_strategy_id, include_parent_chunks)
     result = tx.run(
-        build_select_chunks_cypher(force=force, limit=limit, child_only=child_only),
+        build_select_chunks_cypher(
+            force=force,
+            limit=limit,
+            child_only=child_only,
+            embedding_slot=embedding_slot,
+        ),
         domain=domain,
         source_id=source_id,
         chunk_strategy_id=chunk_strategy_id,
@@ -450,8 +614,14 @@ def select_chunks_tx(
     return [normalize_chunk_record(record) for record in result]
 
 
-def build_parent_skipped_count_cypher(*, force: bool) -> str:
-    embedding_filter = "" if force else "AND c.embedding IS NULL"
+def build_parent_skipped_count_cypher(
+    *,
+    force: bool,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
+) -> str:
+    spec = get_embedding_slot_spec(embedding_slot)
+    embedding_property = safe_property_name(spec.vector_property)
+    embedding_filter = "" if force else f"AND c.{embedding_property} IS NULL"
     return f"""
         MATCH (c:Chunk)
         WHERE c.domain = $domain
@@ -470,9 +640,10 @@ def count_parent_skipped_tx(
     source_id: str,
     chunk_strategy_id: str,
     force: bool,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
 ) -> int:
     result = tx.run(
-        build_parent_skipped_count_cypher(force=force),
+        build_parent_skipped_count_cypher(force=force, embedding_slot=embedding_slot),
         domain=domain,
         source_id=source_id,
         chunk_strategy_id=chunk_strategy_id,
@@ -488,9 +659,9 @@ def verify_indexes_tx(tx: Any, index_names: Iterable[str] | None = None) -> list
     result = tx.run(
         """
         SHOW INDEXES
-        YIELD name, state, type, entityType, labelsOrTypes, properties
+        YIELD name, state, type, entityType, labelsOrTypes, properties, options
         WHERE name IN $index_names
-        RETURN name, state, type, entityType, labelsOrTypes, properties
+        RETURN name, state, type, entityType, labelsOrTypes, properties, options
         ORDER BY name
         """,
         index_names=names,
@@ -498,9 +669,51 @@ def verify_indexes_tx(tx: Any, index_names: Iterable[str] | None = None) -> list
     return [dict(record) for record in result]
 
 
+def vector_index_dimensions(record: Mapping[str, Any]) -> int | None:
+    options = record.get("options")
+    if not isinstance(options, Mapping):
+        return None
+    index_config = options.get("indexConfig")
+    if not isinstance(index_config, Mapping):
+        index_config = options
+    for key in ("vector.dimensions", "`vector.dimensions`"):
+        value = index_config.get(key)
+        if value is not None:
+            return int(value)
+    return None
+
+
+def assert_slot_vector_index_compatible(
+    indexes: list[dict[str, Any]],
+    slot: str | EmbeddingSlotSpec,
+    vector_index_name: str | None = None,
+) -> None:
+    spec = slot if isinstance(slot, EmbeddingSlotSpec) else get_embedding_slot_spec(slot)
+    index_name = vector_index_name or spec.vector_index_name
+    by_name = {str(record.get("name")): record for record in indexes}
+    record = by_name.get(index_name)
+    if record is None:
+        raise ValueError(f"Missing Neo4j vector index: {index_name}")
+
+    properties = [str(value) for value in (record.get("properties") or [])]
+    if properties != [spec.vector_property]:
+        raise ValueError(
+            f"Neo4j vector index {index_name} targets {properties!r}, expected [{spec.vector_property!r}]."
+        )
+
+    dimensions = vector_index_dimensions(record)
+    if dimensions != spec.expected_dim:
+        raise ValueError(
+            f"Neo4j vector index {index_name} has dimension {dimensions!r}, expected {spec.expected_dim}."
+        )
+
+
 def assert_required_indexes_online(
     indexes: list[dict[str, Any]],
     index_names: Iterable[str] | None = None,
+    *,
+    embedding_slot: str | EmbeddingSlotSpec | None = None,
+    vector_index_name: str | None = None,
 ) -> None:
     expected = set(index_names or REQUIRED_INDEXES)
     by_name = {record.get("name"): record for record in indexes}
@@ -510,6 +723,8 @@ def assert_required_indexes_online(
     offline = sorted(name for name, record in by_name.items() if record.get("state") != "ONLINE")
     if offline:
         raise ValueError(f"Neo4j index(es) not ONLINE: {', '.join(offline)}")
+    if embedding_slot is not None:
+        assert_slot_vector_index_compatible(indexes, embedding_slot, vector_index_name)
 
 
 def prepare_embedding_updates(
@@ -517,11 +732,18 @@ def prepare_embedding_updates(
     client: Any,
     *,
     expected_dim: int,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
 ) -> list[dict[str, Any]]:
     updates: list[dict[str, Any]] = []
     embedded_at = utc_now()
     for chunk in chunks:
-        update = prepare_embedding_update(chunk, client, expected_dim=expected_dim, embedded_at=embedded_at)
+        update = prepare_embedding_update(
+            chunk,
+            client,
+            expected_dim=expected_dim,
+            embedded_at=embedded_at,
+            embedding_slot=embedding_slot,
+        )
         if update:
             updates.append(update)
     return updates
@@ -533,10 +755,12 @@ def prepare_embedding_update(
     *,
     expected_dim: int,
     embedded_at: str | None = None,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
 ) -> dict[str, Any] | None:
     text = make_embedding_text(chunk)
     if not text:
         return None
+    spec = get_embedding_slot_spec(embedding_slot)
     embedding = client.embed_document(text, title=make_title(chunk))
     validate_embedding_dimension(embedding, expected_dim)
     return {
@@ -546,34 +770,50 @@ def prepare_embedding_update(
         "embedding": embedding,
         "embedding_dim": expected_dim,
         "embedding_model": client.model_name,
+        "embedding_slot": spec.slot,
         "embedding_text_hash": embedding_text_hash(text),
         "embedded_at": embedded_at or utc_now(),
         "keywords": normalize_keywords(chunk.get("mention_keywords") or []),
         "parent_id": chunk.get("parent_id"),
         "retrieval_unit": chunk_retrieval_unit(chunk),
         "title": make_title(chunk),
+        "vector_index_name": spec.vector_index_name,
+        "vector_property": spec.vector_property,
     }
 
 
-def write_embedding_updates_tx(tx: Any, updates: list[dict[str, Any]], batch_size: int) -> int:
+def build_write_embedding_updates_cypher(embedding_slot: str = DEFAULT_EMBEDDING_SLOT) -> str:
+    spec = get_embedding_slot_spec(embedding_slot)
+    vector_property = safe_property_name(spec.vector_property)
+    model_property = safe_property_name(spec.model_property)
+    dim_property = safe_property_name(spec.dim_property)
+    text_hash_property = safe_property_name(spec.text_hash_property)
+    embedded_at_property = safe_property_name(spec.embedded_at_property)
+    return f"""
+        UNWIND $updates AS row
+        MATCH (c:Chunk {{chunk_hash: row.chunk_hash}})
+        SET c.{vector_property} = row.embedding,
+            c.{model_property} = row.embedding_model,
+            c.{dim_property} = row.embedding_dim,
+            c.{embedded_at_property} = row.embedded_at,
+            c.{text_hash_property} = row.embedding_text_hash,
+            c.chunk_type = row.chunk_type,
+            c.parent_id = row.parent_id,
+            c.retrieval_unit = row.retrieval_unit,
+            c.title = row.title,
+            c.keywords = row.keywords
+    """
+
+
+def write_embedding_updates_tx(
+    tx: Any,
+    updates: list[dict[str, Any]],
+    batch_size: int,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
+) -> int:
+    cypher = build_write_embedding_updates_cypher(embedding_slot)
     for batch in batched(updates, batch_size):
-        tx.run(
-            """
-            UNWIND $updates AS row
-            MATCH (c:Chunk {chunk_hash: row.chunk_hash})
-            SET c.embedding = row.embedding,
-                c.embedding_model = row.embedding_model,
-                c.embedding_dim = row.embedding_dim,
-                c.embedded_at = row.embedded_at,
-                c.embedding_text_hash = row.embedding_text_hash,
-                c.chunk_type = row.chunk_type,
-                c.parent_id = row.parent_id,
-                c.retrieval_unit = row.retrieval_unit,
-                c.title = row.title,
-                c.keywords = row.keywords
-            """,
-            updates=batch,
-        )
+        tx.run(cypher, updates=batch)
     return len(updates)
 
 
@@ -621,6 +861,7 @@ def build_run_summary(
 ) -> dict[str, Any]:
     selected_chunk_records = selected_chunk_records or []
     updates = updates or []
+    slot_spec = get_embedding_slot_spec(getattr(args, "embedding_slot", DEFAULT_EMBEDDING_SLOT))
     summary = {
         "batch_size": args.batch_size,
         "chunk_strategy_id": args.chunking_strategy,
@@ -628,9 +869,12 @@ def build_run_summary(
         "db_write_counts": db_counts,
         "domain": args.domain,
         "dry_run": args.dry_run,
+        "embedding_metadata_fields": slot_spec.metadata_fields,
         "embedding_model": embedding_model,
         "embedding_backend": getattr(args, "embedding_backend", None)
-        or ("mock" if args.mock_embedding else "gemini"),
+        or ("mock" if args.mock_embedding else slot_spec.default_backend),
+        "embedding_property": slot_spec.vector_property,
+        "embedding_slot": slot_spec.slot,
         "expected_dim": args.expected_dim,
         "force": args.force,
         "generated_at": utc_now(),
@@ -645,7 +889,7 @@ def build_run_summary(
         "selected_chunks": selected_chunks,
         "source_id": args.source_id,
         "update_count": update_count,
-        "vector_index_name": getattr(args, "vector_index_name", "chunkVector"),
+        "vector_index_name": getattr(args, "vector_index_name", slot_spec.vector_index_name),
     }
     if error is not None:
         summary["error"] = f"{type(error).__name__}: {error}"
@@ -800,8 +1044,11 @@ def write_retrieval_smoke(
     sparse_hits: list[dict[str, Any]],
     parent_records: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    slot_spec = get_embedding_slot_spec(getattr(args, "embedding_slot", DEFAULT_EMBEDDING_SLOT))
     diagnostics = {
         "dense_hit_count": len(dense_hits),
+        "embedding_property": slot_spec.vector_property,
+        "embedding_slot": slot_spec.slot,
         "sparse_hit_count": len(sparse_hits),
         "parent_expansion": build_parent_expansion_diagnostics(dense_hits, sparse_hits, parent_records),
     }
@@ -810,6 +1057,7 @@ def write_retrieval_smoke(
         "dense_hits": dense_hits,
         "diagnostics": diagnostics,
         "domain": args.domain,
+        "embedding_slot": slot_spec.slot,
         "generated_at": utc_now(),
         "parent_expansion_records": parent_records,
         "query": args.smoke_query,
@@ -912,6 +1160,7 @@ def build_offline_retrieval_smoke(
     client: Any,
 ) -> dict[str, Any]:
     query_embedding = l2_normalize(client.embed_query(args.smoke_query))
+    slot_spec = get_embedding_slot_spec(getattr(args, "embedding_slot", DEFAULT_EMBEDDING_SLOT))
     dense_hits = sorted(
         (
             {
@@ -945,11 +1194,14 @@ def build_offline_retrieval_smoke(
         "dense_hits": dense_hits,
         "diagnostics": {
             "dense_hit_count": len([hit for hit in dense_hits if hit["score"] > 0]),
+            "embedding_property": slot_spec.vector_property,
+            "embedding_slot": slot_spec.slot,
             "mode": "offline_artifact",
             "sparse_hit_count": len([hit for hit in sparse_hits if hit["score"] > 0]),
         },
         "domain": args.domain,
         "embedding_model": client.model_name,
+        "embedding_slot": slot_spec.slot,
         "generated_at": utc_now(),
         "query": args.smoke_query,
         "source_id": args.source_id,
@@ -988,10 +1240,16 @@ def run_offline_embedding(args: argparse.Namespace) -> dict[str, Any]:
     ]
     try:
         for chunk in pending_chunks:
-            update = prepare_embedding_update(chunk, client, expected_dim=args.expected_dim)
+            update = prepare_embedding_update(
+                chunk,
+                client,
+                expected_dim=args.expected_dim,
+                embedding_slot=args.embedding_slot,
+            )
             if not update:
                 continue
-            update["embedding_backend"] = getattr(client, "embedding_backend", args.embedding_backend or "gemini")
+            slot_spec = get_embedding_slot_spec(args.embedding_slot)
+            update["embedding_backend"] = getattr(client, "embedding_backend", args.embedding_backend or slot_spec.default_backend)
             update["embedding_text"] = make_embedding_text(chunk)
             updates.append(update)
             completed_chunks[offline_state_key(chunk)] = {
@@ -1050,8 +1308,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--source-id", default=DEFAULT_SOURCE_ID)
     parser.add_argument("--chunking-strategy", default=DEFAULT_STRATEGY)
     parser.add_argument("--domain", default=DEFAULT_DOMAIN)
-    parser.add_argument("--model", default=DEFAULT_EMBEDDING_MODEL)
-    parser.add_argument("--expected-dim", type=int, default=DEFAULT_EXPECTED_DIM)
+    parser.add_argument("--embedding-slot", choices=sorted(EMBEDDING_SLOT_SPECS), default=None)
+    parser.add_argument("--model", default=None)
+    parser.add_argument("--expected-dim", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--chunks-input", nargs="+", type=Path, default=None)
     parser.add_argument("--output", type=Path, default=None)
@@ -1072,7 +1331,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="auto",
     )
     parser.add_argument("--local-embedding-normalize", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--vector-index-name", default="chunkVector")
+    parser.add_argument("--vector-index-name", default=None)
     parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
@@ -1084,16 +1343,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--retrieval-smoke-output", type=Path, default=None)
     parser.add_argument("--smoke-query", default="Tu Vi")
     parser.add_argument("--smoke-limit", type=int, default=5)
-    return parser.parse_args(argv)
+    return resolve_embedding_slot_args(parser.parse_args(argv))
 
 
 def make_embedding_client(args: argparse.Namespace) -> Any:
-    backend = "mock" if args.mock_embedding else (args.embedding_backend or "gemini")
+    slot_spec = get_embedding_slot_spec(getattr(args, "embedding_slot", DEFAULT_EMBEDDING_SLOT))
+    backend = "mock" if args.mock_embedding else (args.embedding_backend or slot_spec.default_backend)
     if backend == "mock":
         return MockEmbeddingClient(args.expected_dim)
     if backend == "local":
         return LocalBgeM3EmbeddingClient(
-            model_name=args.local_embedding_model,
+            model_name=args.local_embedding_model or args.model,
             expected_dim=args.expected_dim,
             batch_size=args.local_embedding_batch_size,
             device=args.local_embedding_device,
@@ -1151,7 +1411,12 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
             if not args.skip_index_check:
                 expected_indexes = required_indexes(args.vector_index_name)
                 indexes = session.execute_read(verify_indexes_tx, expected_indexes)
-                assert_required_indexes_online(indexes, expected_indexes)
+                assert_required_indexes_online(
+                    indexes,
+                    expected_indexes,
+                    embedding_slot=args.embedding_slot,
+                    vector_index_name=args.vector_index_name,
+                )
                 db_counts["verified_indexes"] = sorted(expected_indexes)
 
             chunks = session.execute_read(
@@ -1162,6 +1427,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                 force=args.force,
                 limit=args.limit,
                 include_parent_chunks=args.include_parent_chunks,
+                embedding_slot=args.embedding_slot,
             )
             child_only = should_use_child_only_policy(args.chunking_strategy, args.include_parent_chunks)
             parent_skipped_count = (
@@ -1171,6 +1437,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                     source_id=args.source_id,
                     chunk_strategy_id=args.chunking_strategy,
                     force=args.force,
+                    embedding_slot=args.embedding_slot,
                 )
                 if child_only
                 else 0
@@ -1188,6 +1455,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                         client,
                         expected_dim=args.expected_dim,
                         embedded_at=embedded_at,
+                        embedding_slot=args.embedding_slot,
                     )
                     if update:
                         updates.append(update)
@@ -1198,6 +1466,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                             write_embedding_updates_tx,
                             pending_updates,
                             args.batch_size,
+                            args.embedding_slot,
                         )
                         pending_updates = []
 
@@ -1214,6 +1483,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                         write_embedding_updates_tx,
                         pending_updates,
                         args.batch_size,
+                        args.embedding_slot,
                     )
                     pending_updates = []
             except (Exception, KeyboardInterrupt) as exc:
@@ -1222,6 +1492,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                         write_embedding_updates_tx,
                         pending_updates,
                         args.batch_size,
+                        args.embedding_slot,
                     )
                     db_counts["embedded_chunks"] = written_count
                     print(

@@ -632,15 +632,10 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
   - W3 run reports/state were removed and will be regenerated on the next production run.
   - entity directories are empty placeholders.
 
-### Model Direction Under Consideration
-- Embedding direction: use `BAAI/bge-m3` for local/Kaggle open-source embedding experiments.
-- LLM augmentation direction under evaluation:
-  - Gemini API for official baseline and lower engineering friction.
-  - `Qwen/Qwen2.5-7B-Instruct` for high-volume entity/relation augmentation when calls reach tens of thousands and Gemini quota/cost becomes the bottleneck.
-
-### Next Decision
-- Decide whether W3-INGEST-07 production baseline remains Gemini-only, or whether to add a separate local/Kaggle open-source backend path.
-- If using BGE-M3/Qwen, do not mix artifacts with Gemini baseline; add explicit backend/model metadata and strategy/version ids.
+### Decision Resolution
+- W3-INGEST operational path is now local-Kaggle artifact-first.
+- Gemini remains the baseline/spec reference and production comparison path.
+- BGE-M3/Qwen artifacts are kept separate from Gemini baseline via explicit strategy/slot/index metadata.
 
 ## W3 Local-Kaggle Backend Update - 2026-06-30
 
@@ -659,3 +654,47 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
 - Embedding model: `BAAI/bge-m3`, dense normalized, 1024 dimensions.
 - LLM augmentation model: `Qwen/Qwen2.5-7B-Instruct`, 4-bit.
 - Graph DB writes are disabled in Kaggle/local profile; artifacts are generated for later local/cloud import.
+
+## W3 Slot Separation And Artifact Import Update - 2026-06-30
+
+### Implementation Status
+- Added embedding slot separation for Gemini and BGE-M3 in the same Neo4j DB:
+  - Gemini: `Chunk.embedding` + `chunkVector` + `768`
+  - BGE-M3: `Chunk.embedding_bge_m3` + `chunkVectorBgeM3` + `1024`
+- Added `--embedding-slot` to embedding and retrieval smoke scripts, with fail-fast checks for slot/index/dimension mismatches.
+- Added `--payload-output-dir` to graph provenance export so Kaggle dry-run can emit importable graph payloads without rerunning relation LLM later.
+- Added new local import scripts:
+  - `scripts/import_graph_payload.py`
+  - `scripts/import_embedding_artifacts.py`
+- Added backend runtime CPU query embedding service for `BAAI/bge-m3` via `DENSE_QUERY_EMBEDDING_*` settings.
+
+### Operational Path
+- W3 is now documented and implemented as:
+  - Kaggle batch for chunk/entity/relation/embedding
+  - download artifact
+  - local import graph payload
+  - local import BGE-M3 embeddings
+  - local retrieval smoke
+  - local runtime query embedding on CPU
+- `chunk_semantic_embedding_bge_m3` remains an auxiliary strategy and does not overwrite Gemini baseline naming or vectors.
+
+### Verification
+- Focused slot/import/runtime regression:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_embed_chunks.py backend\tests\test_smoke_retrieval.py backend\tests\test_write_graph_provenance.py backend\tests\test_run_w3_ingest_07.py backend\tests\test_import_artifacts.py backend\tests\test_runtime_embedding_service.py -q -p no:cacheprovider`
+  - Result: `79 passed`
+- Full backend regression after slot/artifact/runtime changes:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests -q -p no:cacheprovider`
+  - Result: `202 passed`
+
+### Documentation Sync Status
+- Updated:
+  - `SPECIFICATIONS.md`
+  - `PLAN.md`
+  - `PROGRESS.md`
+  - `docs/w3_ingest_07_runbook.md`
+  - `notebooks/kaggle/README.md`
+- Kaggle notebooks were aligned to the new artifact flow, shared partition contract, and resume guidance.
+
+### Status
+- Code path for local-Kaggle artifact import/retrieval is complete and regression-tested.
+- W3 is ready for manual acceptance on real Neo4j/Supabase by running Kaggle artifacts through the import scripts and `smoke_retrieval.py --embedding-slot bge_m3`.

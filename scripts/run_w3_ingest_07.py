@@ -94,6 +94,7 @@ def command_record(
     gemini_api_key_count: int,
     requires_gemini: bool,
     backend: str | None = None,
+    embedding_slot: str | None = None,
     model: str | None = None,
     expected_dim: int | None = None,
     summary_output: Path | None = None,
@@ -102,6 +103,7 @@ def command_record(
     return {
         "backend": backend,
         "command_id": command_id,
+        "embedding_slot": embedding_slot,
         "expected_dim": expected_dim,
         "gemini_api_key_count": gemini_api_key_count,
         "mode": mode,
@@ -130,6 +132,11 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
     for strategy in args.strategies:
         strategy_chunks_dir = chunks_dir / strategy
         chunk_summary = reports_dir / f"{strategy}_chunk_summary.json"
+        payload_dir = (
+            args.dataset_dir / "local_kaggle" / "payloads" / strategy
+            if local_profile
+            else args.dataset_dir / "payloads" / strategy
+        )
         semantic_strategy = strategy in {"chunk_semantic_embedding", "chunk_semantic_embedding_bge_m3"}
         chunk_argv: list[Any] = [
             sys.executable,
@@ -277,6 +284,8 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
             reports_dir / f"{strategy}_graph_write_summary.json",
             "--relation-review-output",
             reports_dir / f"{strategy}_relation_review.json",
+            "--payload-output-dir",
+            payload_dir,
             "--review-sample-size",
             "20",
             "--state-output",
@@ -358,6 +367,8 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                     "--resume",
                     "--smoke-query",
                     args.smoke_query,
+                    "--embedding-slot",
+                    "bge_m3",
                     "--embedding-backend",
                     "local",
                     "--model",
@@ -396,6 +407,8 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                     reports_dir / f"retrieval_{source}_{strategy}.json",
                     "--smoke-query",
                     args.smoke_query,
+                    "--embedding-slot",
+                    "gemini",
                 ]
                 if args.force_embedding:
                     embed_argv.append("--force")
@@ -420,6 +433,7 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                     gemini_api_key_count=gemini_api_key_count,
                     requires_gemini=embed_backend == "gemini",
                     backend=embed_backend,
+                    embedding_slot="bge_m3" if local_profile else "gemini",
                     model=embed_model,
                     expected_dim=embed_dim,
                     summary_output=reports_dir / f"embed_{source}_{strategy}.json",

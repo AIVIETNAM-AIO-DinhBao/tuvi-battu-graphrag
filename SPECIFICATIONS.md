@@ -1,13 +1,23 @@
 # System Specification: Hệ Thống Hỏi Đáp Tử Vi với Hybrid GraphRAG
 
-**Version:** 7.1
-**Date:** 2026-06-29
+**Version:** 7.2
+**Date:** 2026-06-30
 **Team size:** 4 người
 **Budget:** $0 (MVP / free-tier first)
 
 ***
 
 ## Changelog
+
+### v7.2
+
+- Chốt đường vận hành hiện tại của `W3-INGEST` là local-Kaggle artifact path để hoàn tất ingest khi Gemini quota không đủ ổn định cho full corpus.
+- Tách hoàn toàn Gemini và `BAAI/bge-m3` theo embedding slot trong cùng Neo4j:
+  - Gemini dùng `Chunk.embedding` + `chunkVector` + `768`.
+  - BGE-M3 dùng `Chunk.embedding_bge_m3` + `chunkVectorBgeM3` + `1024`.
+- Chuẩn hóa graph payload export/import để Kaggle chỉ sinh artifact, còn local/cloud mới import vào Neo4j/Supabase mà không chạy lại LLM.
+- Chốt query embedding runtime local dùng `BAAI/bge-m3` trên CPU qua `DENSE_QUERY_EMBEDDING_BACKEND`, `DENSE_QUERY_EMBEDDING_MODEL`, `DENSE_QUERY_EMBEDDING_DEVICE`, `DENSE_QUERY_EMBEDDING_SLOT`.
+- Giữ `chunk_semantic_embedding_bge_m3` là strategy phụ riêng cho local-Kaggle, không đổi tên hay ghi đè baseline `chunk_semantic_embedding`.
 
 ### v7.1
 
@@ -401,6 +411,13 @@ Workflow:
 10. Tạo embeddings/fulltext metadata theo strategy-aware retrieval policy.
 11. Chạy retrieval smoke, sample QA review và ghi evidence artifacts cho từng `source_id + chunk_strategy_id`.
 
+Đường vận hành hiện tại để hoàn tất W3:
+
+- Kaggle chạy batch cho chunk/entity/relation/embedding và chỉ sinh artifact.
+- `write_graph_provenance.py --payload-output-dir ...` xuất payload importable trong cả `dry-run` lẫn production artifact mode.
+- Local/cloud import graph payload bằng `import_graph_payload.py` và import embeddings bằng `import_embedding_artifacts.py`.
+- Local runtime query embedding dùng `BAAI/bge-m3` trên CPU; laptop không cần GPU để phục vụ retrieval/chat runtime.
+
 ### 12.1 Chunking strategy policy
 
 Ba strategy đại diện chính thức cho baseline/ablation:
@@ -505,6 +522,36 @@ Embedding/indexing phải strategy-aware:
 - Dense và sparse retrieval đều phải filter được theo `domain`, `source_id`, `chunk_strategy_id` và `chunk_type` khi cần.
 - Smoke retrieval phải ghi diagnostics về total chunks, embedded chunks, text chunks, keyword coverage, parent expansion hit rate.
 
+Embedding slot policy:
+
+- Gemini baseline slot:
+  - property: `Chunk.embedding`
+  - vector index: `chunkVector`
+  - dimension: `768`
+- Local-Kaggle BGE-M3 slot:
+  - property: `Chunk.embedding_bge_m3`
+  - vector index: `chunkVectorBgeM3`
+  - dimension: `1024`
+- Không trộn metadata, vector property hoặc index giữa hai slot.
+- `chunk_semantic_embedding_bge_m3` tiếp tục là strategy phụ riêng cho local-Kaggle path; không ghi đè `chunk_semantic_embedding`.
+
+Official import/retrieval flow sau Kaggle:
+
+1. Chạy notebook Kaggle để sinh `chunks`, `entities`, `payloads`, `embeddings`, `reports`, `state`.
+2. Tải artifact về local.
+3. Import graph payload mà không gọi lại LLM.
+4. Import embedding artifacts vào slot `bge_m3`.
+5. Chạy retrieval smoke local với `--embedding-slot bge_m3`.
+
+Runtime query embedding policy:
+
+- Backend runtime local mặc định dùng:
+  - `DENSE_QUERY_EMBEDDING_BACKEND=local`
+  - `DENSE_QUERY_EMBEDDING_MODEL=BAAI/bge-m3`
+  - `DENSE_QUERY_EMBEDDING_DEVICE=cpu`
+  - `DENSE_QUERY_EMBEDDING_SLOT=bge_m3`
+- CPU local runtime chỉ dùng cho query embedding; không dùng để chạy lại full ingest pipeline nặng.
+
 Expected evidence artifacts:
 
 - `<strategy>_chunk_summary.json`
@@ -604,6 +651,13 @@ Model routing default:
 - Interpretive và multi-hop generation: Gemini Flash.
 - Experiment có thể override model qua `ExperimentConfig`.
 
+Current W3 operational routing:
+
+- Full-corpus W3 ingest hiện hoàn tất theo local-Kaggle path:
+  - semantic chunking và dense embeddings: `BAAI/bge-m3`
+  - entity/relation augmentation: `Qwen/Qwen2.5-7B-Instruct`
+- Gemini được giữ làm baseline/spec reference và production comparison path, không bị xóa khỏi kiến trúc.
+
 Prompt generation phải:
 
 - Bám lá số hiện tại.
@@ -659,14 +713,15 @@ MVP cần ít nhất 10 experiment đã chạy trước khi chốt production co
 
 | Rủi ro | Tác động | Mitigation |
 |-------|----------|------------|
-| Gemini quota bị vượt | Request fail hoặc giảm chất lượng | Dùng Flash-Lite cho task nhẹ, cache, batch nhỏ |
+| Gemini quota bị vượt | Full-corpus ingest hoặc request runtime bị gián đoạn | Dùng local-Kaggle artifact path cho ingest batch lớn; giữ Gemini cho baseline/spec và các run nhỏ hơn |
 | Render cold start | Latency request đầu tăng mạnh | Loading state rõ, health ping nếu cần |
 | Neo4j schema quá phức tạp | Khó maintain/debug | Giữ schema tối giản |
 | OCR làm nhiễu dữ liệu | Retrieval quality giảm | Ưu tiên PDF text-based, sample review |
 | RLS sai | Lộ dữ liệu user | Test policy trước deploy |
 | Citation mapping không ổn định | Khó kiểm tra nguồn | Stable chunk hash + provenance |
 | Graph duplicate | Tốn capacity, retrieval nhiễu | Canonicalization + `MERGE` |
-| Ablation tốn quota | Chậm evaluation | Batch nhỏ, chia nhiều ngày |
+| Trộn Gemini và BGE-M3 artifacts | Sai dimension/index, retrieval lỗi ngầm | Tách embedding slot/property/index/dim và giữ strategy phụ riêng cho BGE-M3 |
+| Ablation tốn quota | Chậm evaluation | Batch nhỏ, chia nhiều ngày hoặc chuyển sang local-Kaggle artifact path |
 
 ***
 

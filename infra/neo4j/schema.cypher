@@ -49,5 +49,9 @@ CREATE VECTOR INDEX chunkVector IF NOT EXISTS
 FOR (c:Chunk) ON (c.embedding)
 OPTIONS {indexConfig: {`vector.dimensions`: 768, `vector.similarity_function`: 'cosine'}};
 
+CREATE VECTOR INDEX chunkVectorBgeM3 IF NOT EXISTS
+FOR (c:Chunk) ON (c.embedding_bge_m3)
+OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
+
 CREATE FULLTEXT INDEX chunkFulltext IF NOT EXISTS
 FOR (c:Chunk) ON EACH [c.text, c.title, c.keywords];

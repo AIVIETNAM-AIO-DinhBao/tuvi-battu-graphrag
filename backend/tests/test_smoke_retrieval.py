@@ -173,3 +173,28 @@ def test_make_embedding_client_passes_expected_dimension(monkeypatch: pytest.Mon
         "requests_per_minute": 90.0,
         "max_retries": 6,
     }
+
+
+def test_parse_args_infers_bge_slot_defaults() -> None:
+    args = smoke_retrieval.parse_args(["--embedding-backend", "local"])
+
+    assert args.embedding_slot == "bge_m3"
+    assert args.expected_dim == 1024
+    assert args.vector_index_name == "chunkVectorBgeM3"
+
+
+def test_retrieval_diagnostics_uses_slot_specific_properties() -> None:
+    tx = FakeTransaction()
+
+    diagnostics = smoke_retrieval.retrieval_diagnostics_tx(
+        tx,
+        domain="TUVI",
+        source_id="TVGM",
+        chunk_strategy_id="chunk_structure_parent_child",
+        embedding_slot="bge_m3",
+    )
+
+    assert "c.embedding_bge_m3 IS NULL" in tx.cypher
+    assert "c.embedding_bge_m3_model" in tx.cypher
+    assert diagnostics["embedding_property"] == "embedding_bge_m3"
+    assert diagnostics["embedding_slot"] == "bge_m3"

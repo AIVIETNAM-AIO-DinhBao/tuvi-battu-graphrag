@@ -329,10 +329,11 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 - Thêm relation type-pair schema validation, ví dụ `THUOC_CUNG` chỉ cho `Sao|ToHop|TuHoa|TrangThaiSao|CucBanMenh -> Cung`.
 - Dùng hybrid relation extraction: rule trước, LLM chỉ bổ sung relation giữa entity có sẵn, ontology chỉ cho quan hệ nền ổn định.
 - Tạo relation review report với evidence samples, invalid/drop counts và relation counts theo type/source/chunk_type.
+- Với local-Kaggle path, `write_graph_provenance.py` phải export portable payload qua `--payload-output-dir` để local import lại mà không chạy lại relation LLM.
 
 **Deliverable:** Graph, relation và provenance strategy-aware được ghi đúng, reviewable.
 **Depends on:** W3-INGEST-04, W1-DB-02
-**Done when:** Query Neo4j từ entity truy được chunk/source; parent-child edge expand được parent; relation type-pair validation pass; relation sample review không có relation suy diễn ngoài evidence; Supabase `source_chunks` có provenance đủ cho citation.
+**Done when:** Query Neo4j từ entity truy được chunk/source; parent-child edge expand được parent; relation type-pair validation pass; relation sample review không có relation suy diễn ngoài evidence; Supabase `source_chunks` có provenance đủ cho citation; local-Kaggle path có `payloads/<strategy>/` importable mà không cần chạy lại LLM.
 
 ### W3-INGEST-06 - Strategy-aware embedding và retrieval indexing
 
@@ -341,16 +342,19 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 
 **What to do:**
 - Tạo embedding cho chunk theo strategy-aware policy.
-- Default implementation dùng Gemini embedding model cấu hình được; hiện tại chọn `gemini-embedding-2` với `output_dimensionality = 768` để khớp Neo4j `chunkVector`.
+- Dùng cùng Neo4j DB nhưng tách embedding slot hoàn toàn:
+  - Gemini baseline: `Chunk.embedding` + `chunkVector` + `768`
+  - Local-Kaggle BGE-M3: `Chunk.embedding_bge_m3` + `chunkVectorBgeM3` + `1024`
 - Flat strategies như `chunk_fixed_512` và `chunk_semantic_embedding`: embed toàn bộ chunks hợp lệ.
 - Parent-child strategy: embed/retrieve `chunk_type = "child"` mặc định; parent được fetch bằng `parent_id` trong parent expansion.
-- Ghi embedding vào Neo4j kèm `embedding_model`, `embedding_dim`, `embedded_at`, `embedding_text_hash`, `title`, `keywords`.
+- Ghi embedding vào Neo4j theo đúng slot, kèm metadata riêng cho slot đó: `embedding_model`, `embedding_dim`, `embedded_at`, `embedding_text_hash`, `title`, `keywords`.
 - Fulltext metadata dùng source/section title và canonical entity names từ `MENTIONS` làm keywords.
 - Retrieval smoke phải kiểm tra dense, sparse, filter theo `chunk_strategy_id`, filter theo `chunk_type`, và parent expansion diagnostics.
+- Local-Kaggle path phải sinh embedding JSONL artifact, import lại bằng script riêng và smoke retrieval theo `--embedding-slot bge_m3`.
 
 **Deliverable:** Dense và sparse index hoạt động theo strategy, child-only parent-child policy và parent expansion.
 **Depends on:** W3-INGEST-05
-**Done when:** `embed_<source>_<strategy>.json` có `completed=true`; `retrieval_<source>_<strategy>.json` có dense/sparse hits, source/strategy/chunk_type đúng và parent expansion diagnostics pass với parent-child strategy.
+**Done when:** `embed_<source>_<strategy>.json` có `completed=true`; `retrieval_<source>_<strategy>.json` có dense/sparse hits, source/strategy/chunk_type đúng và parent expansion diagnostics pass với parent-child strategy; slot `bge_m3` import/retrieval hoạt động mà không đụng baseline Gemini.
 
 ### W3-INGEST-07 - Full corpus baseline ingest với 3 strategy đại diện
 
@@ -360,18 +364,22 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 **What to do:**
 - Dùng toàn bộ 4 sách Tử Vi nền đã chuẩn hóa trong `benchmark/tuvi_golden_dataset/corpus`: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
 - Không xóa hoặc rebuild corpus nền; chỉ tạo lại dữ liệu derived từ chunk/entity/relation/embedding/index.
-- Chạy pipeline từ chunk đến index cho 3 strategy đại diện:
+- Đường vận hành hiện tại để hoàn tất W3 là local-Kaggle artifact path:
+  - chunking/entity/relation/embedding chạy trên Kaggle
+  - graph payload và embedding artifacts được tải về local
+  - local import vào Neo4j/Supabase và chạy retrieval smoke
+- Chạy pipeline từ chunk đến index cho 3 strategy vận hành hiện tại:
   - `chunk_fixed_512`
   - `chunk_structure_parent_child`
-  - `chunk_semantic_embedding`
-- Với mỗi source-strategy pair, chạy chunking, entity extraction, graph/provenance writer, embedding và retrieval smoke.
+  - `chunk_semantic_embedding_bge_m3`
+- Với mỗi source-strategy pair, chạy chunking, entity extraction, graph/provenance writer, embedding và retrieval smoke theo artifact/import flow chính thức.
 - Ghi số page, chunk, node, relation, Supabase `source_chunks`, embedding và retrieval smoke theo từng `source_id + chunk_strategy_id`.
 - Review tối thiểu 20 chunk/entity/relation sample cho mỗi strategy.
-- Evidence folder `reports/w3_ingest_07` phải có `<strategy>_chunk_summary.json`, `<strategy>_semantic_similarity_report.json` khi áp dụng, `<strategy>_entity_review.json`, `<strategy>_relation_review.json`, `<strategy>_graph_write_summary.json`, `embed_<source>_<strategy>.json`, `retrieval_<source>_<strategy>.json`.
+- Evidence folder phải có `<strategy>_chunk_summary.json`, `<strategy>_semantic_similarity_report.json` khi áp dụng, `<strategy>_entity_review.json`, `<strategy>_relation_review.json`, `<strategy>_graph_write_summary.json`, `embed_<source>_<strategy>.json`, `retrieval_<source>_<strategy>.json`, và `payloads/<strategy>/`.
 
 **Deliverable:** Full corpus Tử Vi đã ingest với 3 strategy đại diện.
 **Depends on:** W3-INGEST-06
-**Done when:** Neo4j và Supabase có dữ liệu đầy đủ cho 12 cặp source-strategy, dense/sparse retrieval smoke pass cho từng cặp, parent-child expansion pass, và App/RAG retrieve được từ corpus baseline.
+**Done when:** Có payload importable cho mọi strategy cần import; có embedding artifact theo slot `bge_m3`; local import graph payload và embeddings không gọi lại LLM; retrieval smoke pass với `--embedding-slot bge_m3`; local laptop không cần GPU để hoàn tất ingest/runtime query embedding.
 
 ***
 

@@ -52,6 +52,21 @@ def make_chunk() -> dict:
     }
 
 
+def test_embedding_slot_config_maps_bge_m3_fields() -> None:
+    config = embed_chunks.embedding_slot_config("bge_m3")
+
+    assert config["slot"] == "bge_m3"
+    assert config["vector_property"] == "embedding_bge_m3"
+    assert config["vector_index_name"] == "chunkVectorBgeM3"
+    assert config["expected_dim"] == 1024
+    assert config["metadata_fields"] == {
+        "embedded_at": "embedding_bge_m3_embedded_at",
+        "embedding_dim": "embedding_bge_m3_dim",
+        "embedding_model": "embedding_bge_m3_model",
+        "embedding_text_hash": "embedding_bge_m3_text_hash",
+    }
+
+
 def test_select_chunks_query_skips_existing_embeddings_by_default() -> None:
     cypher = embed_chunks.build_select_chunks_cypher(force=False, limit=10)
 
@@ -75,6 +90,13 @@ def test_select_chunks_query_child_only_filters_parent_child_retrieval_units() -
     assert "c.retrieval_unit = true" in cypher
     assert "c.parent_id AS parent_id" in cypher
     assert "c.chunk_type AS chunk_type" in cypher
+
+
+def test_select_chunks_query_uses_bge_slot_property() -> None:
+    cypher = embed_chunks.build_select_chunks_cypher(force=False, limit=10, embedding_slot="bge_m3")
+
+    assert "c.embedding_bge_m3 IS NULL" in cypher
+    assert "c.embedding IS NULL" not in cypher
 
 
 def test_child_only_policy_only_applies_to_parent_child_without_override() -> None:
@@ -147,6 +169,20 @@ def test_prepare_embedding_updates_preserves_metadata() -> None:
     assert update["parent_id"] == "TVGM_chunk_structure_parent_child_parent_000001"
     assert update["retrieval_unit"] is True
     assert update["embedding_text_hash"] == embed_chunks.embedding_text_hash(make_chunk()["text"])
+
+
+def test_prepare_embedding_updates_marks_bge_slot_metadata() -> None:
+    client = embed_chunks.MockEmbeddingClient(expected_dim=1024)
+    updates = embed_chunks.prepare_embedding_updates(
+        [make_chunk()],
+        client,
+        expected_dim=1024,
+        embedding_slot="bge_m3",
+    )
+
+    assert updates[0]["embedding_slot"] == "bge_m3"
+    assert updates[0]["vector_index_name"] == "chunkVectorBgeM3"
+    assert updates[0]["vector_property"] == "embedding_bge_m3"
 
 
 def test_prepare_embedding_update_skips_empty_text() -> None:
@@ -277,7 +313,24 @@ def test_parse_args_defaults_to_safe_requests_per_minute() -> None:
     assert args.smoke_query == "Tu Vi"
     assert args.smoke_limit == 5
     assert args.embedding_backend is None
+    assert args.embedding_slot == "gemini"
+    assert args.expected_dim == 768
+    assert args.model == "gemini-embedding-2"
     assert args.vector_index_name == "chunkVector"
+
+
+def test_parse_args_infers_bge_slot_from_local_embedding_flags() -> None:
+    args = embed_chunks.parse_args(["--embedding-backend", "local"])
+
+    assert args.embedding_slot == "bge_m3"
+    assert args.expected_dim == 1024
+    assert args.model == "BAAI/bge-m3"
+    assert args.vector_index_name == "chunkVectorBgeM3"
+
+
+def test_parse_args_rejects_slot_override_conflicts() -> None:
+    with pytest.raises(ValueError, match="conflicts with --embedding-slot 'bge_m3'"):
+        embed_chunks.parse_args(["--embedding-slot", "bge_m3", "--expected-dim", "768"])
 
 
 def test_local_embedding_client_factory_uses_bge_m3(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -376,16 +429,41 @@ def test_build_run_summary_marks_partial_failure() -> None:
 
 def test_assert_required_indexes_online() -> None:
     indexes = [
-        {"name": "chunkVector", "state": "ONLINE"},
+        {
+            "name": "chunkVector",
+            "state": "ONLINE",
+            "properties": ["embedding"],
+            "options": {"indexConfig": {"vector.dimensions": 768}},
+        },
         {"name": "chunkFulltext", "state": "ONLINE"},
     ]
 
-    embed_chunks.assert_required_indexes_online(indexes)
+    embed_chunks.assert_required_indexes_online(indexes, embedding_slot="gemini", vector_index_name="chunkVector")
 
 
 def test_assert_required_indexes_online_rejects_missing_index() -> None:
     with pytest.raises(ValueError, match="Missing Neo4j index"):
         embed_chunks.assert_required_indexes_online([{"name": "chunkVector", "state": "ONLINE"}])
+
+
+def test_assert_required_indexes_online_rejects_slot_dim_mismatch() -> None:
+    indexes = [
+        {
+            "name": "chunkVectorBgeM3",
+            "state": "ONLINE",
+            "properties": ["embedding_bge_m3"],
+            "options": {"indexConfig": {"vector.dimensions": 768}},
+        },
+        {"name": "chunkFulltext", "state": "ONLINE"},
+    ]
+
+    with pytest.raises(ValueError, match="expected 1024"):
+        embed_chunks.assert_required_indexes_online(
+            indexes,
+            {"chunkVectorBgeM3", "chunkFulltext"},
+            embedding_slot="bge_m3",
+            vector_index_name="chunkVectorBgeM3",
+        )
 
 
 def test_run_summary_reports_embedded_chunk_types_and_keyword_coverage() -> None:

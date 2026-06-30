@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     LANGFUSE_PUBLIC_KEY: str = "test-public-key"
     LANGFUSE_BASE_URL: str = "http://localhost:3000"
 
+    DENSE_QUERY_EMBEDDING_BACKEND: str = "local"
+    DENSE_QUERY_EMBEDDING_MODEL: str = "BAAI/bge-m3"
+    DENSE_QUERY_EMBEDDING_DEVICE: str = "cpu"
+    DENSE_QUERY_EMBEDDING_SLOT: str = "bge_m3"
+    DENSE_QUERY_EMBEDDING_DIM: int = 1024
+    DENSE_QUERY_EMBEDDING_IMPLEMENTATION: str = "auto"
+    DENSE_QUERY_EMBEDDING_NORMALIZE: bool = True
+
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     model_config = SettingsConfigDict(

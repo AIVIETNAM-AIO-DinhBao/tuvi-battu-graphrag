@@ -94,6 +94,14 @@ REQUIRED_ENTITY_KEYS = {
     "source_id",
     "source_page",
 }
+PAYLOAD_RECORD_KEYS = (
+    "source_records",
+    "chunk_records",
+    "entity_records",
+    "mention_records",
+    "relation_records",
+    "canonical_relation_records",
+)
 
 CUNG_CYCLE = [
     "Mệnh",
@@ -258,6 +266,52 @@ def read_jsonl(paths: list[Path]) -> list[dict[str, Any]]:
                 record["_input_line"] = line_no
                 records.append(record)
     return records
+
+
+def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+
+def payload_file_name(record_key: str) -> str:
+    if record_key not in PAYLOAD_RECORD_KEYS:
+        raise ValueError(f"Unsupported payload record key: {record_key}")
+    return f"{record_key}.jsonl"
+
+
+def write_payload_output_dir(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    path.mkdir(parents=True, exist_ok=True)
+    record_counts: dict[str, int] = {}
+    for record_key in PAYLOAD_RECORD_KEYS:
+        records = list(payload.get(record_key) or [])
+        write_jsonl(path / payload_file_name(record_key), records)
+        record_counts[record_key] = len(records)
+    summary_path = path / "summary.json"
+    summary_path.write_text(
+        json.dumps(payload["summary"], ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return {
+        "payload_output_dir": str(path),
+        "record_counts": record_counts,
+        "summary_path": str(summary_path),
+    }
+
+
+def load_payload_output_dir(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        raise FileNotFoundError(f"Payload directory does not exist: {path}")
+    payload: dict[str, Any] = {}
+    for record_key in PAYLOAD_RECORD_KEYS:
+        payload[record_key] = read_jsonl([path / payload_file_name(record_key)])
+    summary_path = path / "summary.json"
+    if not summary_path.exists():
+        raise FileNotFoundError(f"Payload summary is missing: {summary_path}")
+    payload["summary"] = json.loads(summary_path.read_text(encoding="utf-8"))
+    return payload
 
 
 def load_relation_state(path: Path | None) -> dict[str, Any]:
@@ -1921,11 +1975,21 @@ def batched(records: list[dict[str, Any]], batch_size: int) -> Iterable[list[dic
         yield records[index : index + size]
 
 
-def write_summary(path: Path, payload: dict[str, Any], dry_run: bool, db_counts: dict[str, Any]) -> None:
+def write_summary(
+    path: Path,
+    payload: dict[str, Any],
+    dry_run: bool,
+    db_counts: dict[str, Any],
+    *,
+    payload_output_dir: Path | None = None,
+    payload_record_counts: dict[str, int] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     summary = dict(payload["summary"])
     summary["dry_run"] = dry_run
     summary["db_write_counts"] = db_counts
+    summary["payload_output_dir"] = str(payload_output_dir) if payload_output_dir else None
+    summary["payload_record_counts"] = dict(payload_record_counts or {})
     path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
 
@@ -2004,6 +2068,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--stop-on-daily-quota", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--summary-output", type=Path, default=None)
     parser.add_argument("--relation-review-output", type=Path, default=None)
+    parser.add_argument("--payload-output-dir", type=Path, default=None)
     parser.add_argument("--review-sample-size", type=int, default=20)
     parser.add_argument("--state-output", type=Path, default=None)
     parser.add_argument("--resume", action="store_true")
@@ -2054,6 +2119,10 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         resume_relations=args.resume,
     )
 
+    payload_export: dict[str, Any] | None = None
+    if args.payload_output_dir:
+        payload_export = write_payload_output_dir(args.payload_output_dir, payload)
+
     db_counts: dict[str, Any] = {}
     if not args.dry_run:
         if not args.skip_supabase:
@@ -2086,7 +2155,14 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
             )
 
     if args.summary_output:
-        write_summary(args.summary_output, payload, args.dry_run, db_counts)
+        write_summary(
+            args.summary_output,
+            payload,
+            args.dry_run,
+            db_counts,
+            payload_output_dir=args.payload_output_dir,
+            payload_record_counts=(payload_export or {}).get("record_counts"),
+        )
     if args.relation_review_output:
         write_relation_review(args.relation_review_output, payload, args.review_sample_size)
 
@@ -2097,6 +2173,8 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
             "db_write_counts": db_counts,
             "dry_run": args.dry_run,
             "entity_files": [str(path) for path in entity_files],
+            "payload_output_dir": str(args.payload_output_dir) if args.payload_output_dir else None,
+            "payload_record_counts": (payload_export or {}).get("record_counts", {}),
             "relation_review_output": str(args.relation_review_output) if args.relation_review_output else None,
             "summary_output": str(args.summary_output) if args.summary_output else None,
             "state_output": str(args.state_output) if args.state_output else None,
