@@ -5,6 +5,7 @@ strategies:
   chunk_structure_parent_child:
     label: Structure-first recursive parent-child
     implemented: true
+    official_baseline: true
     chunking_version: chunk_structure_parent_child_v1
     parent:
       min_tokens: 400
@@ -20,6 +21,7 @@ strategies:
   chunk_fixed_256:
     label: Fixed-size sliding window 256
     implemented: true
+    official_baseline: false
     chunking_version: chunk_fixed_256_v1
     max_tokens: 256
     overlap_ratio: 0.12
@@ -27,6 +29,7 @@ strategies:
   chunk_fixed_512:
     label: Fixed-size sliding window 512
     implemented: true
+    official_baseline: true
     chunking_version: chunk_fixed_512_v1
     max_tokens: 512
     overlap_ratio: 0.12
@@ -34,6 +37,7 @@ strategies:
   chunk_fixed_1024:
     label: Fixed-size sliding window 1024
     implemented: true
+    official_baseline: false
     chunking_version: chunk_fixed_1024_v1
     max_tokens: 1024
     overlap_ratio: 0.12
@@ -41,15 +45,32 @@ strategies:
   chunk_sentence_merge:
     label: Sentence dynamic merge
     implemented: true
+    official_baseline: false
     chunking_version: chunk_sentence_merge_v1
     min_tokens: 200
     target_tokens: 300
     max_tokens: 400
 
-  chunk_semantic:
-    label: Semantic chunking with embedding similarity
+  chunk_semantic_embedding:
+    label: Embedding-based semantic chunking
     implemented: true
+    official_baseline: true
+    chunking_version: chunk_semantic_embedding_v1
+    semantic_method: embedding_similarity
+    embedding_model_for_chunking: gemini-embedding-2
+    output_dimensionality: 768
+    centroid_policy: running_centroid
+    min_tokens: 300
+    target_tokens: 400
+    max_tokens: 500
+    similarity_threshold: 0.74
+
+  chunk_semantic:
+    label: Legacy lexical topic-shift chunking
+    implemented: true
+    official_baseline: false
     chunking_version: chunk_semantic_v1
+    semantic_method: lexical_legacy
     min_tokens: 300
     target_tokens: 400
     max_tokens: 500

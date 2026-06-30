@@ -5,3 +5,6 @@ Primary specs and plan:
 - See `plan.md`
 
 Start here for team onboarding and links to infra, ingestion, and evaluation guides.
+
+Runbooks:
+- `w3_ingest_07_runbook.md` - W3 full-corpus ingest run/resume/progress checks and Kaggle/open-source notes.

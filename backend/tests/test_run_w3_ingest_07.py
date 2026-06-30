@@ -1,0 +1,285 @@
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT_DIR / "scripts"))
+
+import gemini_keys  # noqa: E402
+import run_w3_ingest_07 as runner  # noqa: E402
+
+
+def smoke_dir(name: str) -> Path:
+    path = ROOT_DIR / "pytest-cache-files-w3-ingest-07" / name
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def test_shared_gemini_key_loader_sorts_numbered_keys_and_dedupes() -> None:
+    keys = gemini_keys.load_gemini_api_keys(
+        {
+            "GEMINI_API_KEYS": "key-c, key-a, key-c",
+            "GEMINI_API_KEY": "key-a",
+            "GEMINI_API_KEY_10": "key-j",
+            "GEMINI_API_KEY_2": "key-b",
+            "GEMINI_API_KEY_3": "key-c",
+            "GEMINI_API_KEY_EXTRA": "ignored",
+        }
+    )
+
+    assert keys == ["key-c", "key-a", "key-b", "key-j"]
+
+
+def test_plan_mode_writes_manifest_without_running_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(runner, "load_gemini_api_keys", lambda: ["key-1", "key-2", "key-3", "key-4"])
+    monkeypatch.setattr(
+        runner,
+        "run_subprocess",
+        lambda command: pytest.fail(f"plan mode executed {command['command_id']}"),
+    )
+    work_dir = smoke_dir("plan-mode")
+    reports_dir = work_dir / "reports"
+
+    summary = runner.run(
+        [
+            "--mode",
+            "plan",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+            "--chunks-dir",
+            str(work_dir / "chunks"),
+            "--entities-dir",
+            str(work_dir / "entities"),
+            "--reports-dir",
+            str(reports_dir),
+        ]
+    )
+
+    manifest = json.loads((reports_dir / "w3_ingest_07_command_manifest.json").read_text(encoding="utf-8"))
+    assert summary["completed"] is True
+    assert manifest["gemini_api_key_count"] == 4
+    assert manifest["command_count"] == 21
+    assert sum(1 for command in manifest["commands"] if command["phase"] == "embed_retrieval") == 12
+    semantic_chunk = next(
+        command for command in manifest["commands"] if command["command_id"] == "chunk_semantic_embedding:chunking"
+    )
+    assert "--semantic-report-output" in semantic_chunk["argv"]
+    assert semantic_chunk["gemini_api_key_count"] == 4
+
+
+def test_dry_run_commands_use_mock_flags_and_skip_db_embed() -> None:
+    work_dir = smoke_dir("dry-run-commands")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "dry-run",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+            "--chunks-dir",
+            str(work_dir / "chunks"),
+            "--entities-dir",
+            str(work_dir / "entities"),
+            "--reports-dir",
+            str(work_dir / "reports"),
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=2)
+
+    assert any(command["skip_reason"] == "skipped_requires_db" for command in commands)
+    assert all(
+        "--mock-embedding" in command["argv"]
+        for command in commands
+        if command["phase"] == "embed_retrieval"
+    )
+    assert all(
+        "--mock-llm" in command["argv"]
+        for command in commands
+        if command["phase"] in {"entity_extraction", "graph_relation"}
+    )
+    assert all(
+        "--state-output" in command["argv"] and "--resume" in command["argv"]
+        for command in commands
+        if command["phase"] == "graph_relation"
+    )
+    assert all(
+        "--include-parent-chunks" not in command["argv"]
+        for command in commands
+        if command["phase"] == "embed_retrieval"
+    )
+
+
+def test_production_mode_fails_early_without_required_gemini_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_dir = smoke_dir("production-no-key")
+    monkeypatch.setattr(runner, "load_gemini_api_keys", lambda: [])
+    monkeypatch.setattr(
+        runner,
+        "run_subprocess",
+        lambda command: pytest.fail(f"production should fail before {command['command_id']}"),
+    )
+
+    with pytest.raises(ValueError, match="At least one Gemini API key"):
+        runner.run(
+            [
+                "--mode",
+                "production",
+                "--dataset-dir",
+                str(work_dir / "dataset"),
+                "--chunks-dir",
+                str(work_dir / "chunks"),
+                "--entities-dir",
+                str(work_dir / "entities"),
+                "--reports-dir",
+                str(work_dir / "reports"),
+            ]
+        )
+
+
+def test_resume_skips_completed_command_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    work_dir = smoke_dir("resume-state")
+    reports_dir = work_dir / "reports"
+    state_path = work_dir / "state.json"
+    runner.write_json(
+        state_path,
+        {"commands": {"chunk_fixed_512:chunking": {"mode": "dry-run", "status": "completed"}}},
+    )
+    runner.write_json(reports_dir / "chunk_fixed_512_chunk_summary.json", {"total_chunks": 1})
+    executed: list[str] = []
+
+    def fake_run_subprocess(command: dict) -> None:
+        executed.append(command["command_id"])
+        if command.get("summary_output"):
+            runner.write_json(Path(command["summary_output"]), {"completed": True})
+
+    monkeypatch.setattr(runner, "run_subprocess", fake_run_subprocess)
+    args = runner.parse_args(
+        [
+            "--mode",
+            "dry-run",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--resume",
+            "--state-output",
+            str(state_path),
+            "--reports-dir",
+            str(reports_dir),
+            "--chunks-dir",
+            str(work_dir / "chunks"),
+            "--entities-dir",
+            str(work_dir / "entities"),
+        ]
+    )
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+
+    result = runner.execute_commands(commands, args=args, state_path=state_path)
+
+    assert "chunk_fixed_512:chunking" not in executed
+    assert result["skipped_command_count"] == 2
+    assert "chunk_fixed_512:entity" in executed
+    assert "chunk_fixed_512:graph" in executed
+
+
+def test_resume_does_not_skip_command_completed_in_different_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    work_dir = smoke_dir("resume-state-mode-mismatch")
+    reports_dir = work_dir / "reports"
+    state_path = work_dir / "state.json"
+    runner.write_json(
+        state_path,
+        {"commands": {"chunk_fixed_512:chunking": {"mode": "dry-run", "status": "completed"}}},
+    )
+    executed: list[str] = []
+
+    def fake_run_subprocess(command: dict) -> None:
+        executed.append(command["command_id"])
+        if command.get("summary_output"):
+            runner.write_json(Path(command["summary_output"]), {"completed": True})
+
+    monkeypatch.setattr(runner, "run_subprocess", fake_run_subprocess)
+    args = runner.parse_args(
+        [
+            "--mode",
+            "production",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--resume",
+            "--state-output",
+            str(state_path),
+            "--reports-dir",
+            str(reports_dir),
+            "--chunks-dir",
+            str(work_dir / "chunks"),
+            "--entities-dir",
+            str(work_dir / "entities"),
+        ]
+    )
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+
+    result = runner.execute_commands(commands, args=args, state_path=state_path)
+
+    assert "chunk_fixed_512:chunking" in executed
+    assert result["skipped_command_count"] == 0
+
+
+def test_resume_does_not_skip_completed_state_when_summary_is_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_dir = smoke_dir("resume-incomplete-summary")
+    reports_dir = work_dir / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    state_path = work_dir / "state.json"
+    entity_summary_path = reports_dir / "chunk_fixed_512_entity_summary.json"
+    runner.write_json(
+        state_path,
+        {
+            "commands": {
+                "chunk_fixed_512:chunking": {"mode": "production", "status": "completed"},
+                "chunk_fixed_512:entity": {"mode": "production", "status": "completed"},
+            }
+        },
+    )
+    runner.write_json(reports_dir / "chunk_fixed_512_chunk_summary.json", {"total_chunks": 1})
+    runner.write_json(entity_summary_path, {"completed": False, "disabled_key_count": 4, "error_count": 1})
+    executed: list[str] = []
+
+    def fake_run_subprocess(command: dict) -> None:
+        executed.append(command["command_id"])
+        if command["command_id"] == "chunk_fixed_512:entity":
+            runner.write_json(entity_summary_path, {"completed": False, "disabled_key_count": 4, "error_count": 1})
+
+    monkeypatch.setattr(runner, "run_subprocess", fake_run_subprocess)
+    args = runner.parse_args(
+        [
+            "--mode",
+            "production",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--resume",
+            "--state-output",
+            str(state_path),
+            "--reports-dir",
+            str(reports_dir),
+            "--chunks-dir",
+            str(work_dir / "chunks"),
+            "--entities-dir",
+            str(work_dir / "entities"),
+        ]
+    )
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+
+    with pytest.raises(RuntimeError, match="incomplete summary"):
+        runner.execute_commands(commands, args=args, state_path=state_path)
+
+    assert "chunk_fixed_512:chunking" not in executed
+    assert "chunk_fixed_512:entity" in executed
+    assert "chunk_fixed_512:graph" not in executed

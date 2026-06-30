@@ -1,7 +1,12 @@
 version: entity_extraction_v1
 entity_dict_version: tuvi_entity_dict_v1
-prompt_version: tuvi_entity_extraction_prompt_v1
+prompt_version: tuvi_entity_extraction_prompt_v2_dictionary_first_augmentation
 default_model: gemini-2.0-flash-lite
+
+extraction_policy:
+  parent_child_chunk_types: ["child"]
+  llm_augmentation_default: true
+  resume_default: false
 
 entity_types:
   - Sao

@@ -23,8 +23,9 @@ def make_chunk(
     *,
     chunk_id: str = "TVGM_chunk_structure_parent_child_child_000001",
     strategy_id: str = "chunk_structure_parent_child",
+    chunk_type: str | None = None,
 ) -> dict:
-    return {
+    chunk = {
         "chunk_hash": f"hash-{chunk_id}",
         "chunk_id": chunk_id,
         "chunk_strategy_id": strategy_id,
@@ -36,6 +37,9 @@ def make_chunk(
         "source_page": 7,
         "text": text,
     }
+    if chunk_type:
+        chunk["chunk_type"] = chunk_type
+    return chunk
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
@@ -252,6 +256,228 @@ def test_postprocess_preserves_strategy_and_source_provenance() -> None:
     assert entity["source_id"] == "TVGM"
     assert entity["source_page"] == 7
     assert entity["domain"] == "TUVI"
+    assert entity["extraction_run_id"] == "manual"
+    assert entity["extraction_source"] == "llm"
+
+
+def _draft_dictionary_output_is_kept_when_llm_returns_empty_mojibake() -> None:
+    config = load_config()
+    chunk = make_chunk("ThiÃªn CÆ¡ á»Ÿ Cung Má»‡nh.")
+    adapter = FakeGeminiClient([[]])
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-dict-first",
+    )
+
+    canonical_names = {record["canonical_name"] for record in records}
+    assert "ThiÃªn CÆ¡" in canonical_names
+    assert "Má»‡nh" in canonical_names
+    assert all(record["extraction_run_id"] == "run-dict-first" for record in records)
+    assert any(record["extraction_source"] == "dictionary" for record in records)
+
+
+def _draft_llm_augmentation_adds_only_entities_with_evidence_span_mojibake() -> None:
+    config = load_config()
+    chunk = make_chunk("Äoáº¡n nÃ y nÃ³i vá» Ä‘áº·c cÃ¡ch trong luáº­n giáº£i.")
+    adapter = FakeGeminiClient(
+        [
+            [
+                {
+                    "confidence": 0.8,
+                    "entity_type": "KhaiNiem",
+                    "evidence_text": "Ä‘áº·c cÃ¡ch",
+                    "surface_text": "Ä‘áº·c cÃ¡ch",
+                },
+                {
+                    "confidence": 0.9,
+                    "entity_type": "Sao",
+                    "evidence_text": "ThiÃªn MÃ£",
+                    "surface_text": "ThiÃªn MÃ£",
+                },
+            ]
+        ]
+    )
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-llm-span",
+    )
+
+    assert any(record["canonical_name"] == "Ä‘áº·c cÃ¡ch" for record in records)
+    assert all(record["canonical_name"] != "ThiÃªn MÃ£" for record in records)
+    assert any(record["extraction_source"] == "llm" for record in records)
+
+
+def _draft_dictionary_and_llm_duplicates_are_deduped_by_canonical_span_mojibake() -> None:
+    config = load_config()
+    chunk = make_chunk("ThiÃªn CÆ¡ á»Ÿ Cung Má»‡nh.")
+    adapter = FakeGeminiClient(
+        [
+            [
+                {
+                    "char_end": 8,
+                    "char_start": 0,
+                    "confidence": 0.8,
+                    "entity_type": "Sao",
+                    "evidence_text": "ThiÃªn CÆ¡",
+                    "surface_text": "ThiÃªn CÆ¡",
+                }
+            ]
+        ]
+    )
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-dedupe",
+    )
+
+    thien_co = [record for record in records if record["canonical_name"] == "ThiÃªn CÆ¡"]
+    assert len(thien_co) == 1
+    assert thien_co[0]["extraction_source"] == "dictionary"
+
+
+def _draft_dictionary_output_is_kept_when_llm_returns_empty_canonical() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    adapter = FakeGeminiClient([[]])
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-dict-first",
+    )
+
+    canonical_names = {record["canonical_name"] for record in records}
+    assert "ThiÃªn CÆ¡" in canonical_names
+    assert all(record["extraction_run_id"] == "run-dict-first" for record in records)
+    assert any(record["extraction_source"] == "dictionary" for record in records)
+
+
+def test_llm_augmentation_adds_only_entities_with_evidence_span() -> None:
+    config = load_config()
+    chunk = make_chunk("Doan nay noi ve dac cach trong luan giai.")
+    adapter = FakeGeminiClient(
+        [
+            [
+                {
+                    "confidence": 0.8,
+                    "entity_type": "KhaiNiem",
+                    "evidence_text": "dac cach",
+                    "surface_text": "dac cach",
+                },
+                {
+                    "confidence": 0.9,
+                    "entity_type": "Sao",
+                    "evidence_text": "Thien Ma",
+                    "surface_text": "Thien Ma",
+                },
+            ]
+        ]
+    )
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-llm-span",
+    )
+
+    assert any(record["canonical_name"] == "dac cach" for record in records)
+    assert all(record["canonical_name"] != "Thien Ma" for record in records)
+    assert any(record["extraction_source"] == "llm" for record in records)
+
+
+def _draft_dictionary_and_llm_duplicates_are_deduped_by_canonical_span_canonical() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    adapter = FakeGeminiClient(
+        [
+            [
+                {
+                    "char_end": 8,
+                    "char_start": 0,
+                    "confidence": 0.8,
+                    "entity_type": "Sao",
+                    "evidence_text": "Thien Co",
+                    "surface_text": "Thien Co",
+                }
+            ]
+        ]
+    )
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-dedupe",
+    )
+
+    thien_co = [record for record in records if record["canonical_name"] == "ThiÃªn CÆ¡"]
+    assert len(thien_co) == 1
+    assert thien_co[0]["extraction_source"] == "dictionary"
+
+
+def test_dictionary_output_is_kept_when_llm_returns_empty() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    adapter = FakeGeminiClient([[]])
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-dict-first",
+    )
+
+    assert any(record["surface_text"] == "Thien Co" for record in records)
+    assert all(record["extraction_run_id"] == "run-dict-first" for record in records)
+    assert any(record["extraction_source"] == "dictionary" for record in records)
+
+
+def test_dictionary_and_llm_duplicates_are_deduped_by_canonical_span() -> None:
+    config = load_config()
+    chunk = make_chunk("Thien Co o Cung Menh.")
+    adapter = FakeGeminiClient(
+        [
+            [
+                {
+                    "char_end": 8,
+                    "char_start": 0,
+                    "confidence": 0.8,
+                    "entity_type": "Sao",
+                    "evidence_text": "Thien Co",
+                    "surface_text": "Thien Co",
+                }
+            ]
+        ]
+    )
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="run-dedupe",
+    )
+
+    thien_co = [record for record in records if record["surface_text"] == "Thien Co"]
+    assert len(thien_co) == 1
+    assert thien_co[0]["extraction_source"] == "dictionary"
 
 
 def test_mock_cli_extracts_entities_for_multiple_strategies() -> None:
@@ -304,6 +530,10 @@ def test_mock_cli_extracts_entities_for_multiple_strategies() -> None:
     assert review["sample_size"] == 2
     assert "excerpt" in review["reviewed_chunks"][0]
     assert "warnings" in review["reviewed_chunks"][0]
+    assert review["strategy_counts"] == {"chunk_fixed_256": 1, "chunk_structure_parent_child": 1}
+    assert review["source_counts"] == {"TVGM": 2}
+    assert "dictionary" in review["extraction_source_counts"]
+    assert "Sao" in review["entity_type_counts"]
 
 
 def test_mock_cli_filters_by_chunking_strategy() -> None:
@@ -334,6 +564,302 @@ def test_mock_cli_filters_by_chunking_strategy() -> None:
     assert {record["chunk_strategy_id"] for record in records} == {"chunk_fixed_256"}
 
 
+def _draft_parent_child_extraction_skips_parent_chunks_by_default_mojibake() -> None:
+    chunks = [
+        make_chunk(
+            "ThiÃªn CÆ¡ á»Ÿ Cung Má»‡nh.",
+            chunk_id="TVGM_chunk_structure_parent_child_parent_000001",
+            chunk_type="parent",
+        ),
+        make_chunk(
+            "ThiÃªn CÆ¡ á»Ÿ Cung Má»‡nh.",
+            chunk_id="TVGM_chunk_structure_parent_child_child_000001",
+            chunk_type="child",
+        ),
+    ]
+    work_dir = smoke_dir("parent-child-default")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    write_jsonl(input_path, chunks)
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--mock-llm",
+            "--llm-augmentation",
+            "off",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["input_chunk_count"] == 2
+    assert summary["chunk_count"] == 1
+    assert summary["parent_skipped_count"] == 1
+    assert summary["processed_chunk_count"] == 1
+    assert {record["chunk_id"] for record in records} == {"TVGM_chunk_structure_parent_child_child_000001"}
+
+
+def _draft_include_parent_chunks_processes_parent_child_parent_chunks_mojibake() -> None:
+    chunks = [
+        make_chunk(
+            "ThiÃªn CÆ¡ á»Ÿ Cung Má»‡nh.",
+            chunk_id="TVGM_chunk_structure_parent_child_parent_000001",
+            chunk_type="parent",
+        ),
+        make_chunk(
+            "ThÃ¡i DÆ°Æ¡ng á»Ÿ Cung Ngá».",
+            chunk_id="TVGM_chunk_structure_parent_child_child_000001",
+            chunk_type="child",
+        ),
+    ]
+    work_dir = smoke_dir("parent-child-include-parent")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    write_jsonl(input_path, chunks)
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--include-parent-chunks",
+            "--mock-llm",
+            "--llm-augmentation",
+            "off",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["parent_skipped_count"] == 0
+    assert summary["processed_chunk_count"] == 2
+    assert {record["chunk_id"] for record in records} == {
+        "TVGM_chunk_structure_parent_child_parent_000001",
+        "TVGM_chunk_structure_parent_child_child_000001",
+    }
+
+
+def _draft_resume_skips_completed_chunks_and_preserves_existing_output_mojibake() -> None:
+    done_chunk = make_chunk("ThiÃªn CÆ¡ á»Ÿ Cung Má»‡nh.", chunk_id="done", strategy_id="chunk_fixed_256")
+    todo_chunk = make_chunk("ThÃ¡i DÆ°Æ¡ng á»Ÿ Cung Ngá».", chunk_id="todo", strategy_id="chunk_fixed_256")
+    work_dir = smoke_dir("resume-state")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    state_path = work_dir / "state.json"
+    existing_entity = {
+        "canonical_name": "Existing",
+        "chunk_id": "done",
+        "chunk_hash": "hash-done",
+        "chunk_strategy_id": "chunk_fixed_256",
+        "entity_id": "existing",
+        "entity_type": "KhaiNiem",
+        "extraction_run_id": "old-run",
+        "extraction_source": "dictionary",
+        "source_id": "TVGM",
+        "source_page": 7,
+    }
+    write_jsonl(input_path, [done_chunk, todo_chunk])
+    write_jsonl(output_path, [existing_entity])
+    state_path.write_text(
+        json.dumps({"completed_chunks": {"hash-done": {"chunk_id": "done"}}}),
+        encoding="utf-8",
+    )
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--state-output",
+            str(state_path),
+            "--resume",
+            "--mock-llm",
+            "--llm-augmentation",
+            "off",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["resume_skipped_count"] == 1
+    assert summary["processed_chunk_count"] == 1
+    assert any(record["entity_id"] == "existing" for record in records)
+    assert any(record["chunk_id"] == "todo" for record in records)
+
+
+def test_parent_child_extraction_skips_parent_chunks_by_default() -> None:
+    chunks = [
+        make_chunk(
+            "Thien Co o Cung Menh.",
+            chunk_id="TVGM_chunk_structure_parent_child_parent_000001",
+            chunk_type="parent",
+        ),
+        make_chunk(
+            "Thien Co o Cung Menh.",
+            chunk_id="TVGM_chunk_structure_parent_child_child_000001",
+            chunk_type="child",
+        ),
+    ]
+    work_dir = smoke_dir("parent-child-default")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    write_jsonl(input_path, chunks)
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--mock-llm",
+            "--llm-augmentation",
+            "off",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["input_chunk_count"] == 2
+    assert summary["chunk_count"] == 1
+    assert summary["parent_skipped_count"] == 1
+    assert summary["processed_chunk_count"] == 1
+    assert {record["chunk_id"] for record in records} == {"TVGM_chunk_structure_parent_child_child_000001"}
+
+
+def test_include_parent_chunks_processes_parent_child_parent_chunks() -> None:
+    chunks = [
+        make_chunk(
+            "Thien Co o Cung Menh.",
+            chunk_id="TVGM_chunk_structure_parent_child_parent_000001",
+            chunk_type="parent",
+        ),
+        make_chunk(
+            "Thai Duong o Cung Ngo.",
+            chunk_id="TVGM_chunk_structure_parent_child_child_000001",
+            chunk_type="child",
+        ),
+    ]
+    work_dir = smoke_dir("parent-child-include-parent")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    write_jsonl(input_path, chunks)
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--include-parent-chunks",
+            "--mock-llm",
+            "--llm-augmentation",
+            "off",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["parent_skipped_count"] == 0
+    assert summary["processed_chunk_count"] == 2
+    assert {record["chunk_id"] for record in records} == {
+        "TVGM_chunk_structure_parent_child_parent_000001",
+        "TVGM_chunk_structure_parent_child_child_000001",
+    }
+
+
+def test_resume_skips_completed_chunks_and_preserves_existing_output() -> None:
+    done_chunk = make_chunk("Thien Co o Cung Menh.", chunk_id="done", strategy_id="chunk_fixed_256")
+    todo_chunk = make_chunk("Thai Duong o Cung Ngo.", chunk_id="todo", strategy_id="chunk_fixed_256")
+    work_dir = smoke_dir("resume-state")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    state_path = work_dir / "state.json"
+    existing_entity = {
+        "canonical_name": "Existing",
+        "chunk_id": "done",
+        "chunk_hash": "hash-done",
+        "chunk_strategy_id": "chunk_fixed_256",
+        "entity_id": "existing",
+        "entity_type": "KhaiNiem",
+        "extraction_run_id": "old-run",
+        "extraction_source": "dictionary",
+        "source_id": "TVGM",
+        "source_page": 7,
+    }
+    write_jsonl(input_path, [done_chunk, todo_chunk])
+    write_jsonl(output_path, [existing_entity])
+    state_path.write_text(
+        json.dumps({"completed_chunks": {"hash-done": {"chunk_id": "done"}}}),
+        encoding="utf-8",
+    )
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--state-output",
+            str(state_path),
+            "--resume",
+            "--mock-llm",
+            "--llm-augmentation",
+            "off",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["resume_skipped_count"] == 1
+    assert summary["processed_chunk_count"] == 1
+    assert any(record["entity_id"] == "existing" for record in records)
+    assert any(record["chunk_id"] == "todo" for record in records)
+
+
+def test_resume_ignores_existing_output_without_completed_state() -> None:
+    first_chunk = make_chunk("Thien Co o Cung Menh.", chunk_id="first", strategy_id="chunk_fixed_256")
+    second_chunk = make_chunk("Thai Duong o Cung Ngo.", chunk_id="second", strategy_id="chunk_fixed_256")
+    work_dir = smoke_dir("resume-empty-state")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    state_path = work_dir / "state.json"
+    stale_entity = {
+        "canonical_name": "Stale",
+        "chunk_id": "first",
+        "chunk_hash": "hash-first",
+        "chunk_strategy_id": "chunk_fixed_256",
+        "entity_id": "stale",
+        "entity_type": "KhaiNiem",
+        "extraction_run_id": "dry-run",
+        "extraction_source": "dictionary",
+        "source_id": "TVGM",
+        "source_page": 7,
+    }
+    write_jsonl(input_path, [first_chunk, second_chunk])
+    write_jsonl(output_path, [stale_entity])
+    state_path.write_text(json.dumps({"completed_chunks": {}}), encoding="utf-8")
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--state-output",
+            str(state_path),
+            "--resume",
+            "--mock-llm",
+            "--llm-augmentation",
+            "off",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["resume_skipped_count"] == 0
+    assert summary["processed_chunk_count"] == 2
+    assert all(record["entity_id"] != "stale" for record in records)
+
+
 def test_run_loads_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[Path] = []
     monkeypatch.setattr(extract_entities, "load_dotenv", lambda path: calls.append(path))
@@ -359,6 +885,8 @@ def test_run_stops_cleanly_when_all_keys_unavailable(monkeypatch: pytest.MonkeyP
     work_dir = smoke_dir("all-keys-unavailable")
     input_path = work_dir / "chunks.jsonl"
     output_path = work_dir / "entities.jsonl"
+    summary_path = work_dir / "partial_summary.json"
+    state_path = work_dir / "state.json"
     chunks = [
         make_chunk("Thien Co o Cung Menh.", chunk_id="a"),
         make_chunk("Thai Duong o Cung Ngo.", chunk_id="b"),
@@ -380,10 +908,19 @@ def test_run_stops_cleanly_when_all_keys_unavailable(monkeypatch: pytest.MonkeyP
             str(input_path),
             "--output",
             str(output_path),
+            "--partial-summary-output",
+            str(summary_path),
+            "--state-output",
+            str(state_path),
         ]
     )
 
     assert summary["completed"] is False
     assert summary["error_count"] == 1
     assert summary["disabled_key_count"] == 2
+    assert summary["processed_chunk_count"] == 0
     assert read_jsonl(output_path) == []
+    partial_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert partial_summary["completed"] is False
+    assert state["completed_chunks"] == {}

@@ -18,8 +18,14 @@ ALL_STRATEGIES = [
     "chunk_fixed_512",
     "chunk_fixed_1024",
     "chunk_sentence_merge",
+    "chunk_semantic_embedding",
     "chunk_semantic",
 ]
+OFFICIAL_STRATEGIES = {
+    "chunk_fixed_512",
+    "chunk_structure_parent_child",
+    "chunk_semantic_embedding",
+}
 REQUIRED_FIELDS = {
     "chunk_id",
     "parent_id",
@@ -67,11 +73,19 @@ def make_test_unit(text: str, section_id: str = "TVGM_TEST_SEC01") -> chunk_text
     )
 
 
-def test_config_declares_six_implemented_strategies() -> None:
+def test_config_declares_seven_implemented_strategies_with_three_official_baselines() -> None:
     config = chunk_text.load_chunking_config(CONFIG_PATH)
 
     assert set(config["strategies"]) == set(ALL_STRATEGIES)
     assert all(chunk_text.get_strategy_config(config, strategy)["implemented"] for strategy in ALL_STRATEGIES)
+    official = {
+        strategy_id
+        for strategy_id, strategy in config["strategies"].items()
+        if strategy.get("official_baseline")
+    }
+    assert official == OFFICIAL_STRATEGIES
+    assert config["strategies"]["chunk_semantic"]["semantic_method"] == "lexical_legacy"
+    assert config["strategies"]["chunk_semantic_embedding"]["semantic_method"] == "embedding_similarity"
 
 
 def test_load_clean_json_records() -> None:
@@ -203,7 +217,7 @@ def test_sentence_merge_does_not_merge_across_source_units() -> None:
     assert all(chunk["chunk_type"] == "chunk" for chunk in chunks)
 
 
-def test_semantic_strategy_splits_clear_topic_shift() -> None:
+def test_legacy_semantic_strategy_splits_clear_lexical_topic_shift() -> None:
     config = chunk_text.load_chunking_config(CONFIG_PATH)
     strategy = {
         "chunking_version": "chunk_semantic_test_v1",
@@ -233,6 +247,146 @@ def test_semantic_strategy_splits_clear_topic_shift() -> None:
     assert len(windows) >= 2
 
 
+def test_semantic_embedding_strategy_splits_by_mock_embedding_similarity() -> None:
+    strategy = {
+        "centroid_policy": "running_centroid",
+        "chunking_version": "chunk_semantic_embedding_test_v1",
+        "embedding_model_for_chunking": "mock",
+        "max_tokens": 30,
+        "min_tokens": 4,
+        "semantic_method": "embedding_similarity",
+        "similarity_threshold": 0.7,
+        "target_tokens": 10,
+    }
+    unit = make_test_unit(
+        (
+            "alpha beta gamma topic. "
+            "alpha beta gamma topic. "
+            "money house land asset. "
+            "money house land asset. "
+        )
+        * 2
+    )
+    events: list[chunk_text.SemanticSimilarityEvent] = []
+
+    windows = chunk_text.iter_semantic_embedding_windows(
+        [unit],
+        strategy=strategy,
+        protected_terms=[],
+        embedding_client=chunk_text.MockSemanticEmbeddingClient(),
+        events=events,
+    )
+
+    assert len(windows) >= 2
+    assert any(event.break_reason == "embedding_similarity_below_threshold" for event in events)
+
+
+def test_semantic_embedding_chunks_include_metadata_and_similarity_report() -> None:
+    config = chunk_text.load_chunking_config(CONFIG_PATH)
+    config = dict(config)
+    config["strategies"] = dict(config["strategies"])
+    strategy = dict(config["strategies"]["chunk_semantic_embedding"])
+    strategy.update({"min_tokens": 4, "target_tokens": 10, "max_tokens": 30, "similarity_threshold": 0.7})
+    config["strategies"]["chunk_semantic_embedding"] = strategy
+    unit = make_test_unit(
+        (
+            "alpha beta gamma topic. "
+            "alpha beta gamma topic. "
+            "money house land asset. "
+            "money house land asset. "
+        )
+        * 2
+    )
+    events: list[chunk_text.SemanticSimilarityEvent] = []
+
+    chunks = chunk_text.chunk_semantic_embedding(
+        [unit],
+        config=config,
+        embedding_client=chunk_text.MockSemanticEmbeddingClient(),
+        semantic_events=events,
+    )
+    report = chunk_text.build_semantic_similarity_report(
+        events,
+        strategy_id="chunk_semantic_embedding",
+        strategy=strategy,
+    )
+
+    assert chunks
+    first_metadata = chunks[0]["metadata"]
+    assert first_metadata["semantic_method"] == "embedding_similarity"
+    assert first_metadata["embedding_model_for_chunking"].startswith("mock-semantic-hash")
+    assert first_metadata["semantic_similarity_threshold"] == 0.7
+    assert "semantic_break_score" in first_metadata
+    assert report["chunk_strategy_id"] == "chunk_semantic_embedding"
+    assert report["semantic_similarity_threshold"] == 0.7
+    assert report["event_count"] == len(events)
+    assert report["break_count"] >= 1
+
+
+class FakeSemanticEmbeddingClient:
+    model_name = "gemini-embedding-2"
+
+    def __init__(self, name: str, errors: list[Exception] | None = None) -> None:
+        self.name = name
+        self.errors = list(errors or [])
+        self.calls = 0
+
+    def embed_document(self, text: str) -> list[float]:
+        self.calls += 1
+        if self.errors:
+            raise self.errors.pop(0)
+        return [float(self.calls), float(len(text))]
+
+
+def test_semantic_embedding_multi_key_client_round_robins_and_fails_over() -> None:
+    first = FakeSemanticEmbeddingClient("key-1", [RuntimeError("429 requests per minute quota")])
+    second = FakeSemanticEmbeddingClient("key-2")
+    client = chunk_text.MultiKeyGeminiSemanticEmbeddingClient(
+        [first, second],
+        max_retries=1,
+        retry_base_seconds=0,
+        max_retry_sleep_seconds=0,
+        sleep_fn=lambda _: None,
+    )
+
+    vector = client.embed_document("semantic atom")
+
+    assert vector == [1.0, 13.0]
+    assert first.calls == 1
+    assert second.calls == 1
+    assert client.get_usage_summary()["api_key_usage_counts"] == {"key_1": 0, "key_2": 1}
+    assert client.get_usage_summary()["quota_failover_count"] == 1
+
+
+def test_semantic_embedding_multi_key_error_does_not_leak_raw_keys() -> None:
+    first = FakeSemanticEmbeddingClient("secret-key-1", [RuntimeError("429 daily quota")])
+    second = FakeSemanticEmbeddingClient("secret-key-2", [RuntimeError("429 requests per day")])
+    client = chunk_text.MultiKeyGeminiSemanticEmbeddingClient([first, second], sleep_fn=lambda _: None)
+
+    with pytest.raises(RuntimeError, match="All Gemini API keys are unavailable") as exc_info:
+        client.embed_document("semantic atom")
+
+    assert "secret-key" not in str(exc_info.value)
+
+
+def test_semantic_similarity_report_includes_safe_key_usage_summary() -> None:
+    report = chunk_text.build_semantic_similarity_report(
+        [],
+        strategy_id="chunk_semantic_embedding",
+        strategy={"semantic_method": "embedding_similarity", "similarity_threshold": 0.7},
+        usage_summary={
+            "api_key_count": 3,
+            "api_key_usage_counts": {"key_1": 2, "key_2": 1, "key_3": 0},
+            "disabled_key_count": 1,
+            "quota_failover_count": 2,
+        },
+    )
+
+    assert report["api_key_count"] == 3
+    assert report["api_key_usage_counts"] == {"key_1": 2, "key_2": 1, "key_3": 0}
+    assert "secret" not in str(report)
+
+
 def test_parent_child_schema_and_parent_references() -> None:
     config = chunk_text.load_chunking_config(CONFIG_PATH)
     text = (
@@ -252,6 +406,8 @@ def test_parent_child_schema_and_parent_references() -> None:
     assert all(REQUIRED_FIELDS <= set(chunk) for chunk in chunks)
     assert all(parent["parent_id"] is None for parent in parents)
     assert all(child["parent_id"] in parent_ids for child in children)
+    assert all(parent["metadata"]["retrieval_unit"] is False for parent in parents)
+    assert all(child["metadata"]["retrieval_unit"] is True for child in children)
     assert all(chunk["metadata"]["chunk_strategy_id"] == "chunk_structure_parent_child" for chunk in chunks)
     assert all(chunk["domain"] == "TUVI" for chunk in chunks)
     assert all(chunk["source_id"] == "TVGM" for chunk in chunks)

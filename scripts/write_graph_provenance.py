@@ -24,6 +24,8 @@ from typing import Any, Iterable, Mapping
 
 from dotenv import load_dotenv
 
+from gemini_keys import load_gemini_api_keys as discover_gemini_api_keys
+
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_SOURCE_REGISTRY = (
@@ -61,8 +63,13 @@ RELATION_TYPES = {
     "LUU_Y",
     "HAS_SOURCE",
     "HAS_CHUNK",
+    "HAS_PARENT",
+    "CONTAINS_CHILD",
 }
-EXTRACTABLE_RELATION_TYPES = RELATION_TYPES - {"MENTIONS", "HAS_SOURCE", "HAS_CHUNK"}
+STRUCTURAL_RELATION_TYPES = {"HAS_SOURCE", "HAS_CHUNK", "HAS_PARENT", "CONTAINS_CHILD"}
+EXTRACTABLE_RELATION_TYPES = RELATION_TYPES - {"MENTIONS", *STRUCTURAL_RELATION_TYPES}
+CANONICAL_AGGREGATED_RELATION_TYPES = EXTRACTABLE_RELATION_TYPES
+THUOC_CUNG_HEAD_TYPES = {"Sao", "ToHop", "TuHoa", "TrangThaiSao", "CucBanMenh"}
 REQUIRED_CHUNK_KEYS = {
     "chunk_hash",
     "chunk_id",
@@ -82,6 +89,7 @@ REQUIRED_ENTITY_KEYS = {
     "entity_id",
     "entity_type",
     "evidence_text",
+    "extraction_run_id",
     "source_id",
     "source_page",
 }
@@ -136,29 +144,14 @@ def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
+def make_graph_write_run_id() -> str:
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    digest = short_hash({"timestamp": timestamp, "tick": time.time_ns()}, 8)
+    return f"graph_write_{timestamp}_{digest}"
+
+
 def load_gemini_api_keys(env: Mapping[str, str | None] | None = None) -> list[str]:
-    source = env if env is not None else os.environ
-    raw_keys: list[str] = []
-    raw_keys.extend(str(source.get("GEMINI_API_KEYS") or "").split(","))
-    raw_keys.append(str(source.get("GEMINI_API_KEY") or ""))
-
-    numbered: list[tuple[int, str]] = []
-    for key, value in source.items():
-        match = re.fullmatch(r"GEMINI_API_KEY_(\d+)", str(key))
-        if not match:
-            continue
-        numbered.append((int(match.group(1)), str(value or "")))
-    raw_keys.extend(value for _, value in sorted(numbered))
-
-    keys: list[str] = []
-    seen: set[str] = set()
-    for raw_key in raw_keys:
-        key = raw_key.strip()
-        if not key or key in seen:
-            continue
-        keys.append(key)
-        seen.add(key)
-    return keys
+    return discover_gemini_api_keys(env)
 
 
 def is_rate_limit_error(exc: Exception) -> bool:
@@ -264,6 +257,26 @@ def read_jsonl(paths: list[Path]) -> list[dict[str, Any]]:
                 record["_input_line"] = line_no
                 records.append(record)
     return records
+
+
+def load_relation_state(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {"completed_chunks": {}}
+    state = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(state.get("completed_chunks"), dict):
+        state["completed_chunks"] = {}
+    return state
+
+
+def write_relation_state(path: Path | None, state: dict[str, Any]) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def relation_state_key(chunk: dict[str, Any]) -> str:
+    return str(chunk.get("chunk_hash") or chunk.get("chunk_id"))
 
 
 def load_source_registry(path: Path | None = DEFAULT_SOURCE_REGISTRY) -> dict[str, dict[str, Any]]:
@@ -408,25 +421,38 @@ def make_relation(
     relation_source: str,
     relation_subtype: str | None = None,
     confidence: float = 1.0,
+    extraction_run_id: str | None = None,
+    relation_scope: str = "evidence",
 ) -> dict[str, Any]:
     if relation_type not in RELATION_TYPES:
         raise ValueError(f"Unsupported relation_type: {relation_type}")
+    source_id = chunk.get("source_id") if chunk else ONTOLOGY_SOURCE_ID
+    chunk_strategy_id = chunk.get("chunk_strategy_id") if chunk else None
+    run_id = extraction_run_id or str(chunk.get("extraction_run_id") or "graph_write_manual") if chunk else "ontology_v1"
     relation = {
         "chunk_hash": chunk.get("chunk_hash") if chunk else None,
         "chunk_id": chunk.get("chunk_id") if chunk else None,
-        "chunk_strategy_id": chunk.get("chunk_strategy_id") if chunk else None,
+        "chunk_strategy_id": chunk_strategy_id,
+        "chunk_strategy_ids": [chunk_strategy_id] if chunk_strategy_id else [],
+        "chunk_type": chunk.get("chunk_type") if chunk else "ontology",
         "confidence": max(0.0, min(1.0, float(confidence))),
         "domain": chunk.get("domain") if chunk else "TUVI",
         "evidence_text": evidence_text,
+        "evidence_count": 1,
+        "evidence_relation_ids": [],
+        "extraction_run_id": run_id,
+        "extraction_run_ids": [run_id] if run_id else [],
         "head_canonical_name": head["canonical_name"],
         "head_entity_type": head["entity_type"],
         "head_key": head["key"],
         "head_kind": head["kind"],
         "relation_id": "",
+        "relation_scope": relation_scope,
         "relation_source": relation_source,
         "relation_subtype": relation_subtype,
         "relation_type": relation_type,
-        "source_id": chunk.get("source_id") if chunk else ONTOLOGY_SOURCE_ID,
+        "source_id": source_id,
+        "source_ids": [source_id] if source_id else [],
         "source_page": chunk.get("source_page") if chunk else None,
         "tail_canonical_name": tail["canonical_name"],
         "tail_entity_type": tail["entity_type"],
@@ -904,7 +930,7 @@ def parse_json_payload(text: str) -> Any:
 
 
 def validate_relation_evidence(relation: dict[str, Any], chunk: dict[str, Any] | None) -> None:
-    if relation["relation_source"] == "ontology":
+    if relation["relation_source"] == "ontology" or relation["relation_type"] in STRUCTURAL_RELATION_TYPES:
         return
     evidence = normalize_text(relation.get("evidence_text"))
     if not evidence.strip():
@@ -921,20 +947,27 @@ def postprocess_llm_relations(
     raw_relations: list[dict[str, Any]],
     chunk: dict[str, Any],
     entities: list[dict[str, Any]],
+    drop_counts: Counter[str] | None = None,
 ) -> list[dict[str, Any]]:
     entities_by_id = {str(entity["entity_id"]): entity for entity in entities}
     records: list[dict[str, Any]] = []
     for raw in raw_relations:
         relation_type = str(raw.get("relation_type") or "").strip()
         if relation_type not in EXTRACTABLE_RELATION_TYPES:
+            if drop_counts is not None:
+                drop_counts["unsupported_relation_type"] += 1
             continue
         head = entities_by_id.get(str(raw.get("head_entity_id") or raw.get("head_id") or ""))
         tail = entities_by_id.get(str(raw.get("tail_entity_id") or raw.get("tail_id") or ""))
         if head is None or tail is None or head["entity_id"] == tail["entity_id"]:
+            if drop_counts is not None:
+                drop_counts["unknown_or_same_endpoint"] += 1
             continue
 
         evidence_text = normalize_text(raw.get("evidence_text") or "")
         if evidence_text not in chunk_text(chunk):
+            if drop_counts is not None:
+                drop_counts["evidence_not_in_chunk"] += 1
             continue
         confidence = raw.get("confidence", 0.0)
         try:
@@ -967,6 +1000,9 @@ def extract_llm_relations(
     retry_base_seconds: float = 10.0,
     max_retry_sleep_seconds: float = DEFAULT_MAX_RETRY_SLEEP_SECONDS,
     stop_on_daily_quota: bool = True,
+    drop_counts: Counter[str] | None = None,
+    state_output: Path | None = None,
+    resume: bool = False,
 ) -> list[dict[str, Any]]:
     by_chunk: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entity in entities:
@@ -993,12 +1029,36 @@ def extract_llm_relations(
         )
 
     relations: list[dict[str, Any]] = []
+    state = load_relation_state(state_output)
+    completed_chunks = state.setdefault("completed_chunks", {})
     for chunk in chunks:
+        key = relation_state_key(chunk)
+        if resume and key in completed_chunks:
+            relations.extend(completed_chunks[key].get("relation_records") or [])
+            continue
         chunk_entities = by_chunk.get(str(chunk["chunk_id"]), [])
         if len(chunk_entities) < 2:
+            completed_chunks[key] = {
+                "chunk_hash": chunk.get("chunk_hash"),
+                "chunk_id": chunk.get("chunk_id"),
+                "completed_at": utc_now(),
+                "relation_count": 0,
+                "relation_records": [],
+            }
+            write_relation_state(state_output, state)
             continue
         raw_relations = adapter.extract(chunk, chunk_entities)
-        relations.extend(postprocess_llm_relations(raw_relations, chunk, chunk_entities))
+        chunk_relations = postprocess_llm_relations(raw_relations, chunk, chunk_entities, drop_counts)
+        relations.extend(chunk_relations)
+        completed_chunks[key] = {
+            "chunk_hash": chunk.get("chunk_hash"),
+            "chunk_id": chunk.get("chunk_id"),
+            "completed_at": utc_now(),
+            "relation_count": len(chunk_relations),
+            "relation_records": chunk_relations,
+        }
+        write_relation_state(state_output, state)
+    write_relation_state(state_output, state)
     return deduplicate_relations(relations)
 
 
@@ -1079,6 +1139,179 @@ def deduplicate_relations(relations: list[dict[str, Any]]) -> list[dict[str, Any
     return list(unique.values())
 
 
+def derive_parent_child_relations(chunks: list[dict[str, Any]], graph_write_run_id: str) -> list[dict[str, Any]]:
+    chunks_by_id = {str(chunk["chunk_id"]): chunk for chunk in chunks}
+    relations: list[dict[str, Any]] = []
+    for child in chunks:
+        parent_id = child.get("parent_id")
+        if not parent_id:
+            continue
+        parent = chunks_by_id.get(str(parent_id))
+        if parent is None:
+            raise ValueError(f"Chunk {child['chunk_id']} references missing parent_id {parent_id}.")
+        for key in ("source_id", "chunk_strategy_id", "domain"):
+            if child.get(key) != parent.get(key):
+                raise ValueError(
+                    f"Chunk {child['chunk_id']} parent {parent['chunk_id']} has mismatched {key}."
+                )
+        relations.append(
+            make_relation(
+                "HAS_PARENT",
+                chunk_endpoint(child),
+                chunk_endpoint(parent),
+                chunk=child,
+                evidence_text=str(parent_id),
+                relation_source="rule",
+                relation_subtype="parent_child",
+                confidence=1.0,
+                extraction_run_id=graph_write_run_id,
+            )
+        )
+        relations.append(
+            make_relation(
+                "CONTAINS_CHILD",
+                chunk_endpoint(parent),
+                chunk_endpoint(child),
+                chunk=child,
+                evidence_text=str(child["chunk_id"]),
+                relation_source="rule",
+                relation_subtype="parent_child",
+                confidence=1.0,
+                extraction_run_id=graph_write_run_id,
+            )
+        )
+    return deduplicate_relations(relations)
+
+
+def validate_relation_type_pair(relation: dict[str, Any]) -> None:
+    relation_type = relation["relation_type"]
+    head_kind = relation["head_kind"]
+    tail_kind = relation["tail_kind"]
+    head_type = relation["head_entity_type"]
+    tail_type = relation["tail_entity_type"]
+
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise ValueError(f"Relation {relation['relation_id']} invalid type pair for {relation_type}: {message}")
+
+    if relation_type == "THUOC_CUNG":
+        require(head_kind == "entity" and tail_kind == "entity", "must connect entity to entity")
+        require(head_type in THUOC_CUNG_HEAD_TYPES and tail_type == "Cung", "must be allowed base entity -> Cung")
+    elif relation_type == "DOI_CHIEU":
+        require(head_kind == "entity" and tail_kind == "entity", "must connect entity to entity")
+        require(head_type == "Cung" and tail_type == "Cung", "must connect Cung -> Cung")
+    elif relation_type == "LIEN_KE":
+        require(head_kind == "entity" and tail_kind == "entity", "must connect entity to entity")
+        require("LuanGiai" not in {head_type, tail_type}, "must not connect LuanGiai")
+    elif relation_type == "GIAI_THICH":
+        require(head_kind == "entity" and tail_kind == "entity", "must connect entity to entity")
+        require(head_type != "LuanGiai" and tail_type == "LuanGiai", "must be base entity -> LuanGiai")
+    elif relation_type == "APPLIES_TO":
+        require(head_kind == "entity" and tail_kind == "entity", "must connect entity to entity")
+        require(head_type == "LuanGiai" and tail_type != "LuanGiai", "must be LuanGiai -> base entity")
+    elif relation_type == "LUU_Y":
+        require(head_kind in {"chunk", "entity"} and tail_kind == "entity", "must point to an entity")
+    elif relation_type == "RELATED_TO":
+        require(head_kind == "entity" and tail_kind == "entity", "must connect entity to entity")
+        require("LuanGiai" not in {head_type, tail_type}, "must not connect LuanGiai")
+    elif relation_type == "HAS_PARENT":
+        require(head_kind == "chunk" and tail_kind == "chunk", "must be child chunk -> parent chunk")
+    elif relation_type == "CONTAINS_CHILD":
+        require(head_kind == "chunk" and tail_kind == "chunk", "must be parent chunk -> child chunk")
+
+
+def canonical_entity_key(canonical_name: str, entity_type: str, domain: str) -> str:
+    return f"{domain}:{entity_type}:{canonical_name}"
+
+
+def build_canonical_relation_records(relations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[tuple[str, str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for relation in relations:
+        if relation["relation_type"] not in CANONICAL_AGGREGATED_RELATION_TYPES:
+            continue
+        if relation["head_kind"] != "entity" or relation["tail_kind"] != "entity":
+            continue
+        key = (
+            relation["domain"],
+            relation["head_canonical_name"],
+            relation["head_entity_type"],
+            relation["relation_type"],
+            relation["tail_canonical_name"],
+            relation["tail_entity_type"],
+        )
+        groups[key].append(relation)
+
+    canonical_records: list[dict[str, Any]] = []
+    for key, evidence in sorted(groups.items()):
+        domain, head_name, head_type, relation_type, tail_name, tail_type = key
+        evidence_ids = sorted(relation["relation_id"] for relation in evidence)
+        source_ids = sorted({str(relation["source_id"]) for relation in evidence if relation.get("source_id")})
+        strategy_ids = sorted(
+            {str(relation["chunk_strategy_id"]) for relation in evidence if relation.get("chunk_strategy_id")}
+        )
+        run_ids = sorted(
+            {str(relation["extraction_run_id"]) for relation in evidence if relation.get("extraction_run_id")}
+        )
+        confidence = sum(float(relation.get("confidence", 0.0)) for relation in evidence) / max(1, len(evidence))
+        relation_id = f"CANREL_{short_hash({'key': key}, 16)}"
+        canonical_records.append(
+            {
+                "chunk_hash": None,
+                "chunk_id": None,
+                "chunk_strategy_id": None,
+                "chunk_strategy_ids": strategy_ids,
+                "chunk_type": None,
+                "confidence": round(confidence, 6),
+                "domain": domain,
+                "evidence_count": len(evidence),
+                "evidence_relation_ids": evidence_ids,
+                "evidence_text": f"{len(evidence)} evidence relation(s)",
+                "extraction_run_id": run_ids[0] if run_ids else None,
+                "extraction_run_ids": run_ids,
+                "head_canonical_name": head_name,
+                "head_entity_type": head_type,
+                "head_key": canonical_entity_key(head_name, head_type, domain),
+                "head_kind": "entity",
+                "relation_id": relation_id,
+                "relation_scope": "canonical",
+                "relation_source": "aggregation",
+                "relation_subtype": "canonical_aggregation",
+                "relation_type": relation_type,
+                "source_id": source_ids[0] if source_ids else None,
+                "source_ids": source_ids,
+                "source_page": None,
+                "tail_canonical_name": tail_name,
+                "tail_entity_type": tail_type,
+                "tail_key": canonical_entity_key(tail_name, tail_type, domain),
+                "tail_kind": "entity",
+            }
+        )
+    return canonical_records
+
+
+def attach_relation_extraction_runs(
+    relations: list[dict[str, Any]],
+    entities: list[dict[str, Any]],
+    default_run_id: str,
+) -> list[dict[str, Any]]:
+    entities_by_id = {str(entity["entity_id"]): entity for entity in entities}
+    for relation in relations:
+        run_ids: set[str] = set()
+        for side in ("head", "tail"):
+            if relation.get(f"{side}_kind") != "entity":
+                continue
+            entity = entities_by_id.get(str(relation.get(f"{side}_key")))
+            if entity and entity.get("extraction_run_id"):
+                run_ids.add(str(entity["extraction_run_id"]))
+        if not run_ids:
+            existing = relation.get("extraction_run_id")
+            run_ids.add(str(existing or default_run_id))
+        ordered = sorted(run_ids)
+        relation["extraction_run_id"] = ordered[0]
+        relation["extraction_run_ids"] = ordered
+    return relations
+
+
 def validate_relations(
     relations: list[dict[str, Any]],
     chunks_by_hash: dict[str, dict[str, Any]],
@@ -1089,6 +1322,7 @@ def validate_relations(
             raise ValueError(f"Unsupported relation_type: {relation['relation_type']}")
         if relation["relation_source"] not in {"rule", "llm", "ontology"}:
             raise ValueError(f"Unsupported relation_source: {relation['relation_source']}")
+        validate_relation_type_pair(relation)
         for side in ("head", "tail"):
             kind = relation[f"{side}_kind"]
             key = relation[f"{side}_key"]
@@ -1133,12 +1367,20 @@ def build_chunk_records(chunks: list[dict[str, Any]], entities: list[dict[str, A
         metadata = dict(chunk.get("metadata") or {})
         metadata.update(
             {
+                "char_end": chunk.get("char_end"),
+                "char_start": chunk.get("char_start"),
+                "chunk_hash": chunk["chunk_hash"],
                 "chunk_id": chunk["chunk_id"],
                 "chunk_strategy_id": chunk["chunk_strategy_id"],
+                "chunk_type": chunk.get("chunk_type"),
                 "entity_counts": dict(entity_counts.get(str(chunk["chunk_id"]), Counter())),
                 "ingested_at": utc_now(),
+                "parent_id": chunk.get("parent_id"),
                 "provenance": provenance,
                 "source_id": chunk["source_id"],
+                "source_name": chunk.get("source_name") or chunk["source_id"],
+                "source_page": chunk.get("source_page"),
+                "token_count": chunk.get("token_count"),
             }
         )
         metadata_json = json.dumps(metadata, ensure_ascii=False, sort_keys=True)
@@ -1215,6 +1457,8 @@ def build_mention_records(entities: list[dict[str, Any]]) -> list[dict[str, Any]
                 "entity_id": entity["entity_id"],
                 "entity_type": entity["entity_type"],
                 "evidence_text": entity["evidence_text"],
+                "extraction_run_id": entity.get("extraction_run_id"),
+                "extraction_source": entity.get("extraction_source"),
                 "source_id": entity["source_id"],
                 "source_page": entity["source_page"],
                 "surface_text": entity.get("surface_text") or entity["evidence_text"],
@@ -1237,10 +1481,14 @@ def build_ingest_payload(
     stop_on_daily_quota: bool = True,
     include_ontology: bool = True,
     registry: dict[str, dict[str, Any]] | None = None,
+    relation_state_output: Path | None = None,
+    resume_relations: bool = False,
 ) -> dict[str, Any]:
     validate_inputs(chunks, entities)
     registry = registry or {}
     chunks_by_hash = {str(chunk["chunk_hash"]): chunk for chunk in chunks}
+    graph_write_run_id = make_graph_write_run_id()
+    relation_drop_counts: Counter[str] = Counter()
 
     rule_relations = derive_rule_relations(chunks, entities) if relation_mode in {"rule", "hybrid"} else []
     llm_relations = (
@@ -1254,28 +1502,46 @@ def build_ingest_payload(
             retry_base_seconds=retry_base_seconds,
             max_retry_sleep_seconds=max_retry_sleep_seconds,
             stop_on_daily_quota=stop_on_daily_quota,
+            drop_counts=relation_drop_counts,
+            state_output=relation_state_output,
+            resume=resume_relations,
         )
         if relation_mode in {"llm", "hybrid"}
         else []
     )
+    parent_child_relations = derive_parent_child_relations(chunks, graph_write_run_id)
     ontology_entities: list[dict[str, Any]] = []
     ontology_relations: list[dict[str, Any]] = []
     if include_ontology:
         ontology_entities, ontology_relations = build_ontology_entities_and_relations()
 
-    relations = deduplicate_relations([*rule_relations, *llm_relations, *ontology_relations])
+    relations = deduplicate_relations([*rule_relations, *llm_relations, *parent_child_relations, *ontology_relations])
+    relations = attach_relation_extraction_runs(relations, entities, graph_write_run_id)
     entity_keys = {str(entity["entity_id"]) for entity in entities} | {
         str(entity["entity_id"]) for entity in ontology_entities
     }
     validate_relations(relations, chunks_by_hash, entity_keys)
+    canonical_relation_records = build_canonical_relation_records(relations)
 
     return {
+        "canonical_relation_records": canonical_relation_records,
         "chunk_records": build_chunk_records(chunks, entities),
         "entity_records": build_entity_records(entities, ontology_entities),
         "mention_records": build_mention_records(entities),
         "relation_records": relations,
         "source_records": build_source_records(chunks, registry),
-        "summary": build_summary(chunks, entities, rule_relations, llm_relations, ontology_relations, relations),
+        "summary": build_summary(
+            chunks,
+            entities,
+            rule_relations,
+            llm_relations,
+            parent_child_relations,
+            ontology_relations,
+            relations,
+            canonical_relation_records,
+            relation_drop_counts,
+            graph_write_run_id,
+        ),
     }
 
 
@@ -1284,22 +1550,36 @@ def build_summary(
     entities: list[dict[str, Any]],
     rule_relations: list[dict[str, Any]],
     llm_relations: list[dict[str, Any]],
+    parent_child_relations: list[dict[str, Any]],
     ontology_relations: list[dict[str, Any]],
     all_relations: list[dict[str, Any]],
+    canonical_relations: list[dict[str, Any]],
+    relation_drop_counts: Counter[str],
+    graph_write_run_id: str,
 ) -> dict[str, Any]:
     relation_counts = Counter(relation["relation_type"] for relation in all_relations)
     source_counts = Counter(relation["relation_source"] for relation in all_relations)
+    chunk_type_counts = Counter(str(relation.get("chunk_type") or "unknown") for relation in all_relations)
+    source_id_counts = Counter(str(relation.get("source_id") or "unknown") for relation in all_relations)
+    strategy_counts = Counter(str(relation.get("chunk_strategy_id") or "none") for relation in all_relations)
     return {
+        "canonical_relation_count": len(canonical_relations),
         "chunk_count": len(chunks),
         "entity_count": len(entities),
         "generated_at": utc_now(),
+        "graph_write_run_id": graph_write_run_id,
         "llm_relation_count": len(llm_relations),
         "mention_relation_count": len(entities),
         "ontology_relation_count": len(ontology_relations),
+        "parent_child_relation_count": len(parent_child_relations),
+        "relation_chunk_type_counts": dict(sorted(chunk_type_counts.items())),
         "relation_counts": dict(sorted(relation_counts.items())),
+        "relation_drop_counts": dict(sorted(relation_drop_counts.items())),
+        "relation_source_id_counts": dict(sorted(source_id_counts.items())),
         "relation_source_counts": dict(sorted(source_counts.items())),
+        "relation_strategy_counts": dict(sorted(strategy_counts.items())),
         "rule_relation_count": len(rule_relations),
-        "total_relation_count": len(all_relations) + len(entities),
+        "total_relation_count": len(all_relations) + len(canonical_relations) + len(entities),
     }
 
 
@@ -1386,6 +1666,11 @@ def write_neo4j_graph(
             counts["entities"] += session.execute_write(write_entities_tx, payload["entity_records"])
             counts["mentions"] += session.execute_write(write_mentions_tx, payload["mention_records"], batch_size)
             counts["relations"] += session.execute_write(write_relations_tx, payload["relation_records"], batch_size)
+            counts["canonical_relations"] += session.execute_write(
+                write_relations_tx,
+                payload["canonical_relation_records"],
+                batch_size,
+            )
     finally:
         driver.close()
     return dict(counts)
@@ -1544,9 +1829,17 @@ def build_relation_cypher(relation_type: str, head_kind: str, tail_kind: str) ->
         SET r.chunk_id = row.chunk_id,
             r.chunk_hash = row.chunk_hash,
             r.chunk_strategy_id = row.chunk_strategy_id,
+            r.chunk_strategy_ids = row.chunk_strategy_ids,
+            r.chunk_type = row.chunk_type,
             r.source_id = row.source_id,
+            r.source_ids = row.source_ids,
             r.source_page = row.source_page,
             r.evidence_text = row.evidence_text,
+            r.evidence_count = row.evidence_count,
+            r.evidence_relation_ids = row.evidence_relation_ids,
+            r.extraction_run_id = row.extraction_run_id,
+            r.extraction_run_ids = row.extraction_run_ids,
+            r.relation_scope = row.relation_scope,
             r.relation_source = row.relation_source,
             r.relation_subtype = row.relation_subtype,
             r.confidence = row.confidence
@@ -1565,6 +1858,52 @@ def write_summary(path: Path, payload: dict[str, Any], dry_run: bool, db_counts:
     summary["dry_run"] = dry_run
     summary["db_write_counts"] = db_counts
     path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def build_relation_review_report(payload: dict[str, Any], sample_size: int = 20) -> dict[str, Any]:
+    relations = list(payload["relation_records"])
+    samples = [
+        {
+            "chunk_id": relation.get("chunk_id"),
+            "chunk_strategy_id": relation.get("chunk_strategy_id"),
+            "chunk_type": relation.get("chunk_type"),
+            "confidence": relation.get("confidence"),
+            "evidence_text": relation.get("evidence_text"),
+            "head": {
+                "canonical_name": relation.get("head_canonical_name"),
+                "entity_type": relation.get("head_entity_type"),
+                "kind": relation.get("head_kind"),
+            },
+            "relation_id": relation.get("relation_id"),
+            "relation_source": relation.get("relation_source"),
+            "relation_subtype": relation.get("relation_subtype"),
+            "relation_type": relation.get("relation_type"),
+            "source_id": relation.get("source_id"),
+            "source_page": relation.get("source_page"),
+            "tail": {
+                "canonical_name": relation.get("tail_canonical_name"),
+                "entity_type": relation.get("tail_entity_type"),
+                "kind": relation.get("tail_kind"),
+            },
+        }
+        for relation in relations[: max(0, sample_size)]
+    ]
+    return {
+        "canonical_relation_count": len(payload["canonical_relation_records"]),
+        "generated_at": utc_now(),
+        "relation_count": len(relations),
+        "samples": samples,
+        "sample_size": len(samples),
+        "summary": payload["summary"],
+    }
+
+
+def write_relation_review(path: Path, payload: dict[str, Any], sample_size: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(build_relation_review_report(payload, sample_size), ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -1587,6 +1926,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-retry-sleep-seconds", type=float, default=DEFAULT_MAX_RETRY_SLEEP_SECONDS)
     parser.add_argument("--stop-on-daily-quota", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--summary-output", type=Path, default=None)
+    parser.add_argument("--relation-review-output", type=Path, default=None)
+    parser.add_argument("--review-sample-size", type=int, default=20)
+    parser.add_argument("--state-output", type=Path, default=None)
+    parser.add_argument("--resume", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -1616,6 +1959,8 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         stop_on_daily_quota=args.stop_on_daily_quota,
         include_ontology=not args.skip_ontology,
         registry=load_source_registry(args.source_registry),
+        relation_state_output=args.state_output,
+        resume_relations=args.resume,
     )
 
     db_counts: dict[str, Any] = {}
@@ -1651,6 +1996,8 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
 
     if args.summary_output:
         write_summary(args.summary_output, payload, args.dry_run, db_counts)
+    if args.relation_review_output:
+        write_relation_review(args.relation_review_output, payload, args.review_sample_size)
 
     summary = dict(payload["summary"])
     summary.update(
@@ -1659,7 +2006,9 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
             "db_write_counts": db_counts,
             "dry_run": args.dry_run,
             "entity_files": [str(path) for path in entity_files],
+            "relation_review_output": str(args.relation_review_output) if args.relation_review_output else None,
             "summary_output": str(args.summary_output) if args.summary_output else None,
+            "state_output": str(args.state_output) if args.state_output else None,
         }
     )
     return summary

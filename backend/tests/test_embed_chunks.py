@@ -37,9 +37,12 @@ def make_chunk() -> dict:
         "chunk_hash": "hash-1",
         "chunk_id": "TVGM_chunk_structure_parent_child_child_000001",
         "chunk_strategy_id": "chunk_structure_parent_child",
+        "chunk_type": "child",
         "domain": "TUVI",
         "existing_embedding_text_hash": None,
         "mention_keywords": ["Thiên Mã", "Quan Lộc", "Thiên Mã", "", " Hóa Kỵ "],
+        "parent_id": "TVGM_chunk_structure_parent_child_parent_000001",
+        "retrieval_unit": True,
         "section_id": "TVGM_SEC01",
         "source_id": "TVGM",
         "source_name": "Tử Vi Giảng Minh",
@@ -62,6 +65,21 @@ def test_select_chunks_query_force_does_not_filter_existing_embeddings() -> None
 
     assert "c.embedding IS NULL" not in cypher
     assert "LIMIT $limit" not in cypher
+
+
+def test_select_chunks_query_child_only_filters_parent_child_retrieval_units() -> None:
+    cypher = embed_chunks.build_select_chunks_cypher(force=False, limit=10, child_only=True)
+
+    assert "c.chunk_type = 'child'" in cypher
+    assert "c.retrieval_unit = true" in cypher
+    assert "c.parent_id AS parent_id" in cypher
+    assert "c.chunk_type AS chunk_type" in cypher
+
+
+def test_child_only_policy_only_applies_to_parent_child_without_override() -> None:
+    assert embed_chunks.should_use_child_only_policy("chunk_structure_parent_child", False) is True
+    assert embed_chunks.should_use_child_only_policy("chunk_structure_parent_child", True) is False
+    assert embed_chunks.should_use_child_only_policy("chunk_fixed_512", False) is False
 
 
 def test_mock_embedding_is_deterministic_768_dimensional() -> None:
@@ -87,7 +105,7 @@ def test_load_gemini_api_keys_prefers_comma_separated_env() -> None:
         }
     )
 
-    assert keys == ["key-1", "key-2"]
+    assert keys == ["key-1", "key-2", "fallback-1", "fallback-2"]
 
 
 def test_load_gemini_api_keys_falls_back_to_legacy_env_names() -> None:
@@ -96,10 +114,13 @@ def test_load_gemini_api_keys_falls_back_to_legacy_env_names() -> None:
             "GEMINI_API_KEYS": "",
             "GEMINI_API_KEY": "key-1",
             "GEMINI_API_KEY_2": "key-2",
+            "GEMINI_API_KEY_4": "key-4",
+            "GEMINI_API_KEY_10": "key-10",
+            "GEMINI_API_KEY_3": "key-3",
         }
     )
 
-    assert keys == ["key-1", "key-2"]
+    assert keys == ["key-1", "key-2", "key-3", "key-4", "key-10"]
 
 
 def test_normalize_keywords_deduplicates_and_sorts() -> None:
@@ -116,11 +137,14 @@ def test_prepare_embedding_updates_preserves_metadata() -> None:
     update = updates[0]
     assert update["chunk_hash"] == "hash-1"
     assert update["chunk_id"] == "TVGM_chunk_structure_parent_child_child_000001"
+    assert update["chunk_type"] == "child"
     assert update["embedding_model"] == "mock-embedding-768"
     assert update["embedding_dim"] == 768
     assert len(update["embedding"]) == 768
     assert update["title"] == "TVGM_SEC01"
     assert update["keywords"] == "Hóa Kỵ Quan Lộc Thiên Mã"
+    assert update["parent_id"] == "TVGM_chunk_structure_parent_child_parent_000001"
+    assert update["retrieval_unit"] is True
     assert update["embedding_text_hash"] == embed_chunks.embedding_text_hash(make_chunk()["text"])
 
 
@@ -248,6 +272,9 @@ def test_parse_args_defaults_to_safe_requests_per_minute() -> None:
     assert args.max_retry_sleep_seconds == embed_chunks.DEFAULT_MAX_RETRY_SLEEP_SECONDS
     assert args.stop_on_daily_quota is True
     assert args.progress_every == 25
+    assert args.include_parent_chunks is False
+    assert args.smoke_query == "Tu Vi"
+    assert args.smoke_limit == 5
 
 
 def test_build_run_summary_marks_partial_failure() -> None:
@@ -261,12 +288,18 @@ def test_build_run_summary_marks_partial_failure() -> None:
         selected_chunks=919,
         update_count=870,
         completed=False,
+        selected_chunk_records=[make_chunk()],
+        updates=[],
+        parent_skipped_count=49,
         error=error,
     )
 
     assert summary["completed"] is False
     assert summary["db_write_counts"]["embedded_chunks"] == 864
     assert summary["update_count"] == 870
+    assert summary["parent_skipped_count"] == 49
+    assert summary["selected_chunk_type_counts"] == {"child": 1}
+    assert summary["keyword_coverage"] == {"chunk_count": 0, "coverage": 0.0, "with_keywords": 0}
     assert summary["error"] == "RuntimeError: quota exhausted"
 
 
@@ -282,3 +315,56 @@ def test_assert_required_indexes_online() -> None:
 def test_assert_required_indexes_online_rejects_missing_index() -> None:
     with pytest.raises(ValueError, match="Missing Neo4j index"):
         embed_chunks.assert_required_indexes_online([{"name": "chunkVector", "state": "ONLINE"}])
+
+
+def test_run_summary_reports_embedded_chunk_types_and_keyword_coverage() -> None:
+    args = embed_chunks.parse_args(["--source-id", "TVGM"])
+    chunk = make_chunk()
+    update = {
+        "chunk_hash": chunk["chunk_hash"],
+        "chunk_id": chunk["chunk_id"],
+        "chunk_type": "child",
+        "keywords": "Hóa Kỵ Quan Lộc Thiên Mã",
+    }
+
+    summary = embed_chunks.build_run_summary(
+        args=args,
+        db_counts={"embedded_chunks": 1},
+        embedding_model="mock",
+        selected_chunks=1,
+        update_count=1,
+        completed=True,
+        selected_chunk_records=[chunk],
+        updates=[update],
+        parent_skipped_count=1,
+    )
+
+    assert summary["embedded_chunk_type_counts"] == {"child": 1}
+    assert summary["keyword_coverage"]["coverage"] == 1.0
+    assert summary["parent_skipped_count"] == 1
+
+
+def test_retrieval_smoke_queries_filter_strategy_and_child_type() -> None:
+    dense = embed_chunks.build_dense_retrieval_smoke_cypher(child_only=True, limit=3)
+    sparse = embed_chunks.build_sparse_retrieval_smoke_cypher(child_only=True, limit=3)
+
+    assert "chunkVector" in dense
+    assert "chunkFulltext" in sparse
+    assert "node.chunk_strategy_id = $chunk_strategy_id" in dense
+    assert "node.chunk_type = 'child'" in dense
+    assert "node.retrieval_unit = true" in sparse
+
+
+def test_parent_expansion_diagnostics_counts_found_parents() -> None:
+    dense_hits = [
+        {"chunk_id": "child-1", "parent_id": "parent-1"},
+        {"chunk_id": "child-2", "parent_id": "parent-2"},
+    ]
+    sparse_hits = [{"chunk_id": "child-1", "parent_id": "parent-1"}]
+    parents = [{"chunk_id": "parent-1"}]
+
+    diagnostics = embed_chunks.build_parent_expansion_diagnostics(dense_hits, sparse_hits, parents)
+
+    assert diagnostics["child_hits_with_parent"] == 2
+    assert diagnostics["parent_fetch_count"] == 1
+    assert diagnostics["parent_expansion_hit_rate"] == 0.5

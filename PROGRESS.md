@@ -590,3 +590,54 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
 - Local pytest/smoke artifact directories are being removed after this progress update.
 
 **Status**: COMPLETE - W3-INGEST-06 implementation and regression verification are complete. Full live DB embedding/retrieval can be resumed after Gemini quota reset, but the task is accepted based on the completed scripts, multi-key quota handling, and passing regression suite.
+
+---
+
+## W3-INGEST-07 Progress Update - 2026-06-30
+
+### Implementation Status
+- Added W3 full-corpus runner: `scripts/run_w3_ingest_07.py`.
+- Added shared Gemini key discovery: `scripts/gemini_keys.py`.
+- Updated chunking/entity/graph/embed scripts for multi-key Gemini usage, quota failover, safer partial summaries, and resume-aware state.
+- Restored and updated:
+  - `configs/chunking_strategies.yaml`
+  - `configs/entity_extraction.yaml`
+- Added runbook:
+  - `docs/w3_ingest_07_runbook.md`
+
+### Verified Tests
+- W3 regression after runner/entity fixes reached:
+  - `106 passed`
+- Config restoration check:
+  - `backend/tests/test_chunk_text.py backend/tests/test_extract_entities.py`
+  - Result: `46 passed`
+
+### Runtime Status
+- Production ingest was attempted.
+- Gemini key discovery detected 4 keys.
+- Production completed `chunk_fixed_512` chunking for all four corpus files:
+  - `TVGM`
+  - `TVHS`
+  - `TVKL`
+  - `TVNL`
+- Production stopped at `chunk_fixed_512:entity` because all 4 Gemini keys reported daily quota exhaustion.
+- No production entity extraction is complete yet.
+- No production graph/relation extraction is complete yet.
+- No production embed/retrieval smoke is complete yet.
+
+### Artifact Cleanup Status
+- Dry-run/mock artifacts were removed by the user.
+- Current artifact state is intentionally minimal:
+  - `chunk_fixed_512` chunks remain.
+  - W3 run reports/state were removed and will be regenerated on the next production run.
+  - entity directories are empty placeholders.
+
+### Model Direction Under Consideration
+- Embedding direction: use `BAAI/bge-m3` for local/Kaggle open-source embedding experiments.
+- LLM augmentation direction under evaluation:
+  - Gemini API for official baseline and lower engineering friction.
+  - `Qwen/Qwen2.5-7B-Instruct` for high-volume entity/relation augmentation when calls reach tens of thousands and Gemini quota/cost becomes the bottleneck.
+
+### Next Decision
+- Decide whether W3-INGEST-07 production baseline remains Gemini-only, or whether to add a separate local/Kaggle open-source backend path.
+- If using BGE-M3/Qwen, do not mix artifacts with Gemini baseline; add explicit backend/model metadata and strategy/version ids.

@@ -66,6 +66,8 @@ def make_entity(
         "entity_type": entity_type,
         "evidence_text": surface_text,
         "extraction_model": "test",
+        "extraction_run_id": "entity_run_test",
+        "extraction_source": "dictionary",
         "needs_review": False,
         "prompt_version": "test",
         "section_id": chunk["section_id"],
@@ -149,6 +151,7 @@ def test_strategy_filter_and_dry_run_do_not_require_databases() -> None:
     chunk_path = work_dir / "chunks.jsonl"
     entity_path = work_dir / "entities.jsonl"
     summary_path = work_dir / "summary.json"
+    review_path = work_dir / "relation_review.json"
     write_jsonl(chunk_path, chunks)
     write_jsonl(entity_path, entities)
 
@@ -165,14 +168,19 @@ def test_strategy_filter_and_dry_run_do_not_require_databases() -> None:
             "--skip-ontology",
             "--summary-output",
             str(summary_path),
+            "--relation-review-output",
+            str(review_path),
         ]
     )
 
     written_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    written_review = json.loads(review_path.read_text(encoding="utf-8"))
     assert summary["dry_run"] is True
     assert summary["chunk_count"] == 1
     assert summary["entity_count"] == 2
     assert written_summary["chunk_count"] == 1
+    assert written_review["relation_count"] >= 1
+    assert "relation_counts" in written_review["summary"]
     assert summary["db_write_counts"] == {}
 
 
@@ -390,3 +398,169 @@ def test_validate_rejects_relation_unknown_endpoint() -> None:
             {chunk["chunk_hash"]: chunk},
             {entity["entity_id"] for entity in entities},
         )
+
+
+def test_parent_child_chunks_create_structural_edges() -> None:
+    parent = make_chunk(
+        "Parent context.",
+        chunk_id="TVGM_chunk_structure_parent_child_parent_000001",
+    )
+    parent["chunk_type"] = "parent"
+    child = make_chunk(
+        "Thiên Mã tại Quan Lộc.",
+        chunk_id="TVGM_chunk_structure_parent_child_child_000001",
+    )
+    child["parent_id"] = parent["chunk_id"]
+    entities = [
+        make_entity(child, "Thiên Mã", "Sao"),
+        make_entity(child, "Quan Lộc", "Cung"),
+    ]
+
+    payload = writer.build_ingest_payload([parent, child], entities, relation_mode="rule", include_ontology=False)
+    relations = payload["relation_records"]
+
+    assert {"HAS_PARENT", "CONTAINS_CHILD"} <= relation_types(payload)
+    has_parent = next(relation for relation in relations if relation["relation_type"] == "HAS_PARENT")
+    contains_child = next(relation for relation in relations if relation["relation_type"] == "CONTAINS_CHILD")
+    assert has_parent["head_key"] == child["chunk_hash"]
+    assert has_parent["tail_key"] == parent["chunk_hash"]
+    assert contains_child["head_key"] == parent["chunk_hash"]
+    assert contains_child["tail_key"] == child["chunk_hash"]
+    assert payload["summary"]["parent_child_relation_count"] == 2
+
+
+def test_relation_type_pair_validation_rejects_invalid_thuoc_cung() -> None:
+    chunk = make_chunk("Mệnh tại Thiên Mã.")
+    cung = make_entity(chunk, "Mệnh", "Cung")
+    sao = make_entity(chunk, "Thiên Mã", "Sao")
+    relation = writer.make_relation(
+        "THUOC_CUNG",
+        writer.relation_endpoint(cung),
+        writer.relation_endpoint(sao),
+        chunk=chunk,
+        evidence_text=chunk["chunk_text"],
+        relation_source="rule",
+    )
+
+    with pytest.raises(ValueError, match="invalid type pair"):
+        writer.validate_relations(
+            [relation],
+            {chunk["chunk_hash"]: chunk},
+            {cung["entity_id"], sao["entity_id"]},
+        )
+
+
+def test_llm_relation_postprocess_counts_invalid_drops() -> None:
+    chunk = make_chunk("Thiên Mã tại Quan Lộc.")
+    entities = [
+        make_entity(chunk, "Thiên Mã", "Sao"),
+        make_entity(chunk, "Quan Lộc", "Cung"),
+    ]
+    drop_counts: writer.Counter[str] = writer.Counter()
+    raw_relations = [
+        {
+            "relation_type": "THUOC_CUNG",
+            "head_entity_id": entities[0]["entity_id"],
+            "tail_entity_id": "missing",
+            "evidence_text": chunk["chunk_text"],
+        },
+        {
+            "relation_type": "THUOC_CUNG",
+            "head_entity_id": entities[0]["entity_id"],
+            "tail_entity_id": entities[1]["entity_id"],
+            "evidence_text": "not in chunk",
+        },
+    ]
+
+    records = writer.postprocess_llm_relations(raw_relations, chunk, entities, drop_counts)
+
+    assert records == []
+    assert drop_counts["unknown_or_same_endpoint"] == 1
+    assert drop_counts["evidence_not_in_chunk"] == 1
+
+
+def test_canonical_relation_aggregation_groups_evidence_relations() -> None:
+    first = make_chunk("Thiên Mã tại Quan Lộc.", chunk_id="first")
+    second = make_chunk("Thiên Mã tại Quan Lộc.", chunk_id="second")
+    entities = [
+        make_entity(first, "Thiên Mã", "Sao"),
+        make_entity(first, "Quan Lộc", "Cung"),
+        make_entity(second, "Thiên Mã", "Sao"),
+        make_entity(second, "Quan Lộc", "Cung"),
+    ]
+
+    payload = writer.build_ingest_payload([first, second], entities, relation_mode="rule", include_ontology=False)
+
+    canonical = [
+        relation
+        for relation in payload["canonical_relation_records"]
+        if relation["relation_type"] == "THUOC_CUNG"
+    ]
+    assert len(canonical) == 1
+    assert canonical[0]["evidence_count"] == 2
+    assert canonical[0]["source_ids"] == ["TVGM"]
+    assert canonical[0]["chunk_strategy_ids"] == ["chunk_structure_parent_child"]
+
+
+def test_chunk_records_include_citation_metadata() -> None:
+    chunk = make_chunk("Thiên Mã tại Quan Lộc.")
+    entities = [make_entity(chunk, "Thiên Mã", "Sao")]
+
+    record = writer.build_chunk_records([chunk], entities)[0]
+
+    assert record["metadata"]["chunk_hash"] == chunk["chunk_hash"]
+    assert record["metadata"]["chunk_type"] == "child"
+    assert record["metadata"]["source_page"] == 7
+    assert record["metadata"]["token_count"] == chunk["token_count"]
+
+
+def test_llm_relation_resume_skips_completed_chunk_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    chunk = make_chunk("Thiên Mã tại Quan Lộc.")
+    entities = [
+        make_entity(chunk, "Thiên Mã", "Sao"),
+        make_entity(chunk, "Quan Lộc", "Cung"),
+    ]
+    relation = writer.make_relation(
+        "THUOC_CUNG",
+        writer.relation_endpoint(entities[0]),
+        writer.relation_endpoint(entities[1]),
+        chunk=chunk,
+        evidence_text=chunk["chunk_text"],
+        relation_source="llm",
+    )
+    work_dir = smoke_dir("relation-resume")
+    state_path = work_dir / "graph_relation_state.json"
+    writer.write_relation_state(
+        state_path,
+        {
+            "completed_chunks": {
+                chunk["chunk_hash"]: {
+                    "chunk_id": chunk["chunk_id"],
+                    "relation_count": 1,
+                    "relation_records": [relation],
+                }
+            }
+        },
+    )
+    calls = {"count": 0}
+
+    class CountingAdapter:
+        model_name = "counting"
+
+        def extract(self, *_: object) -> list[dict]:
+            calls["count"] += 1
+            return []
+
+    monkeypatch.setattr(writer, "MockRelationLLMAdapter", CountingAdapter)
+
+    records = writer.extract_llm_relations(
+        [chunk],
+        entities,
+        mock_llm=True,
+        model_name="mock",
+        state_output=state_path,
+        resume=True,
+    )
+
+    assert calls["count"] == 0
+    assert records == [relation]

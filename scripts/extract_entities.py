@@ -11,12 +11,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 import time
 import unicodedata
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -24,12 +23,15 @@ from typing import Any, Iterable, Mapping
 import yaml
 from dotenv import load_dotenv
 
+from gemini_keys import load_gemini_api_keys as discover_gemini_api_keys
+
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "entity_extraction.yaml"
 DEFAULT_REVIEW_SAMPLE_SIZE = 20
 DEFAULT_REQUESTS_PER_MINUTE = 30.0
 DEFAULT_MAX_RETRY_SLEEP_SECONDS = 300.0
+STRATEGY_PARENT_CHILD = "chunk_structure_parent_child"
 REQUIRED_CHUNK_KEYS = {
     "chunk_hash",
     "chunk_id",
@@ -39,6 +41,7 @@ REQUIRED_CHUNK_KEYS = {
     "source_page",
 }
 REVIEW_NOISE_TYPES = {"CucBanMenh", "KhaiNiem", "LuanGiai", "ToHop"}
+VALID_EXTRACTION_SOURCES = {"dictionary", "rule", "llm"}
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -59,29 +62,14 @@ def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
+def make_extraction_run_id() -> str:
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    digest = hashlib.sha256(f"{timestamp}:{time.time_ns()}".encode("ascii")).hexdigest()[:8]
+    return f"entity_extract_{timestamp}_{digest}"
+
+
 def load_gemini_api_keys(env: Mapping[str, str | None] | None = None) -> list[str]:
-    source = env if env is not None else os.environ
-    raw_keys: list[str] = []
-    raw_keys.extend(str(source.get("GEMINI_API_KEYS") or "").split(","))
-    raw_keys.append(str(source.get("GEMINI_API_KEY") or ""))
-
-    numbered: list[tuple[int, str]] = []
-    for key, value in source.items():
-        match = re.fullmatch(r"GEMINI_API_KEY_(\d+)", str(key))
-        if not match:
-            continue
-        numbered.append((int(match.group(1)), str(value or "")))
-    raw_keys.extend(value for _, value in sorted(numbered))
-
-    keys: list[str] = []
-    seen: set[str] = set()
-    for raw_key in raw_keys:
-        key = raw_key.strip()
-        if not key or key in seen:
-            continue
-        keys.append(key)
-        seen.add(key)
-    return keys
+    return discover_gemini_api_keys(env)
 
 
 def is_rate_limit_error(exc: Exception) -> bool:
@@ -296,6 +284,7 @@ def dictionary_candidates(text: str, config: dict[str, Any]) -> list[dict[str, A
                     "confidence": 0.92,
                     "entity_type": entry["entity_type"],
                     "evidence_text": surface_text,
+                    "extraction_source": "dictionary",
                     "needs_review": False,
                     "surface_text": surface_text,
                 }
@@ -350,6 +339,7 @@ def luan_giai_candidates(text: str, config: dict[str, Any]) -> list[dict[str, An
                 "confidence": 0.74,
                 "entity_type": "LuanGiai",
                 "evidence_text": surface_text,
+                "extraction_source": "rule",
                 "needs_review": True,
                 "surface_text": surface_text,
             }
@@ -358,11 +348,12 @@ def luan_giai_candidates(text: str, config: dict[str, Any]) -> list[dict[str, An
 
 
 class MockLLMAdapter:
-    extraction_model = "mock-dictionary"
+    extraction_model = "mock-llm-augmentation"
 
     def extract(self, chunk: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
         text = chunk_text(chunk)
-        return dictionary_candidates(text, config) + luan_giai_candidates(text, config)
+        candidates = dictionary_candidates(text, config) + luan_giai_candidates(text, config)
+        return [{**candidate, "extraction_source": "llm"} for candidate in candidates]
 
 
 class GeminiKeysUnavailableError(RuntimeError):
@@ -542,6 +533,22 @@ class MultiKeyGeminiLLMAdapter:
 def build_extraction_prompt(chunk: dict[str, Any], config: dict[str, Any]) -> str:
     taxonomy = ", ".join(config["entity_types"])
     return (
+        "You are the LLM augmentation step for a dictionary-first Tu Vi entity pipeline. "
+        "Return only additional entity candidates that appear verbatim in chunk_text; do not infer.\n"
+        f"Taxonomy: {taxonomy}\n"
+        "Dictionary and rule candidates have already been extracted before this prompt; "
+        "do not use the model as a replacement for those deterministic sources.\n"
+        "Create LuanGiai only when the chunk has an explicit interpretation claim with evidence, "
+        "for example 'X chu ve Y', 'X thi Y', 'gap X thi Y', 'nen luan la Y', or 'co nghia la Y'.\n"
+        "Output strict JSON as {\"entities\": [{\"entity_type\": \"...\", "
+        "\"surface_text\": \"...\", \"canonical_name\": \"...\", "
+        "\"char_start\": 0, \"char_end\": 10, \"evidence_text\": \"...\", "
+        "\"confidence\": 0.0, \"needs_review\": false}]}.\n"
+        f"chunk_id: {chunk.get('chunk_id')}\n"
+        f"chunk_strategy_id: {chunk.get('chunk_strategy_id')}\n"
+        f"chunk_text:\n{chunk_text(chunk)}"
+    )
+    return (
         "Bạn là extractor entity cho corpus Tử Vi. "
         "Chỉ trích entity xuất hiện nguyên văn trong chunk_text, không suy diễn.\n"
         f"Taxonomy: {taxonomy}\n"
@@ -618,6 +625,8 @@ def postprocess_entities(
     chunk: dict[str, Any],
     config: dict[str, Any],
     extraction_model: str,
+    extraction_run_id: str = "manual",
+    default_extraction_source: str = "llm",
 ) -> list[dict[str, Any]]:
     text = chunk_text(chunk)
     entity_types = set(config["entity_types"])
@@ -658,6 +667,9 @@ def postprocess_entities(
             confidence = float(confidence)
         except (TypeError, ValueError):
             confidence = 0.0
+        extraction_source = str(raw.get("extraction_source") or default_extraction_source)
+        if extraction_source not in VALID_EXTRACTION_SOURCES:
+            extraction_source = default_extraction_source
 
         record = {
             "aliases_matched": aliases_matched,
@@ -675,6 +687,8 @@ def postprocess_entities(
             "entity_type": entity_type,
             "evidence_text": evidence_text,
             "extraction_model": extraction_model,
+            "extraction_run_id": extraction_run_id,
+            "extraction_source": extraction_source,
             "needs_review": needs_review,
             "prompt_version": config["prompt_version"],
             "section_id": chunk.get("section_id"),
@@ -689,12 +703,151 @@ def postprocess_entities(
     return records
 
 
+def deterministic_candidates(chunk: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
+    text = chunk_text(chunk)
+    return dictionary_candidates(text, config) + luan_giai_candidates(text, config)
+
+
+def extract_chunk_entities(
+    chunk: dict[str, Any],
+    config: dict[str, Any],
+    *,
+    adapter: Any | None,
+    llm_augmentation_enabled: bool,
+    extraction_run_id: str,
+) -> list[dict[str, Any]]:
+    raw_entities = deterministic_candidates(chunk, config)
+    extraction_model = "dictionary-rule"
+    if llm_augmentation_enabled and adapter is not None:
+        llm_entities = adapter.extract(chunk, config)
+        raw_entities.extend(
+            {
+                **entity,
+                "extraction_source": str(entity.get("extraction_source") or "llm"),
+            }
+            for entity in llm_entities
+            if isinstance(entity, dict)
+        )
+        extraction_model = f"dictionary-rule+{adapter.extraction_model}"
+
+    return postprocess_entities(
+        raw_entities,
+        chunk,
+        config,
+        extraction_model=extraction_model,
+        extraction_run_id=extraction_run_id,
+        default_extraction_source="dictionary",
+    )
+
+
+def infer_chunk_type(chunk: dict[str, Any]) -> str | None:
+    chunk_type = chunk.get("chunk_type")
+    if chunk_type:
+        return str(chunk_type)
+    chunk_id = str(chunk.get("chunk_id") or "")
+    if "_child_" in chunk_id:
+        return "child"
+    if "_parent_" in chunk_id:
+        return "parent"
+    if "_chunk_" in chunk_id:
+        return "chunk"
+    return None
+
+
+def split_processable_chunks(
+    chunks: list[dict[str, Any]],
+    *,
+    include_parent_chunks: bool,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    processable: list[dict[str, Any]] = []
+    skipped_parents: list[dict[str, Any]] = []
+    for chunk in chunks:
+        if (
+            chunk.get("chunk_strategy_id") == STRATEGY_PARENT_CHILD
+            and infer_chunk_type(chunk) == "parent"
+            and not include_parent_chunks
+        ):
+            skipped_parents.append(chunk)
+            continue
+        processable.append(chunk)
+    return processable, skipped_parents
+
+
+def load_state(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {"completed_chunks": {}}
+    with path.open("r", encoding="utf-8") as handle:
+        state = json.load(handle)
+    if not isinstance(state.get("completed_chunks"), dict):
+        state["completed_chunks"] = {}
+    return state
+
+
+def write_state(path: Path | None, state: dict[str, Any]) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def state_key(chunk: dict[str, Any]) -> str:
+    return str(chunk.get("chunk_hash") or chunk.get("chunk_id"))
+
+
+def completed_state_entry(chunk: dict[str, Any], entity_count: int, extraction_run_id: str) -> dict[str, Any]:
+    return {
+        "chunk_hash": chunk.get("chunk_hash"),
+        "chunk_id": chunk.get("chunk_id"),
+        "chunk_strategy_id": chunk.get("chunk_strategy_id"),
+        "completed_at": utc_now(),
+        "entity_count": entity_count,
+        "extraction_run_id": extraction_run_id,
+    }
+
+
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         for record in records:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True))
             handle.write("\n")
+
+
+def read_jsonl_records(path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    if not path.exists():
+        return records
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                records.append(json.loads(line))
+    return records
+
+
+def filter_entities_for_completed_chunks(
+    entities: list[dict[str, Any]],
+    completed_chunks: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if not completed_chunks:
+        return []
+    completed_keys = {str(key) for key in completed_chunks}
+    completed_chunk_ids = {
+        str(entry.get("chunk_id"))
+        for entry in completed_chunks.values()
+        if isinstance(entry, dict) and entry.get("chunk_id")
+    }
+    completed_chunk_hashes = {
+        str(entry.get("chunk_hash"))
+        for entry in completed_chunks.values()
+        if isinstance(entry, dict) and entry.get("chunk_hash")
+    }
+    return [
+        entity
+        for entity in entities
+        if str(entity.get("chunk_hash")) in completed_keys
+        or str(entity.get("chunk_hash")) in completed_chunk_hashes
+        or str(entity.get("chunk_id")) in completed_chunk_ids
+    ]
 
 
 def build_review_report(
@@ -745,17 +898,31 @@ def build_review_report(
         )
 
     return {
+        "chunk_type_counts": dict(sorted(Counter(infer_chunk_type(chunk) or "unknown" for chunk in chunks).items())),
+        "entity_type_counts": dict(sorted(Counter(entity["entity_type"] for entity in entities).items())),
         "entity_count": len(entities),
         "error_count": len(errors),
+        "extraction_source_counts": dict(
+            sorted(Counter(entity.get("extraction_source", "unknown") for entity in entities).items())
+        ),
         "generated_at": utc_now(),
         "reviewed_chunks": reviewed,
         "sample_size": len(reviewed),
+        "source_counts": dict(sorted(Counter(chunk["source_id"] for chunk in chunks).items())),
+        "strategy_counts": dict(sorted(Counter(chunk["chunk_strategy_id"] for chunk in chunks).items())),
     }
 
 
 def write_review_report(path: Path, report: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def write_summary_report(path: Path | None, summary: dict[str, Any]) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def make_llm_adapter(args: argparse.Namespace, config: dict[str, Any]) -> Any:
@@ -787,6 +954,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--chunking-strategy", default=None)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--review-output", type=Path, default=None)
+    parser.add_argument("--partial-summary-output", type=Path, default=None)
+    parser.add_argument("--state-output", type=Path, default=None)
+    parser.add_argument("--extraction-run-id", default=None)
+    parser.add_argument("--llm-augmentation", choices=["on", "off"], default=None)
+    parser.add_argument("--include-parent-chunks", action="store_true")
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--mock-llm", action="store_true")
     parser.add_argument("--model", default=None)
     parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
@@ -801,6 +974,11 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     load_dotenv(ROOT_DIR / ".env")
     args = parse_args(argv)
     config = load_entity_config(args.config)
+    extraction_policy = dict(config.get("extraction_policy") or {})
+    extraction_run_id = args.extraction_run_id or make_extraction_run_id()
+    state_output = args.state_output or Path(str(args.output) + ".state.json")
+    llm_default = bool(extraction_policy.get("llm_augmentation_default", True))
+    llm_augmentation_enabled = llm_default if args.llm_augmentation is None else args.llm_augmentation == "on"
     input_files = discover_input_files(args.input)
     chunks = load_chunks(input_files)
     if not chunks:
@@ -814,22 +992,46 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     if not chunks:
         raise ValueError("No chunks matched the requested chunking strategy.")
 
-    adapter = make_llm_adapter(args, config)
+    processable_chunks, parent_skipped_chunks = split_processable_chunks(
+        chunks,
+        include_parent_chunks=args.include_parent_chunks,
+    )
+    state = load_state(state_output)
+    completed_chunks = state.setdefault("completed_chunks", {})
+    resume_skipped_chunks = [
+        chunk for chunk in processable_chunks if args.resume and state_key(chunk) in completed_chunks
+    ]
+    chunks_to_process = [
+        chunk for chunk in processable_chunks if not (args.resume and state_key(chunk) in completed_chunks)
+    ]
 
-    entities: list[dict[str, Any]] = []
+    adapter = make_llm_adapter(args, config) if llm_augmentation_enabled else None
+
+    entities: list[dict[str, Any]] = (
+        filter_entities_for_completed_chunks(read_jsonl_records(args.output), completed_chunks)
+        if args.resume
+        else []
+    )
     errors: list[dict[str, Any]] = []
     completed = True
-    for chunk in chunks:
+    processed_chunk_count = 0
+    for chunk in chunks_to_process:
         try:
-            raw_entities = adapter.extract(chunk, config)
-            entities.extend(
-                postprocess_entities(
-                    raw_entities,
-                    chunk,
-                    config,
-                    extraction_model=adapter.extraction_model,
-                )
+            chunk_entities = extract_chunk_entities(
+                chunk,
+                config,
+                adapter=adapter,
+                llm_augmentation_enabled=llm_augmentation_enabled,
+                extraction_run_id=extraction_run_id,
             )
+            entities.extend(chunk_entities)
+            processed_chunk_count += 1
+            completed_chunks[state_key(chunk)] = completed_state_entry(
+                chunk,
+                len(chunk_entities),
+                extraction_run_id,
+            )
+            write_state(state_output, state)
         except GeminiKeysUnavailableError as exc:
             completed = False
             errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(exc)})
@@ -838,21 +1040,34 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
             errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(exc)})
 
     write_jsonl(args.output, entities)
+    write_state(state_output, state)
     if args.review_output:
-        write_review_report(args.review_output, build_review_report(chunks, entities, errors))
+        write_review_report(args.review_output, build_review_report(processable_chunks, entities, errors))
 
     summary = {
-        "chunk_count": len(chunks),
+        "chunk_count": len(processable_chunks),
         "completed": completed,
         "entity_count": len(entities),
         "error_count": len(errors),
-        "extraction_model": adapter.extraction_model,
+        "extraction_model": (
+            f"dictionary-rule+{adapter.extraction_model}" if adapter is not None else "dictionary-rule"
+        ),
+        "extraction_run_id": extraction_run_id,
         "input_files": [str(path) for path in input_files],
+        "input_chunk_count": len(chunks),
+        "llm_augmentation_enabled": llm_augmentation_enabled,
         "output": str(args.output),
+        "parent_skipped_count": len(parent_skipped_chunks),
+        "processed_chunk_count": processed_chunk_count,
         "review_output": str(args.review_output) if args.review_output else None,
+        "resume": args.resume,
+        "resume_skipped_count": len(resume_skipped_chunks),
+        "skipped_chunk_count": len(parent_skipped_chunks) + len(resume_skipped_chunks),
+        "state_output": str(state_output),
     }
     if hasattr(adapter, "get_usage_summary"):
         summary.update(adapter.get_usage_summary())
+    write_summary_report(args.partial_summary_output, summary)
     return summary
 
 
@@ -864,6 +1079,9 @@ def cli(argv: list[str] | None = None) -> int:
         return 2
 
     print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
+    if summary.get("completed") is False:
+        print("Error: Entity extraction stopped before completion; see partial summary/state for resume.", file=sys.stderr)
+        return 2
     return 0
 
 
