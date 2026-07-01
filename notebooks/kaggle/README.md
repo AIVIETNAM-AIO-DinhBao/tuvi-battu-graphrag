@@ -27,6 +27,8 @@ benchmark/
         └── TVGM_clean.json
 ```
 
+Important: do not upload only `benchmark/tuvi_golden_dataset/corpus/`. Notebook 01 passes `--source-registry` to `chunk_text.py`, so the corpus dataset must also include `benchmark/tuvi_golden_dataset/guideline/source_registry.json`.
+
 ### 2. Scripts dataset
 
 Default slug: `tuvi-battu-scripts`
@@ -54,13 +56,23 @@ backend/
 
 ## Notebook order
 
-Run in this order:
+Run in this order, but treat every notebook as an isolated Kaggle Save Version run.
+`/kaggle/working` is not shared between notebooks.
 
 1. `00_setup_and_smoke.ipynb`
 2. `01_chunk_bge_m3.ipynb`
 3. `02_entity_qwen.ipynb`
 4. `03_relation_qwen_hybrid.ipynb`
 5. `04_embed_and_pack_artifacts.ipynb`
+
+Artifact handoff between notebooks:
+
+- Notebook 01 writes `w3_local_outputs_01_<run_tag>.zip`
+- Notebook 02 restores the notebook 01 zip via `PREVIOUS_OUTPUT_SLUGS`, then writes `w3_local_outputs_02_<run_tag>.zip`
+- Notebook 03 restores the notebook 02 zip via `PREVIOUS_OUTPUT_SLUGS`, then writes `w3_local_outputs_03_<run_tag>.zip`
+- Notebook 04 restores the notebook 03 zip via `PREVIOUS_OUTPUT_SLUGS`, then writes final `w3_local_outputs_<run_tag>.zip`
+
+Attach the previous notebook output as a Kaggle input dataset, or download/upload the zip as a dataset, before running the next notebook. The notebooks now support both a preserved `.zip` file and a folder that Kaggle has automatically unpacked from that zip.
 
 ## Shared partition contract
 
@@ -74,6 +86,16 @@ PARTITION_MODE = 'strategy'
 SELECTED_STRATEGIES
 SELECTED_SOURCES
 ```
+
+Notebooks 02-04 also expose:
+
+```python
+PREVIOUS_OUTPUT_SLUGS
+```
+
+Set `PREVIOUS_OUTPUT_SLUGS` to the Kaggle input dataset path that contains the previous notebook artifact. If your Kaggle dataset auto-unpacks the zip, point to the unpacked folder, for example `w3-local-outputs/w3_local_outputs_01_part_a`.
+
+If the input root contains only the artifact for the current `RUN_TAG`, you can leave `PREVIOUS_OUTPUT_SLUGS = []`; the notebook will look for `w3_local_outputs_<step>_<run_tag>` automatically.
 
 Recommended default:
 
@@ -118,12 +140,13 @@ Resume is supported by notebooks 02-04 via `--resume`, but it depends on:
 - `state/`
 - already-written artifact files in `entities/`, `payloads/`, `embeddings/`, `reports/`
 
-If a Kaggle session ends and you want to continue in a new session, you must keep and restore the previous `w3_local_outputs/` bundle. `--resume` cannot recover without those files.
+Because notebooks 00-04 are independent Save Version runs, you must keep and restore the previous `w3_local_outputs/` bundle through the zip artifact. `--resume` cannot recover without those files.
 
 Practical rule:
 
-- save/download the zip after each major step
-- reattach or rehydrate prior artifacts before expecting resume in a new session
+- save/download the zip after every notebook step
+- attach/upload the previous step zip before running the next notebook
+- set `PREVIOUS_OUTPUT_SLUGS` to the dataset path that contains that artifact, or leave it empty when the current `RUN_TAG` artifact is the only match
 
 ## Parallel execution guidance
 
@@ -203,6 +226,8 @@ Expected Kaggle paths:
 ```text
 /kaggle/input/tuvi-golden-corpus/benchmark/tuvi_golden_dataset
 /kaggle/input/tuvi-battu-scripts
+/kaggle/input/datasets/dinhbaobao/tuvi-golden-corpus/benchmark/tuvi_golden_dataset
+/kaggle/input/datasets/dinhbaobao/tuvi-battu-scripts
 ```
 
 If the notebook falls back to local paths, verify:

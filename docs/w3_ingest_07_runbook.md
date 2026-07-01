@@ -1,501 +1,493 @@
-# W3-INGEST-07 Runbook
+﻿# W3-INGEST-07 Kaggle Runbook
 
-Tài liệu này ghi cách chạy full-corpus ingest, kiểm tra tiến trình, resume sau quota, và hướng thay thế Gemini bằng Kaggle/open-source models.
+Runbook nay chi mo ta cach chay W3-INGEST bang bo notebook Kaggle trong `notebooks/kaggle/`. Kaggle la noi sinh artifact offline; notebook khong ghi Neo4j hoac Supabase. Cac buoc local import sau Kaggle chi duoc giu ngan gon o cuoi tai lieu.
 
-## Mục tiêu
+Notebook da duoc cap nhat de ho tro hai kieu mount input pho bien:
 
-`W3-INGEST-07` chạy 3 official chunking strategies trên 4 corpus `TVKL`, `TVNL`, `TVHS`, `TVGM`:
+- `/kaggle/input/<dataset-slug>`
+- `/kaggle/input/datasets/dinhbaobao/<dataset-slug>`
+
+Artifact cua notebook truoc co the duoc doc duoi hai dang:
+
+- file `.zip`
+- folder da duoc Kaggle tu dong unzip
+
+## Muc Tieu
+
+Hoan tat W3-INGEST qua duong `local-kaggle`:
+
+1. Chunk corpus theo strategy.
+2. Extract entity bang Qwen/local LLM tren Kaggle.
+3. Export relation/graph payload importable, khong ghi DB.
+4. Sinh BGE-M3 embedding artifacts theo slot `bge_m3`.
+5. Tai artifact ve local de import graph, import embedding va chay retrieval smoke.
+
+Strategies hien dung:
 
 - `chunk_fixed_512`
 - `chunk_structure_parent_child`
-- `chunk_semantic_embedding`
+- `chunk_semantic_embedding_bge_m3`
 
-Pipeline đầy đủ gồm:
+`chunk_semantic_embedding_bge_m3` la strategy rieng cho BGE-M3, khong ghi de baseline Gemini `chunk_semantic_embedding`.
 
-1. Chunking
-2. Entity extraction
-3. Graph/relation extraction
-4. Embedding + retrieval smoke
+## Source Of Truth
 
-Task chỉ được claim completed khi production run xong, không tính dry-run/mock artifacts.
+Trong mot notebook Kaggle dang chay, source of truth tam thoi la:
 
-## Chuẩn bị
-
-Kiểm tra `.env` có đủ Gemini keys và DB credentials:
-
-- `GEMINI_API_KEYS` dạng comma-separated, hoặc
-- `GEMINI_API_KEY`, `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`, ...
-- Neo4j/Supabase env vars cho graph, embedding, retrieval.
-
-Không commit `.env` hoặc raw API keys.
-
-Chạy regression trước khi ingest:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest backend\tests\test_chunk_text.py backend\tests\test_extract_entities.py backend\tests\test_write_graph_provenance.py backend\tests\test_embed_chunks.py backend\tests\test_smoke_retrieval.py backend\tests\test_run_w3_ingest_07.py -q -p no:cacheprovider
+```text
+/kaggle/working/w3_local_outputs/
 ```
 
-## Cách chạy
+Layout ky vong:
 
-Sinh manifest trước, không gọi Gemini/DB:
-
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\run_w3_ingest_07.py --mode plan
+```text
+w3_local_outputs/
+|-- chunks/
+|-- entities/
+|-- payloads/
+|-- embeddings/
+|-- reports/
+`-- state/
 ```
 
-Chạy production và lưu log live:
+Cac notebook 00-04 la cac notebook doc lap. Save Version cua notebook sau khong nhin thay `/kaggle/working` cua notebook truoc. Vi vay source of truth giua cac notebook la zip artifact:
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\run_w3_ingest_07.py --mode production --resume 2>&1 | Tee-Object -FilePath benchmark\tuvi_golden_dataset\reports\w3_ingest_07\production_run.log -Append
+```text
+w3_local_outputs_01_<RUN_TAG>.zip
+w3_local_outputs_02_<RUN_TAG>.zip
+w3_local_outputs_03_<RUN_TAG>.zip
+w3_local_outputs_<RUN_TAG>.zip
 ```
 
-Nếu gặp RPM/TPM/RPD quota, chờ quota reset rồi chạy lại đúng command trên. Runner dùng state để resume.
+De chay tiep notebook sau, ban phai attach/upload artifact cua notebook truoc lam Kaggle input dataset, roi set `PREVIOUS_OUTPUT_SLUGS` trong notebook sau. Artifact nay co the la file zip hoac folder da unzip.
 
-Chỉ chạy dry-run khi cần kiểm orchestration offline:
+Cac file duoi `benchmark/tuvi_golden_dataset/reports/w3_ingest_07/` thuoc local runner cu va khong dai dien cho trang thai notebook Kaggle hien tai.
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\run_w3_ingest_07.py --mode dry-run --resume --mock-llm --mock-embedding
+## 1. Chuan Bi Kaggle Datasets
+
+Attach 2 Kaggle datasets vao moi notebook.
+
+### Corpus Dataset
+
+Slug mac dinh trong notebook:
+
+```python
+CORPUS_SLUG = "tuvi-golden-corpus"
 ```
 
-Dry-run sinh mock artifacts, không dùng để claim production. Nếu muốn tránh bẩn artifact chính, truyền `--reports-dir`, `--chunks-dir`, `--entities-dir` sang thư mục tạm.
+Dataset nay khong duoc chi chua `corpus/`. No phai chua toi thieu:
 
-## Kiểm tra tiến trình
-
-File chính:
-
-- `benchmark/tuvi_golden_dataset/reports/w3_ingest_07/w3_ingest_07_command_manifest.json`
-- `benchmark/tuvi_golden_dataset/reports/w3_ingest_07/w3_ingest_07_state.json`
-- `benchmark/tuvi_golden_dataset/reports/w3_ingest_07/w3_ingest_07_run_summary.json`
-
-Xem summary:
-
-```powershell
-Get-Content benchmark\tuvi_golden_dataset\reports\w3_ingest_07\w3_ingest_07_run_summary.json -Raw
+```text
+benchmark/
+`-- tuvi_golden_dataset/
+    |-- corpus/
+    |   |-- TVKL_clean.json
+    |   |-- TVNL_clean.json
+    |   |-- TVHS_clean.json
+    |   `-- TVGM_clean.json
+    `-- guideline/
+        `-- source_registry.json
 ```
 
-Xem command nào done/partial/skipped:
+Khuyen nghi dong goi nguyen subtree toi thieu:
 
-```powershell
-$state = Get-Content benchmark\tuvi_golden_dataset\reports\w3_ingest_07\w3_ingest_07_state.json -Raw | ConvertFrom-Json
-$state.commands.PSObject.Properties |
-  ForEach-Object {
-    $c = $_.Value
-    [pscustomobject]@{
-      command = $_.Name
-      mode = $c.mode
-      phase = $c.phase
-      status = $c.status
-      started = $c.started_at
-      completed = $c.completed_at
-      failed = $c.failed_at
-    }
-  } |
-  Sort-Object mode, command |
-  Format-Table -AutoSize
+```text
+benchmark/tuvi_golden_dataset/corpus/
+benchmark/tuvi_golden_dataset/guideline/
 ```
 
-Đếm chunks theo strategy/corpus:
+Ly do: `chunk_text.py` can `source_registry.json` de doc metadata nguon. Neu thieu file nay, notebook 01 co the fail truoc khi sinh chunks.
 
-```powershell
-Get-ChildItem benchmark\tuvi_golden_dataset\chunks -Directory |
-  ForEach-Object {
-    $strategy = $_.Name
-    Get-ChildItem $_.FullName -Filter '*_chunks.jsonl' |
-      ForEach-Object {
-        [pscustomobject]@{
-          strategy = $strategy
-          corpus = $_.BaseName.Replace('_chunks', '')
-          lines = (Get-Content $_.FullName | Measure-Object -Line).Lines
-        }
-      }
-  } |
-  Format-Table -AutoSize
+### Scripts Dataset
+
+Slug mac dinh trong notebook:
+
+```python
+SCRIPTS_SLUG = "tuvi-battu-scripts"
 ```
 
-Đếm entity files:
+Dataset nay phai chua:
 
-```powershell
-Get-ChildItem benchmark\tuvi_golden_dataset\entities -Recurse -Filter '*.jsonl' |
-  ForEach-Object {
-    [pscustomobject]@{
-      file = $_.FullName
-      lines = (Get-Content $_.FullName | Measure-Object -Line).Lines
-      bytes = $_.Length
-    }
-  } |
-  Format-Table -AutoSize
+```text
+scripts/
+configs/
+backend/requirements-kaggle.txt
 ```
 
-Kiểm embed/retrieval reports:
+Cac script quan trong phai co:
 
-```powershell
-Get-ChildItem benchmark\tuvi_golden_dataset\reports\w3_ingest_07 -Filter 'embed_*.json' | Measure-Object
-Get-ChildItem benchmark\tuvi_golden_dataset\reports\w3_ingest_07 -Filter 'retrieval_*.json' | Measure-Object
+- `scripts/chunk_text.py`
+- `scripts/extract_entities.py`
+- `scripts/write_graph_provenance.py`
+- `scripts/embed_chunks.py`
+- `scripts/run_w3_ingest_07.py`
+- `scripts/import_graph_payload.py`
+- `scripts/import_embedding_artifacts.py`
+- `scripts/local_embeddings.py`
+- `scripts/local_llm.py`
+
+Notebook 01 va 03 nen truyen explicit:
+
+```text
+--source-registry CORPUS_DIR / "guideline" / "source_registry.json"
 ```
 
-Expected completed state:
+Cach nay tranh loi script mac dinh tim guideline theo `SCRIPTS_DIR`.
 
-- `w3_ingest_07_run_summary.json`: `completed=true`
-- 21 commands trong manifest.
-- 3 chunk summaries.
-- 3 entity summaries/reviews.
-- 3 graph write summaries + relation reviews.
-- 12 `embed_*.json`.
-- 12 `retrieval_*.json`.
+## 2. Chia Partition Tren Kaggle
 
-## Dọn artifacts an toàn
-
-Có thể xóa dry-run/mock artifacts nếu không cần audit:
-
-- `benchmark/tuvi_golden_dataset/reports/w3_ingest_07/dry-run/`
-- mock entity outputs trong `benchmark/tuvi_golden_dataset/entities/`
-- mock `chunk_semantic_embedding` chunks nếu metadata ghi `mock-semantic-hash-*`
-- dry-run graph/relation summaries có `dry_run=true`
-
-Không xóa các file này trừ khi muốn restart production từ đầu:
-
-- `w3_ingest_07_state.json`
-- `w3_ingest_07_command_manifest.json`
-- `w3_ingest_07_run_summary.json`
-- `reports/w3_ingest_07/production/`
-
-Không xóa config:
-
-- `configs/chunking_strategies.yaml`
-- `configs/entity_extraction.yaml`
-
-## Kaggle và open-source models thay Gemini
-
-Có thể dùng Kaggle/open-source models, nhưng nên coi là một backend ingest khác, không lẫn với Gemini baseline.
-
-Các phần phù hợp để chạy trên Kaggle:
-
-- Fixed/structure chunking: chạy CPU được, không cần Gemini.
-- Semantic chunking: có thể thay Gemini embedding bằng open-source embeddings như E5/BGE/multilingual sentence embeddings.
-- Entity/relation extraction: có thể thử LLM open-source dạng instruction model.
-- Offline artifact generation: sinh chunks/entities/relations thành JSONL rồi tải về chạy graph/embed/retrieval ở môi trường có DB.
-
-Các điểm cần sửa nếu dùng open-source:
-
-- Thêm adapter embedding/LLM mới, ví dụ `--embedding-backend local` hoặc `--llm-backend local`.
-- Ghi rõ `embedding_model_for_chunking`, `extraction_model`, `relation_model`.
-- Đổi `chunking_version` hoặc strategy id nếu chunk boundary thay đổi, để không trộn benchmark với Gemini baseline.
-- Giữ schema validation, JSON repair, dedupe, provenance, resume state như hiện tại.
-- Với model local, vẫn cần deterministic mock/offline tests.
-
-Ưu điểm:
-
-- Không bị Gemini RPM/TPM/RPD.
-- Có thể chạy batch dài trên GPU notebook.
-- Tái lập tốt nếu pin model checkpoint, prompt, quantization, seed.
-
-Rủi ro:
-
-- Kaggle quota/GPU availability thay đổi theo tài khoản và thời điểm.
-- Notebook có thể không phù hợp để ghi trực tiếp Neo4j/Supabase production; tốt hơn là sinh artifacts offline rồi import ở local/cloud.
-- LLM open-source nhỏ có thể kém ổn định về JSON và entity normalization hơn Gemini.
-- Embedding model đổi sẽ làm semantic chunking/retrieval benchmark không so sánh trực tiếp được với Gemini baseline.
-
-Khuyến nghị:
-
-1. Giữ Gemini path làm official baseline theo spec.
-2. Thêm Kaggle/open-source như auxiliary experiment, ví dụ `chunk_semantic_embedding_local`.
-3. Sinh artifact offline trên Kaggle, tải về repo, rồi chạy graph write/embed/retrieval smoke ở local/cloud.
-4. Chỉ promote thành baseline mới khi metrics retrieval và review report tốt hơn hoặc tương đương Gemini.
-## Local-Kaggle profile
-
-Repo co profile local/Kaggle rieng de chay khong can Gemini API:
-
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\run_w3_ingest_07.py --mode plan --profile local-kaggle
-```
-
-Profile nay dung:
-
-- `BAAI/bge-m3` cho semantic chunking va embeddings, `1024` dimensions.
-- `Qwen/Qwen2.5-7B-Instruct` cho entity/relation LLM augmentation.
-- `chunk_semantic_embedding_bge_m3` la auxiliary strategy rieng, khong doi official `chunk_semantic_embedding`.
-- Graph/relation trong local-Kaggle chay dry-run artifact, khong ghi Neo4j/Supabase.
-- Embedding trong local-Kaggle ghi JSONL artifact va offline retrieval smoke, khong can DB.
-
-Kaggle notebooks nam o `notebooks/kaggle/`:
-
-1. `00_setup_and_smoke.ipynb`
-2. `01_chunk_bge_m3.ipynb`
-3. `02_entity_qwen.ipynb`
-4. `03_relation_qwen_hybrid.ipynb`
-5. `04_embed_and_pack_artifacts.ipynb`
-
-## Kaggle execution playbook
-
-Phan nay la quy trinh thao tac chi tiet de chay W3-INGEST tren Kaggle, ke ca truong hop can chia lam 2 version song song va resume sau khi het session.
-
-### 1. Tao va attach 2 Kaggle datasets
-
-Can attach 2 datasets vao moi notebook:
-
-1. Corpus dataset:
-   - slug mac dinh: `tuvi-golden-corpus`
-   - phai chua `benchmark/tuvi_golden_dataset/corpus/`
-2. Scripts dataset:
-   - slug mac dinh: `tuvi-battu-scripts`
-   - phai chua `scripts/`, `configs/`, `backend/requirements-kaggle.txt`
-
-Neu slug khac, sua `CORPUS_SLUG` va `SCRIPTS_SLUG` trong notebook.
-
-### 2. Chia batch mac dinh theo strategy
-
-Mac dinh duoc khuyen nghi la chia theo strategy, khong chia theo source cho entity/relation notebooks.
+Mac dinh chia theo strategy, khong chia theo source cho notebook 01-03.
 
 Version A:
 
-- `RUN_TAG = 'part_a'`
-- `PARTITION_MODE = 'strategy'`
-- `SELECTED_STRATEGIES = ['chunk_fixed_512', 'chunk_structure_parent_child']`
-- `SELECTED_SOURCES = ['TVKL', 'TVNL', 'TVHS', 'TVGM']`
+```python
+RUN_TAG = "part_a"
+PARTITION_MODE = "strategy"
+SELECTED_STRATEGIES = ["chunk_fixed_512", "chunk_structure_parent_child"]
+SELECTED_SOURCES = ["TVKL", "TVNL", "TVHS", "TVGM"]
+```
 
 Version B:
 
-- `RUN_TAG = 'part_b'`
-- `PARTITION_MODE = 'strategy'`
-- `SELECTED_STRATEGIES = ['chunk_semantic_embedding_bge_m3']`
-- `SELECTED_SOURCES = ['TVKL', 'TVNL', 'TVHS', 'TVGM']`
+```python
+RUN_TAG = "part_b"
+PARTITION_MODE = "strategy"
+SELECTED_STRATEGIES = ["chunk_semantic_embedding_bge_m3"]
+SELECTED_SOURCES = ["TVKL", "TVNL", "TVHS", "TVGM"]
+```
 
-Khong de 2 version xu ly cung mot strategy trong cung mot dot chay. Dieu nay tranh dung do output, state va artifact bi trung lap.
+Khong de 2 Kaggle versions xu ly cung mot strategy vao cung mot artifact set. Neu chay trung strategy, state va artifact co the ghi de nhau khi merge.
 
-### 3. Chay notebook 00 - Setup va smoke
+## 3. Artifact Handoff Giua Cac Notebook Doc Lap
 
-Notebook: `00_setup_and_smoke.ipynb`
+Moi notebook phai duoc coi la mot run moi, khong co working cache cua notebook truoc.
+
+Quy uoc:
+
+- Notebook 01 tao `w3_local_outputs_01_<RUN_TAG>.zip`.
+- Notebook 02 restore zip tu notebook 01 va tao `w3_local_outputs_02_<RUN_TAG>.zip`.
+- Notebook 03 restore zip tu notebook 02 va tao `w3_local_outputs_03_<RUN_TAG>.zip`.
+- Notebook 04 restore zip tu notebook 03 va tao final `w3_local_outputs_<RUN_TAG>.zip`.
+
+Co 2 cach dua zip sang notebook sau:
+
+1. Save Version notebook truoc, roi add output cua version do lam input dataset cho notebook sau.
+2. Tai zip ve may, tao/upload Kaggle dataset rieng, roi attach dataset do vao notebook sau.
+
+Trong notebook sau, set:
+
+```python
+PREVIOUS_OUTPUT_SLUGS = ["<duong-dan-tuong-doi-duoi-input-root-chua-artifact-cua-notebook-truoc>"]
+```
+
+Neu input dataset chi chua dung mot artifact theo `RUN_TAG`, co the de:
+
+```python
+PREVIOUS_OUTPUT_SLUGS = []
+```
+
+Notebook se tu tim folder/file tuong ung, vi du `w3_local_outputs_01_part_a`, ben duoi `INPUT_ROOT`.
+
+Vi du cho `part_a`:
+
+```python
+# Notebook 02, neu Kaggle dataset da tu unzip zip thanh folder
+PREVIOUS_OUTPUT_SLUGS = ["w3-local-outputs/w3_local_outputs_01_part_a"]
+
+# Notebook 03
+PREVIOUS_OUTPUT_SLUGS = ["w3-local-outputs/w3_local_outputs_02_part_a"]
+
+# Notebook 04
+PREVIOUS_OUTPUT_SLUGS = ["w3-local-outputs/w3_local_outputs_03_part_a"]
+```
+
+Neu dataset cua ban van giu file zip, van co the dung kieu:
+
+```python
+PREVIOUS_OUTPUT_SLUGS = ["w3-01-part-a-output"]
+```
+
+Voi `part_b`, dung path rieng cho part_b. Khong attach chung part_a va part_b vao cung mot notebook run neu `RUN_TAG`/`SELECTED_STRATEGIES` dang chi xu ly mot partition.
+
+## 4. Chay Notebook 00 - Setup And Smoke
+
+Notebook:
+
+```text
+notebooks/kaggle/00_setup_and_smoke.ipynb
+```
 
 Muc tieu:
 
-- install dependencies tu `requirements-kaggle.txt`
-- xac nhan 2 scripts import moi ton tai:
-  - `import_graph_payload.py`
-  - `import_embedding_artifacts.py`
-- sinh local-kaggle command manifest
-- xac nhan layout output:
-  - `chunks/`
-  - `entities/`
-  - `payloads/`
-  - `embeddings/`
-  - `reports/`
-  - `state/`
+- Install dependencies tu `backend/requirements-kaggle.txt`.
+- Kiem tra `CORPUS_DIR`.
+- Kiem tra `CORPUS_DIR / "guideline" / "source_registry.json"`.
+- Kiem tra cac scripts import moi.
+- Sinh manifest local-kaggle o `reports/`.
+- Tao layout `w3_local_outputs/`.
 
-Ban can:
+Thao tac:
 
-1. Sua `RUN_TAG`, `PARTITION_MODE`, `SELECTED_STRATEGIES`, `SELECTED_SOURCES` theo version dang chay.
-2. Chay toan bo notebook.
-3. Kiem tra cell cuoi co manifest va thong bao output layout.
+1. Attach dung 2 datasets.
+2. Sua `RUN_TAG`, `PARTITION_MODE`, `SELECTED_STRATEGIES`, `SELECTED_SOURCES`.
+3. Run all cells.
+4. Chi chuyen sang notebook 01 neu cell smoke pass va khong bao thieu `source_registry.json`.
 
-Neu notebook 00 khong pass, khong nen chay 01-04.
+Neu notebook fallback sang path local, kiem tra lai slug va cau truc dataset.
 
-### 4. Chay notebook 01 - Chunking
+## 5. Chay Notebook 01 - Chunk BGE-M3
 
-Notebook: `01_chunk_bge_m3.ipynb`
+Notebook:
+
+```text
+notebooks/kaggle/01_chunk_bge_m3.ipynb
+```
 
 Muc tieu:
 
-- sinh `chunks/<strategy>/`
-- sinh `reports/<strategy>_chunk_summary.json`
-- neu strategy la `chunk_semantic_embedding_bge_m3`, sinh them `reports/<strategy>_semantic_similarity_report.json`
+- Sinh chunks duoi `w3_local_outputs/chunks/<strategy>/`.
+- Sinh summary duoi `w3_local_outputs/reports/<strategy>_chunk_summary.json`.
+- Voi `chunk_semantic_embedding_bge_m3`, sinh them semantic similarity report.
+- Dong goi zip `w3_local_outputs_01_<RUN_TAG>.zip`.
 
-Ban can:
+Dieu kien dau vao:
+
+- `benchmark/tuvi_golden_dataset/corpus/` ton tai trong corpus dataset.
+- `benchmark/tuvi_golden_dataset/guideline/source_registry.json` ton tai.
+- Notebook truyen `--source-registry` tro ve guideline trong `CORPUS_DIR`.
+
+Thao tac:
 
 1. Giu cung partition contract nhu notebook 00.
-2. Chay notebook.
-3. Kiem tra cell summary cuoi:
+2. Run all cells.
+3. Kiem tra summary cuoi notebook:
    - strategy nao da chay
-   - strategy nao bi skip
-   - file summary nao da ton tai
+   - strategy nao skip
+   - file summary nao ton tai
+4. Kiem tra cell pack artifact da ghi zip:
+   - `w3_local_outputs_01_part_a.zip`
+   - hoac `w3_local_outputs_01_part_b.zip`
+5. Save Version notebook 01.
+6. Tai zip ve hoac attach output version 01 lam input dataset cho notebook 02.
 
-Neu Version A:
+Ky vong:
 
-- se chi sinh chunks cho `chunk_fixed_512` va `chunk_structure_parent_child`
+- Version A chi sinh chunks cho `chunk_fixed_512` va `chunk_structure_parent_child`.
+- Version B chi sinh chunks cho `chunk_semantic_embedding_bge_m3`.
 
-Neu Version B:
+## 6. Chay Notebook 02 - Entity Qwen
 
-- se chi sinh chunks cho `chunk_semantic_embedding_bge_m3`
+Notebook:
 
-### 5. Chay notebook 02 - Entity extraction
-
-Notebook: `02_entity_qwen.ipynb`
-
-Muc tieu:
-
-- doc chunks da sinh
-- ghi `entities/<strategy>/<strategy>_entities.jsonl`
-- ghi:
-  - `reports/<strategy>_entity_summary.json`
-  - `reports/<strategy>_entity_review.json`
-  - `state/<strategy>_entity_state.json`
-
-Notebook nay da bat `--resume`.
-
-Ban can:
-
-1. Giu cung `SELECTED_STRATEGIES` cua notebook 01 cho cung version.
-2. Chay notebook.
-3. Kiem tra cell summary cuoi:
-   - file entity summary
-   - file entity review
-   - file state
-
-Khuyen nghi:
-
-- khong chia notebook 02 theo source
-- neu session co dau hieu sap het, dung o cuoi notebook, Save Version, va tai artifact ve
-
-### 6. Chay notebook 03 - Relation/payload export
-
-Notebook: `03_relation_qwen_hybrid.ipynb`
+```text
+notebooks/kaggle/02_entity_qwen.ipynb
+```
 
 Muc tieu:
 
-- chay `write_graph_provenance.py` o `--dry-run`
-- sinh:
-  - `reports/<strategy>_graph_write_summary.json`
-  - `reports/<strategy>_relation_review.json`
-  - `state/<strategy>_graph_relation_state.json`
-  - `payloads/<strategy>/`
+- Doc chunks da sinh o notebook 01.
+- Ghi entities duoi `w3_local_outputs/entities/<strategy>/`.
+- Ghi entity reports va state duoi `reports/` va `state/`.
+- Dong goi zip `w3_local_outputs_02_<RUN_TAG>.zip`.
 
-Quan trong:
+Notebook nay dung `--resume`.
 
-- notebook nay da truyen `--payload-output-dir`
-- payloads nay la artifact importable, dung cho local import ve sau ma khong can chay lai relation LLM
+Thao tac:
 
-Ban can:
+1. Attach corpus dataset, scripts dataset, va zip output tu notebook 01.
+2. Giu cung `RUN_TAG` va `SELECTED_STRATEGIES` voi notebook 01 cho version dang chay.
+3. Set `PREVIOUS_OUTPUT_SLUGS` den path chua artifact cua notebook 01, hoac de `[]` neu input root chi co artifact dung `RUN_TAG`.
+4. Run all cells.
+5. Kiem tra dau notebook co in `RESTORED_OUTPUTS` va zip notebook 01 da duoc restore.
+6. Kiem tra summary cuoi:
+   - `<strategy>_entities.jsonl`
+   - `<strategy>_entity_summary.json`
+   - `<strategy>_entity_review.json`
+   - `<strategy>_entity_state.json`
+7. Kiem tra cell pack artifact da ghi `w3_local_outputs_02_<RUN_TAG>.zip`.
+8. Save Version notebook 02.
+9. Tai zip ve hoac attach output version 02 lam input dataset cho notebook 03.
 
-1. Giu cung partition strategy nhu 01 va 02.
-2. Chay notebook.
-3. Kiem tra cell summary cuoi:
-   - `summary` ton tai
-   - `review` ton tai
+Khuyen nghi khong chia notebook 02 theo source, vi entity output hien duoc to chuc theo strategy.
+
+## 7. Chay Notebook 03 - Relation Va Payload Export
+
+Notebook:
+
+```text
+notebooks/kaggle/03_relation_qwen_hybrid.ipynb
+```
+
+Muc tieu:
+
+- Chay `write_graph_provenance.py` o `--dry-run`.
+- Khong ghi Neo4j/Supabase.
+- Export graph payload importable vao `w3_local_outputs/payloads/<strategy>/`.
+- Dong goi zip `w3_local_outputs_03_<RUN_TAG>.zip`.
+
+Notebook phai truyen:
+
+```text
+--payload-output-dir /kaggle/working/w3_local_outputs/payloads/<strategy>
+--source-registry /kaggle/input/<CORPUS_SLUG>/benchmark/tuvi_golden_dataset/guideline/source_registry.json
+```
+
+Thao tac:
+
+1. Attach corpus dataset, scripts dataset, va zip output tu notebook 02.
+2. Giu cung `RUN_TAG` va strategy partition voi notebook 01 va 02.
+3. Set `PREVIOUS_OUTPUT_SLUGS` den path chua artifact cua notebook 02, hoac de `[]` neu input root chi co artifact dung `RUN_TAG`.
+4. Run all cells.
+5. Kiem tra dau notebook co in `RESTORED_OUTPUTS` va zip notebook 02 da duoc restore.
+6. Kiem tra summary cuoi:
+   - graph summary ton tai
+   - relation review ton tai
    - `payloads/<strategy>/` ton tai
+7. Kiem tra cell pack artifact da ghi `w3_local_outputs_03_<RUN_TAG>.zip`.
+8. Save Version notebook 03.
+9. Tai zip ve hoac attach output version 03 lam input dataset cho notebook 04.
 
-Neu `payloads/<strategy>/` chua co, khong duoc coi la hoan tat graph step.
+Neu `payloads/<strategy>/` chua co, graph step chua du de import local.
 
-### 7. Chay notebook 04 - Embedding va dong goi artifact
+## 8. Chay Notebook 04 - Embed Va Pack Artifacts
 
-Notebook: `04_embed_and_pack_artifacts.ipynb`
+Notebook:
+
+```text
+notebooks/kaggle/04_embed_and_pack_artifacts.ipynb
+```
 
 Muc tieu:
 
-- sinh embeddings JSONL trong:
-  - `embeddings/<strategy>/<source>_<strategy>_embeddings.jsonl`
-- sinh:
-  - `reports/embed_<source>_<strategy>.json`
-  - `reports/retrieval_<source>_<strategy>.json`
-  - `state/<source>_<strategy>_embedding_state.json`
-- dong goi zip:
-  - `w3_local_outputs_<run_tag>.zip`
+- Sinh BGE-M3 embedding JSONL vao `w3_local_outputs/embeddings/<strategy>/`.
+- Ghi reports retrieval smoke offline.
+- Dong goi zip `w3_local_outputs_<RUN_TAG>.zip`.
 
-Notebook nay da:
+Notebook nay phai dung:
 
-- bat `--resume`
-- truyen explicit `--embedding-slot bge_m3`
-- giu nguyen `state/`, `payloads/`, `embeddings/`, `reports/` trong zip
+```text
+--embedding-slot bge_m3
+```
 
-Ban co 2 cach chay:
+Thao tac:
 
-1. Giu mac dinh chia theo strategy:
-   - dung khi muon nhat quan voi 01-03
-2. Neu can, doi sang chia theo source:
-   - `PARTITION_MODE = 'source'`
-   - `SELECTED_SOURCES = [...]`
-   - chi nen dung cho notebook 04 neu embeddings la nut that
+1. Attach corpus dataset, scripts dataset, va zip output tu notebook 03.
+2. Giu strategy partition mac dinh va cung `RUN_TAG`.
+3. Set `PREVIOUS_OUTPUT_SLUGS` den path chua artifact cua notebook 03, hoac de `[]` neu input root chi co artifact dung `RUN_TAG`.
+4. Run all cells.
+5. Kiem tra dau notebook co in `RESTORED_OUTPUTS` va zip notebook 03 da duoc restore.
+6. Tai final zip `w3_local_outputs_<RUN_TAG>.zip` ve may local.
 
-Khuyen nghi:
+Chi dung source partition cho notebook 04 neu embedding la nut that thoi gian:
 
-- van uu tien chia theo strategy cho ca dot chay
-- chi dung source partition cho notebook 04 khi can toi uu thoi gian buoc embedding
+```python
+PARTITION_MODE = "source"
+SELECTED_SOURCES = ["TVKL", "TVNL"]
+```
 
-### 8. Resume sau khi het 12h session
+Khong doi source partition cho notebook 01-03 neu chua chu dong thiet ke lai flow merge entity/relation.
 
-Co 2 muc resume:
+## 9. Resume Sau Khi Het Session
 
-1. Resume trong cung workspace/session:
-   - supported boi `--resume`
-2. Resume o session moi:
-   - chi co tac dung neu ban giu duoc `w3_local_outputs/`
-   - phai con:
-     - `state/`
-     - artifact da ghi trong `entities/`, `payloads/`, `embeddings/`, `reports/`
+Vi moi notebook la doc lap, resume luon phu thuoc vao viec restore artifact truoc do.
+
+Trong cung mot notebook run:
+
+- `--resume` dung state da nam trong `/kaggle/working/w3_local_outputs/state/`.
+
+Sang notebook run moi hoac Save Version moi:
+
+- Phai attach/upload artifact gan nhat.
+- Set `PREVIOUS_OUTPUT_SLUGS`.
+- Notebook se unzip ve:
+
+```text
+/kaggle/working/w3_local_outputs/
+```
+
+`--resume` khong the tu phuc hoi neu ban khong restore zip co `state/` va artifact da ghi.
 
 Quy trinh an toan:
 
-1. Sau moi notebook quan trong, Save Version.
-2. O cuoi notebook 04, tai `w3_local_outputs_<run_tag>.zip`.
-3. Neu can session moi, giai nen artifact cu vao `/kaggle/working/w3_local_outputs/` truoc khi rerun.
-4. Rerun cung notebook cung partition contract; `--resume` se skip phan da xong neu state va artifact con day du.
+1. Moi notebook sau khi chay xong phai co zip output.
+2. Save Version notebook do.
+3. Notebook tiep theo phai attach/upload artifact cua step truoc.
+4. Chi rerun cung `RUN_TAG` va cung strategy partition.
 
-Khong co `state/` thi `--resume` khong giup duoc.
+## 10. Chay Song Song 2 Kaggle Versions
 
-### 9. Merge artifact tu 2 Kaggle versions
+Kaggle co the chay nhieu saved versions. Cach an toan la chia theo strategy.
 
-Sau khi Version A va Version B chay xong:
+Version A:
 
-1. Tai ca hai file zip:
-   - `w3_local_outputs_part_a.zip`
-   - `w3_local_outputs_part_b.zip`
-2. Giai nen ra hai thu muc tam.
-3. Merge theo strategy vao mot artifact root local duy nhat.
+- `RUN_TAG = "part_a"`
+- `SELECTED_STRATEGIES = ["chunk_fixed_512", "chunk_structure_parent_child"]`
 
-Can ket qua cuoi cung co:
+Version B:
 
-- `chunks/chunk_fixed_512/`
-- `chunks/chunk_structure_parent_child/`
-- `chunks/chunk_semantic_embedding_bge_m3/`
-- `entities/...`
-- `payloads/...`
-- `embeddings/...`
-- `reports/...`
-- `state/...`
+- `RUN_TAG = "part_b"`
+- `SELECTED_STRATEGIES = ["chunk_semantic_embedding_bge_m3"]`
 
-Khong merge theo kieu de 2 version ghi de cung mot strategy.
+Sau moi notebook step, ca hai part deu phai co zip rieng.
 
-## Official local-Kaggle import flow
+Sau notebook 01:
 
-Kaggle GPU batch is now treated as an artifact producer only. Local web/runtime on laptop does not rerun chunk/entity/relation LLM steps.
+```text
+w3_local_outputs_01_part_a.zip
+w3_local_outputs_01_part_b.zip
+```
 
-### 1. Dat artifact vao repo local
+Sau notebook 02:
 
-Khuyen nghi giai nen artifact da merge vao:
+```text
+w3_local_outputs_02_part_a.zip
+w3_local_outputs_02_part_b.zip
+```
+
+Sau notebook 03:
+
+```text
+w3_local_outputs_03_part_a.zip
+w3_local_outputs_03_part_b.zip
+```
+
+Sau notebook 04, tai 2 final zip ve local:
+
+```text
+w3_local_outputs_part_a.zip
+w3_local_outputs_part_b.zip
+```
+
+Merge theo strategy de co artifact root cuoi cung:
+
+```text
+local_kaggle/
+|-- chunks/
+|-- entities/
+|-- payloads/
+|-- embeddings/
+|-- reports/
+`-- state/
+```
+
+Khong merge bang cach ghi de mot strategy da co tu version khac.
+
+## 11. Local Import Sau Kaggle
+
+Dat artifact da merge vao:
 
 ```text
 benchmark/tuvi_golden_dataset/local_kaggle/
 ```
 
-Trong do:
-
-- `benchmark/tuvi_golden_dataset/local_kaggle/chunks`
-- `benchmark/tuvi_golden_dataset/local_kaggle/entities`
-- `benchmark/tuvi_golden_dataset/local_kaggle/payloads`
-- `benchmark/tuvi_golden_dataset/local_kaggle/embeddings`
-- `benchmark/tuvi_golden_dataset/reports/w3_ingest_07_local_kaggle`
-
-### 2. Import graph payload khong goi lai LLM
-
-Chay theo tung strategy:
+Import graph payload theo tung strategy:
 
 ```powershell
 .\.venv\Scripts\python.exe -X utf8 scripts\import_graph_payload.py `
   --payload-input-dir benchmark\tuvi_golden_dataset\local_kaggle\payloads\chunk_fixed_512
 ```
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\import_graph_payload.py `
-  --payload-input-dir benchmark\tuvi_golden_dataset\local_kaggle\payloads\chunk_structure_parent_child
-```
-
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\import_graph_payload.py `
-  --payload-input-dir benchmark\tuvi_golden_dataset\local_kaggle\payloads\chunk_semantic_embedding_bge_m3
-```
-
-### 3. Import BGE-M3 embeddings vao slot rieng
-
-Chay theo tung strategy:
+Import BGE-M3 embeddings theo slot rieng:
 
 ```powershell
 .\.venv\Scripts\python.exe -X utf8 scripts\import_embedding_artifacts.py `
@@ -503,23 +495,7 @@ Chay theo tung strategy:
   --embedding-slot bge_m3
 ```
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\import_embedding_artifacts.py `
-  --input benchmark\tuvi_golden_dataset\local_kaggle\embeddings\chunk_structure_parent_child `
-  --embedding-slot bge_m3
-```
-
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\import_embedding_artifacts.py `
-  --input benchmark\tuvi_golden_dataset\local_kaggle\embeddings\chunk_semantic_embedding_bge_m3 `
-  --embedding-slot bge_m3
-```
-
-### 4. Chay retrieval smoke local
-
-Chay toi thieu 1 source dai dien cho moi strategy. Neu muon kiem tra day du, chay cho ca 4 source.
-
-Vi du:
+Chay retrieval smoke local:
 
 ```powershell
 .\.venv\Scripts\python.exe -X utf8 scripts\smoke_retrieval.py `
@@ -528,50 +504,59 @@ Vi du:
   --embedding-slot bge_m3
 ```
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\smoke_retrieval.py `
-  --source-id TVGM `
-  --chunking-strategy chunk_structure_parent_child `
-  --embedding-slot bge_m3
+Lap lai cho cac strategy con lai neu muon acceptance day du.
+
+## Acceptance Checklist
+
+W3 local-Kaggle path duoc coi la san sang khi:
+
+- Notebook 00 pass dataset/script smoke.
+- Notebook 01 sinh chunks cho moi strategy duoc phan cong.
+- Notebook 02 sinh entities va state cho moi strategy duoc phan cong.
+- Notebook 03 sinh `payloads/<strategy>/` cho moi strategy can import.
+- Notebook 04 sinh `embeddings/<strategy>/` va zip artifact.
+- Local import graph payload khong goi lai LLM.
+- Local import embeddings ghi vao slot `bge_m3`.
+- Retrieval smoke local pass voi `--embedding-slot bge_m3`.
+
+## Troubleshooting
+
+### Notebook 01 bao thieu guideline/source registry
+
+Kiem tra corpus dataset co file:
+
+```text
+benchmark/tuvi_golden_dataset/guideline/source_registry.json
 ```
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 scripts\smoke_retrieval.py `
-  --source-id TVGM `
-  --chunking-strategy chunk_semantic_embedding_bge_m3 `
-  --embedding-slot bge_m3
+Neu file co nhung van fail, kiem tra notebook 01 co truyen:
+
+```text
+--source-registry CORPUS_DIR / "guideline" / "source_registry.json"
 ```
 
-### 5. Runtime local dung CPU embedding
+### Notebook fallback sang path local
 
-Local web/runtime query embedding dung:
+Kiem tra:
 
-- `DENSE_QUERY_EMBEDDING_BACKEND=local`
-- `DENSE_QUERY_EMBEDDING_MODEL=BAAI/bge-m3`
-- `DENSE_QUERY_EMBEDDING_DEVICE=cpu`
-- `DENSE_QUERY_EMBEDDING_SLOT=bge_m3`
+- Dataset da attach vao notebook chua.
+- `CORPUS_SLUG`, `SCRIPTS_SLUG`, va `PREVIOUS_OUTPUT_SLUGS` dung chua.
+- Cau truc dataset co dung root path khong.
 
-Laptop local khong can GPU de phuc vu query embedding runtime.
+Kaggle path ky vong:
 
-## Acceptance checklist for W3 local-Kaggle path
+```text
+/kaggle/input/tuvi-golden-corpus/benchmark/tuvi_golden_dataset
+/kaggle/input/tuvi-battu-scripts
+/kaggle/input/datasets/dinhbaobao/tuvi-golden-corpus/benchmark/tuvi_golden_dataset
+/kaggle/input/datasets/dinhbaobao/tuvi-battu-scripts
+```
 
-W3 local-Kaggle path duoc coi la hoan tat khi:
+### Het GPU memory hoac session gan 12h
 
-1. Ca 3 strategy da co:
-   - chunk artifacts
-   - entity artifacts
-   - graph payloads
-   - embedding artifacts
-2. `payloads/<strategy>/` ton tai cho moi strategy can import.
-3. `embeddings/<strategy>/` ton tai cho moi source-strategy can import.
-4. Import local khong goi lai LLM.
-5. Retrieval smoke pass voi `--embedding-slot bge_m3`.
-6. Runtime query embedding local tra vector `1024` dimensions tren CPU.
+Uu tien:
 
-Notes:
-
-- `chunk_semantic_embedding_bge_m3` remains a separate auxiliary strategy. Do not rename it to `chunk_semantic_embedding`, and do not overwrite Gemini baseline embeddings.
-- Same Neo4j database is used for both backends, but vectors are isolated by slot:
-  - Gemini: `Chunk.embedding` + `chunkVector` + `768`
-  - BGE-M3: `Chunk.embedding_bge_m3` + `chunkVectorBgeM3` + `1024`
-- `write_graph_provenance.py --payload-output-dir ...` exports importable JSONL payloads in both `dry-run` and production mode.
+1. Chia theo strategy nhu Version A/B.
+2. Giam batch size embedding neu can.
+3. Save Version sau tung notebook nang.
+4. Tai zip artifact de co the restore `w3_local_outputs/` o session moi.
