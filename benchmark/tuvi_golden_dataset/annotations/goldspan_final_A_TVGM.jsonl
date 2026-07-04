@@ -1,0 +1,143 @@
+{
+"slot_id": "TVQA-001",
+"chart_id": "CHART-001",
+"question_complexity": "Direct",
+"gold_context_spans": [],
+"generated_answer": "Cung Mệnh của lá số này nằm ở vị trí địa chi Ngọ. Tại cung Mệnh có sao chính tinh là Thái Dương (đang ở trạng thái Miếu).",
+"word_count": 25
+}
+{
+"slot_id": "TVQA-002",
+"chart_id": "CHART-001",
+"question_complexity": "One-hop",
+"gold_context_spans": [
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_P078_080_SEC30",
+"span_id": "TVGM_P078_SEC30_SP01",
+"page_pdf": 80,
+"page_book": 80,
+"quote": "Thái Dương: \n  - Tánh chất: Quan lộc. \n  - Tánh tình: Thông minh, Trung thực. \n  - Địa vị Tiền tài: Uy quyền, Tài lộc.",
+"relevance_note": "Span này mô tả đặc điểm tính cách của sao Thái Dương (Thông minh, Trung thực) phù hợp với câu hỏi về tính cách và xu hướng của đương số khi có sao này tại cung Mệnh."
+}
+],
+"generated_answer": "Sao Thái Dương thủ Mệnh cho thấy bạn là người có tính cách thông minh và trung thực. Về xu hướng sống, Thái Dương chủ về quan lộc, mang lại tiềm năng về uy quyền và tài lộc, phản ánh khuynh hướng chú trọng đến sự nghiệp và danh tiếng.",
+"word_count": 45
+}
+{
+"slot_id": "TVQA-003",
+"chart_id": "CHART-001",
+"question_complexity": "One-hop",
+"gold_context_spans": [
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_III_SEC1",
+"span_id": "TVGM_CHc_III_SEC1_SP01",
+"page_pdf": 47,
+"page_book": 47,
+"quote": "Thân đóng ở Mệnh, Tài, Quan thì cùng tam hợp trong vòng Thái Tuế với Mạng; nhưng ở Phối, Thiên (Di) hay Phúc thì Thân ở vào tam hợp đối kháng với tam hợp ở Mạng.",
+"relevance_note": "Giải thích vị trí Thân cư Thiên Di nằm trong tam hợp đối kháng với Mệnh, ảnh hưởng đến tư cách và hành động."
+},
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_III_SEC3",
+"span_id": "TVGM_CHc_III_SEC3_SP02",
+"page_pdf": 47,
+"page_book": 47,
+"quote": "Mạng ở tam hợp Tuế Phá, Thân ở tam hợp Thái Tuế: Tuổi thanh niên chống đối, nhưng giữ lòng sắt son và có tư cách; ngoài 30 tuổi đạt được sở nguyện, tạo lý tưởng, lẽ sống.",
+"relevance_note": "Cho thấy tiềm năng của người có Thân cư ở tam hợp Thái Tuế (như trường hợp Thân cư Thiên Di trong tam hợp đối kháng) là đạt được sở nguyện sau 30 tuổi."
+}
+],
+"generated_answer": "Thân cư Thiên Di nằm trong tam hợp đối kháng với Mệnh. Với cấu trúc này, bạn thường trải qua giai đoạn đầu đời gặp nhiều thử thách hoặc phải đấu tranh. Tuy nhiên, khi Thân cư tại tam hợp Thái Tuế, bạn giữ vững nhân cách và lý tưởng. Sau 30 tuổi, khi Thân vận hành, bạn có tiềm năng cao đạt được sở nguyện, tạo dựng được lẽ sống và thành công bền vững nhờ vào sự kiên trì và tư cách đàng hoàng của mình.",
+"word_count": 86
+}
+{
+"slot_id": "TVQA-004",
+"chart_id": "CHART-001",
+"question_complexity": "One-hop",
+"gold_context_spans": [
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_P017_018_SEC11",
+"span_id": "TVGM_P017_018_SEC11_SP01",
+"page_pdf": 17,
+"page_book": 17,
+"quote": "Đối với người có Cung An Mệnh tại Ngọ hoặc Mùi: - Tuổi Giáp, Kỷ: Thổ Cục. - Tuổi Ất, Canh: Mộc Cục. - Tuổi Bính, Tân: Kim Cục. - Tuổi Đinh, Nhâm: Thủy Cục. - Tuổi Mậu, Quý: Hỏa Cục.",
+"relevance_note": "Cung Mệnh tại Ngọ (của lá số CHART-001) với tuổi Mậu Ngọ thuộc Mậu Quý (trong bảng Mậu Quý là Hỏa Cục) xác định Cục là Hỏa lục cục."
+},
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_II_SECI",
+"span_id": "TVGM_CHc_II_SECI_SP02",
+"page_pdf": 34,
+"page_book": 34,
+"quote": "Bản Mệnh của tôi kết hợp với Cục có thuận lợi cho cuộc đời tôi không?",
+"relevance_note": "Thông tin về Mệnh Cục tương quan (Cục sinh Mệnh) được nêu trong ngữ nghĩa lá số CHART-001 (core_identity)."
+}
+],
+"generated_answer": "Bản Mệnh của bạn là Thành Đầu Thổ (hành Thổ) và Cục là Hỏa lục cục (hành Hỏa). Theo nguyên tắc Ngũ hành sinh khắc, Hỏa sinh Thổ, nên đây là thế "Cục sinh Mệnh". Sự tương quan này rất thuận lợi, giống như được hoàn cảnh (Cục) hỗ trợ, nuôi dưỡng cho bản thân (Mệnh). Điều này mang lại nhiều may mắn, tạo điều kiện thuận lợi cho cuộc đời đương số phát triển vững vàng hơn.",
+"word_count": 75
+}
+{
+"slot_id": "TVQA-005",
+"chart_id": "CHART-001",
+"question_complexity": "One-hop",
+"gold_context_spans": [
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_IV_1_SECNone",
+"span_id": "TVKL_CHp_IV_SECNone_SP01",
+"page_pdf": 113,
+"page_book": 113,
+"quote": "Gặp sao xấu, thì nó giảm xấu, gặp sao tốt thì nó giảm tốt. Gặp chính tinh miếu đắc địa, thì nó làm mất cái miếu đắc địa. Gặp chính tinh hãm địa, nó lại làm cho tốt ra.",
+"relevance_note": "Giải thích tác động của Triệt (và Tuần) lên chính tinh hãm địa, giúp xác định hướng tác động lên cung Thiên Di có sao hãm hoặc vượng."
+},
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_IV_1_SECNone",
+"span_id": "TVKL_CHp_IV_SECNone_SP02",
+"page_pdf": 113,
+"page_book": 113,
+"quote": "Vì thế mà Mạng của những người có Tuần hay Triệt thường là làng nhàng, trung bình, vì cái tốt giảm đi, cái xấu cũng bớt.",
+"relevance_note": "Xác định tính chất chung của việc cung bị Tuần/Triệt tác động."
+}
+],
+"generated_answer": "Khi cung Thiên Di bị Triệt, tác động lên đương số thường ở mức trung bình. Nếu chính tinh tại Thiên Di ở thế hãm địa, Triệt có tác dụng làm tốt ra, giảm bớt sự xấu xa. Ngược lại, nếu chính tinh đắc địa hoặc miếu địa, Triệt làm mất đi thế tốt vốn có, khiến mọi sự trở nên làng nhàng. Do đó, việc đi xa hay ra ngoài làm ăn sẽ không hoàn toàn thuận lợi hoặc quá khó khăn, mà ở trạng thái bớt tốt bớt xấu, cần sự nỗ lực cân bằng.",
+"word_count": 88
+}
+{
+"slot_id": "TVQA-006",
+"chart_id": "CHART-001",
+"question_complexity": "Two-hop",
+"gold_context_spans": [
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_III_SEC1",
+"span_id": "TVGM_CHc_III_SEC1_SP01",
+"page_pdf": 44,
+"page_book": 44,
+"quote": "1 - Mạng ở tam hợp Thái Tuế, Quan Phù, Bạch Hổ:\n  * Là người có lý tưởng.\n  * Có tính tình ngay thẳng, đàng hoàng, có tư cách.\n  * Dễ thành đạt, làm những việc hợp sở thích.\n  * Được người chung quanh yêu chuộng, mến trọng.",
+"relevance_note": "Cung Mệnh của đương số thuộc tam hợp Dần-Ngọ-Tuất, nằm trong vòng Thái Tuế. Đây là cơ sở để kết luận về tư cách và năng lực lãnh đạo/sở thích."
+},
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_III_SECNone",
+"span_id": "TVGM_CHc_III_SECNone_SP02",
+"page_pdf": 44,
+"page_book": 44,
+"quote": "Người ở tam hợp Thái Tuế có thêm Tứ Linh (Long, Phượng, Hổ, Cái) là 4 bộ sao rất tốt chỉ về công danh, về làm ăn tốt, về sự ngay chính.",
+"relevance_note": "Bộ sao Tứ Linh (thường đi kèm tam hợp Thái Tuế) hỗ trợ khả năng công danh và làm ăn."
+},
+{
+"doc_id": "TVGM",
+"section_id": "TVGM_CHc_III_SECNone",
+"span_id": "TVGM_CHc_III_SECNone_SP03",
+"page_pdf": 47,
+"page_book": 47,
+"quote": "Chú ý 1: Ý nghĩa Mạng ở tam hợp Thái Tuế không đương nhiên cho con người một ngôi vị cao cả trong xã hội, mà chỉ cho nhân cách, lý tưởng, sự dễ dàng đạt sở nguyện trong nghề nghiệp.",
+"relevance_note": "Làm rõ năng lực lãnh đạo không chỉ phụ thuộc vào tam hợp Thái Tuế mà là nhân cách và sự phù hợp nghề nghiệp."
+}
+],
+"generated_answer": "Bạn có tư cách, sự ngay thẳng và lý tưởng, đặc biệt thuận lợi để làm việc hợp sở thích và dễ được người xung quanh yêu chuộng. Việc Mệnh nằm ở tam hợp Thái Tuế giúp bạn có nhân cách tốt và dễ đạt sở nguyện trong nghề nghiệp. Tuy nhiên, điều này không đương nhiên mang lại ngôi vị lãnh đạo cao cấp, mà chủ yếu tạo nền tảng vững chắc cho sự nghiệp. Bạn nên tập trung vào những công việc phù hợp với lý tưởng cá nhân để phát huy tốt nhất năng lực thực tài của mình.",
+"word_count": 92
+}
