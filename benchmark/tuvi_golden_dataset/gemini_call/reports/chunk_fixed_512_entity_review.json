@@ -1,0 +1,281 @@
+{
+  "chunk_type_counts": {
+    "chunk": 1158
+  },
+  "entity_count": 79978,
+  "entity_type_counts": {
+    "CucBanMenh": 1354,
+    "Cung": 11945,
+    "DaiHan": 32,
+    "DiaChi": 13274,
+    "KhaiNiem": 1377,
+    "LuanGiai": 6029,
+    "NguHanh": 7181,
+    "QuanHeCung": 2559,
+    "Sao": 25751,
+    "ThienCan": 4521,
+    "ToHop": 1914,
+    "TrangThaiSao": 2444,
+    "TuHoa": 649,
+    "VanHan": 948
+  },
+  "error_count": 0,
+  "extraction_source_counts": {
+    "dictionary": 71633,
+    "llm": 4437,
+    "rule": 3908
+  },
+  "generated_at": "2026-07-04T12:36:27.202585Z",
+  "reviewed_chunks": [
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000001",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Phần I NHỮNG NGUYÊN TẮC ĐẦU Phần này là phần căn bản gồm những nguyên tắc quan trọng để tiến vào các phần sau. Đó là những nguyên tắc phát xuất từ Dịch Lý để tạo thành môn Lý Số Đông Phương, chúng tạo ra những cách thức căn bản để giải đoán một lá số. SỰ TẠO THÀNH BỘ LỊCH ĐÔNG PHƯƠNG Lịch Tây Phương theo vận hành của trái đất quanh mặt trời gồm 365 ngày ¼, là 1 năm. Lịch Đông Phương tính từng tháng theo sự vận hành của mặt trời quanh trái đất và theo sự vận hành của trái đất quanh mặt trời. Tuy rằng khác nhau, nhưng hai thứ lịch đều ấn định khí tiết, mùa màng, và lịch nào cũng thích ứng cho đúng năm Mặt Trời. Như lịch Tây Phương thêm tháng 2 nhuận, từ 28 ngày tăng lên 29 ngày. Còn lịch Đông ",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 1,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000002",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Canh Ngọ, Tân Mùi, Nhâm Thân, Quý Dậu, Giáp Tuất, Ất Hợi, Bính Tý, Đinh Sửu, Mậu Dần, Kỷ Mão, Canh Thìn, Tân Tỵ, Nhâm Ngọ, Quý Mùi, Giáp Thân, Ất Dậu, Bính Tuất, Đinh Hợi, Mậu Tý. Tháng 7 là tháng Thân. Tháng 8 là tháng Dậu. Tháng 9 là tháng Tuất. Tháng 10 là tháng Hợi. Tháng 11 là tháng Tý. Tháng 12 là tháng Sửu. Hàng Can của tháng thay đổi tùy theo hàng Can của năm và theo công thức sau ấn định cho tháng Dần (tháng Giêng): Nếu năm có Can là Giáp hoặc Kỷ thì tháng Giêng là tháng Bính Dần. Nếu năm có Can là Ất hoặc Canh thì tháng Giêng là tháng Mậu Dần. Nếu năm có Can là Bính hoặc Tân thì tháng Giêng là tháng Canh Dần. Nếu năm có Can là Đinh hoặc Nhâm thì tháng Giêng là tháng Nhâm Dần. Nếu n",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 2,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000003",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Thìn, v.v… cho đến tháng Dậu là Quý Dậu, tháng Tuất là Giáp Tuất, tháng Hợi là Ất Hợi, tháng Tý là Bính Tý, tháng Sửu là Đinh Sửu. Ngày cũng có tên, được ấn định bằng Can và Chi. Sách Vạn Niên Lịch (2) ấn định sẵn tên của mỗi ngày. Giờ cũng mang Can và Chi. Giờ Tý là 11 giờ đến 1 giờ đêm, tính vào ngày hôm sau. Giờ Sửu là 1 giờ đến 3 giờ đêm… Cứ thế tính tiếp diễn đến giờ Ngọ là 11 giờ trưa đến 1 giờ. Giờ Hợi là 9 giờ đến 11 giờ đêm là hết ngày. Hàng Can của ngày được tính theo công thức: Nếu ngày có Can là Giáp hoặc Kỷ, giờ Tý sẽ bắt đầu là giờ Giáp Tý. Nếu ngày có Can là Ất hoặc Canh, giờ Tý sẽ bắt đầu là giờ Bính Tý. Nếu ngày có Can là Bính hoặc Tân, giờ Tý sẽ bắt đầu là giờ Mậu Tý. Nếu n",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 3,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000004",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Bính: Dương Hỏa Đinh: Âm Hỏa Mậu: Dương Thổ Kỷ: Âm Thổ Canh: Dương Kim Tân: Âm Kim Nhâm: Dương Thủy Quý: Âm Thủy Hành của Chi như sau: Tý: Dương Thủy Sửu: Âm Thổ Dần: Dương Mộc Mão: Âm Mộc Thìn: Dương Thổ Tỵ: Âm Hỏa Ngọ: Dương Hỏa Mùi: Âm Thổ Thân: Dương Kim Dậu: Âm Kim Tuất: Dương Thổ Hợi: Âm Thủy Ngũ Hành Sinh Khắc Sinh: Kim sinh Thủy Thủy sinh Mộc Mộc sinh Hỏa Hỏa sinh Thổ Thổ sinh Kim * Kim sinh Thủy, vì nấu thì chảy thành nước lỏng. * Thủy sinh Mộc, vì nước nuôi cây tươi tốt. * Mộc sinh Hỏa, vì gỗ cháy sinh ra lửa. * Hỏa sinh Thổ, vì lửa đốt cháy mọi vật thành đất. * Thổ sinh Kim, vì trong đất có sinh quang kim khí. Khắc: Kim khắc Mộc Mộc khắc Thổ Thổ khắc Thủy Thủy khắc Hỏa Hỏa khắc Ki",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 4,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000005",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "• Thổ khắc Thủy, vì đất hút nước và ngăn chặn nước. • Thủy khắc Hỏa, vì nước dập tắt lửa. • Hỏa khắc Kim, vì lửa thiêu hủy kim khí. Ngũ hành sinh khắc và nguyên tắc Âm Dương đều thiết yếu trong việc giải đoán, nên cần phải nhớ! Hành của năm Tên một năm có Can và Chi; cả Can và Chi gom lại gọi là Nạp Âm của năm. Thí dụ: Năm Bính Tý, Can là Bính, Chi là Tý, Nạp Âm là Bính Tý. Ngoài hành của Can và của Chi, Nạp Âm cũng có hành. Hành của Nạp Âm năm sinh là hành mạng. Nhưng hành Kim, Mộc, Thủy, Hỏa, Thổ là đơn thuần cho nên người ta thêm ý nghĩa cho mỗi hành. Thí dụ: Thủy thì có Thủy đầu suối, Thủy trời mưa, Thủy sông lớn, Thủy biển cả v.v… Chúng tôi thấy sự tách bạch đó không cần thiết trong việ",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 5,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000006",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Ngoài ra, Cung cũng có phương hướng: - Tý: chính Bắc - Ngọ: chính Nam - Dậu: chính Tây - Mão: chính Đông Đông Tây Nam Bắc đều giống hệt của Tây Phương, còn quy thức Bắc dưới Nam trên là do con người định, cũng như Kim La Bàn chỉ Bắc của Tây Phương thì Đông Phương gọi là Kim Chỉ Nam. Phương hướng ứng đúng với hành theo Dịch Lý: phía Nam là xích đạo, nóng, nên là Hỏa, phía Bắc là băng giá nên là Thủy, phía Đông là cây cối, rừng, đồng ruộng, nên là Mộc; phía Tây là đại lục, nhiều mỏ kim khí, nên là Kim. Thổ là trung phương ở 4 cung Thìn, Tuất, Sửu, Mùi. Mọi hành đều trở về Thổ, từ ý niệm này mà có các bộ tam hợp. CÁC TAM HỢP Các bộ tam hợp được thể hiện qua các hình tam giác trên lá số, nối các",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 6,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000007",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "2- Tỵ Dậu Sửu: Hỏa Tỵ bao gồm Thổ sinh cho Kim Dậu, Kim Dậu trở về Thổ Sửu. 3- Thân Tý Thìn: Kim Thân sinh cho Thủy Tý, Thủy Tý trở về Thổ Thìn. 4- Hợi Mão Mùi: Thủy Hợi sinh cho Mộc Mão, Mộc Mão sinh Hỏa trở về Thổ Mùi (Mộc sinh Hỏa, Hỏa sinh Thổ). Trong mỗi tam hợp, có chữ đầu, chữ giữa và chữ cuối. Chữ đầu sinh ra cung giữa, cung giữa là cung chính (chính Hành và chính Phương), cung dưới bao giờ cũng là cung Thổ, còn gọi là cung Mộ, vì mọi hành đều trở về Thổ. Vậy cung Dần Thân Tỵ Hợi là Tứ Sinh Cung Tý Ngọ Mão Dậu là Tứ Chính Cung Thìn Tuất Sửu Mùi là Tứ Mộ Chú ý quan trọng: Mỗi tam hợp có một hành, đó là hành của cung trong tứ chính. Như vậy: - Dần Ngọ Tuất hành Hỏa - Tỵ Dậu Sửu hành Ki",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 7,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000008",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Các cung nhị hợp với nhau là: - Sửu và Tý - Dần và Hợi - Mão và Tuất - Thìn và Dậu - Tỵ và Thân - Ngọ và Mùi Nói là nhị hợp thì chẳng thể vì vị trí đối xứng, cũng không phải vì hành cung này sinh cho hành cung kia (vì Thổ Sửu và Thủy Tý, Mộc Mão và Thổ Tuất chỉ có khắc chứ không có sinh). Nhưng trở về các tam hợp là thấy ngay. Như Sửu và Tý nhị hợp, Sửu thuộc tam hợp Tỵ Dậu Sửu, hành Kim, Tý thuộc tam hợp Thân Tý Thìn, hành Thủy. Sửu nhị hợp với Tý vì tam hợp Kim sinh tam hợp Thủy. Điểm hết các cung nhị hợp, ta thấy: - Sửu và Tý: Tam hợp Kim sinh tam hợp Thủy. - Dần và Hợi: Tam hợp Mộc (Hợi Mão Mùi) sinh tam hợp Hỏa (Dần Ngọ Tuất). - Mão và Tuất: Tam hợp Mộc (Hợi Mão Mùi) sinh tam hợp Hỏa (D",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 8,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000009",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Tử Vi Giảng Minh – Thiên Phúc Vũ Tiến Phúc trang 9 trình bày sơ đồ mối quan hệ giữa các địa chi kèm thuộc tính âm dương và chiều sinh (hợp) của chúng như sau: Các địa chi được phân bố theo các vị trí: Tỵ (âm), Ngọ (dương), Mùi (âm), Thân (dương), Dậu (âm), Tuất (dương), Hợi (âm), Tý (dương), Sửu (âm), Dần (dương), Mão (âm), Thìn (dương). Các cặp nhị hợp được xác định theo chiều sinh (hướng mũi tên): - Sửu (âm) sinh cho Tý (dương). - Hợi (âm) sinh cho Dần (dương). - Mão (âm) sinh cho Tuất (dương). - Dậu (âm) sinh cho Thìn (dương). - Tỵ (âm) sinh cho Thân (dương). - Mùi (âm) sinh cho Ngọ (dương). Điều đó cho phép ta hoàn thiện hình vẽ bằng chiều mũi tên (hướng sinh): - Sửu sinh Tý (Sửu hợp Tý)",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 9,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000010",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "CUNG XUNG CHIẾU (hay chính chiếu) (6) Sơ đồ vị trí các cung trên Thiên Bàn được sắp xếp như sau: * Hàng trên cùng (từ trái qua phải): Tý, Ngọ, Mùi, Thân. * Hàng thứ hai: Thìn (bên trái), Dậu (bên phải). * Hàng thứ ba: Mão (bên trái), Tuất (bên phải). * Hàng cuối cùng (từ trái qua phải): Dần, Sửu, Tý, Hợi. * Các mũi tên thể hiện mối quan hệ đối xứng qua tâm của Thiên Bàn giữa các cung tương ứng. Cung Xung Chiếu là cung từ phía đối diện chiếu sang (đối xứng qua tâm của Thiên Bàn). Các cặp xung chiếu là: * Tý - Ngọ * Sửu - Mùi * Dần - Thân * Mão - Dậu * Thìn - Tuất * Tỵ - Hợi Có chiếu là có kể. Nhưng tại sao gọi là Xung Chiếu? Đó là hành cung này khắc hành cung kia chăng? Không phải, vì Thìn và",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 10,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000011",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Mão – Dậu: Dậu khắc xuất, Mão khắc nhập (Dậu khắc Mão) Thìn – Tuất: Thìn khắc xuất, Tuất bị khắc nhập (Thìn khắc Tuất) Tỵ – Hợi: Tỵ khắc xuất, Hợi bị khắc nhập (Tỵ khắc Hợi) (7) Trong phép giải đoán, khi xem một cung, phải xem cả cung chính chiếu. Nếu cung chính khắc xuất cung chính chiếu, thì nó đoạt các sao tốt, thế tốt của cung chính chiếu. Nếu cung chính chiếu bị khắc nhập thì nó bị gán cho những sao xấu, thế xấu của cung chính chiếu (đó là ý nghĩa của sự xung chiếu). Xem một cung cộng thêm những cung nào? Vậy tổng kết, xét một cung, phải cộng thêm các sao ở hai cung trong tam hợp, các sao ở cung nhị hợp (nếu được nhị hợp sinh nhập), vì có sao tốt ở cung xung chiếu (nếu khắc xuất cung xu",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 11,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000012",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Phần II AN SAO Muốn lập một lá số Tử Vi, trước hết phải an sao, sau mới giải đoán. Trước khi an sao, còn có những vấn đề phải ghi chú: 1 - Phải đủ yếu tố: Nam, Nữ, năm, tháng, ngày, giờ sinh. 2 - Vấn đề giờ: Thường bị ghi sai, cho nên phải kiểm điểm lại. Các cách kiểm lại giờ sinh được ghi ở mục sau, chúng cũng thuộc vào giải đoán. Kiểm lại, thấy đúng thì thôi. Thấy sai mới nên sửa giờ sinh. Ngoài ra, cũng nên chú ý cho những người ghi là sinh lúc 11 giờ 30, 12 giờ đêm. Đó là giờ Tý, thuộc vào ngày sau (thì phải ghi là ngày hôm sau). Giờ hiện hành cũng là giờ thời tiền chiến và được chuyển sang giờ Tử Vi như sau: - Giờ Tý, giờ Ngọ: tương ứng với 11 giờ và 1 giờ. - Giờ Sửu, giờ Mùi: tương ứng",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 12,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000013",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "3 giờ – 5 giờ sáng = giờ Dần 5 giờ – 7 giờ sáng = giờ Mão 7 giờ – 9 giờ = giờ Thìn 9 giờ – 11 giờ trưa = giờ Tỵ 11 giờ – 1 giờ = giờ Ngọ 1 giờ – 3 giờ = giờ Mùi 3 giờ – 5 giờ chiều = giờ Thân 5 giờ – 7 giờ = giờ Dậu 7 giờ – 9 giờ tối = giờ Tuất 9 giờ – 11 giờ đêm = giờ Hợi Trong thời Nhật và sau chính biến 09 – 03 – 1945, giờ được tăng thêm 1 giờ, tức là 12 giờ đêm – 2 giờ là giờ Tý, đến tháng 10 – 1945 lại trở về cũ. Khi có giờ phải hỏi rõ giờ đêm hay giờ chiều. 3 - Vấn đề tháng nhuận: Nếu là tháng nhuận, thì 15 ngày đầu được kể là thuộc tháng trước, 15 ngày sau kể là thuộc tháng sau. Thí dụ: - 13 tháng 6 nhuận = kể là 13 tháng 6 - 24 tháng 6 nhuận = kể là 24 tháng 7 4 - Vấn đề năm: Thường ",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 13,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000014",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Biết rằng vừa sinh ra là 1 tuổi, rồi qua năm sau là 2 tuổi, thì số tuổi là 1 tức là cùng Can với năm nay; theo chiều thuận nhảy 1 cung là 11 v.v… Thí dụ: 31 là Can Chi gì? Ta bấm vào cung Mùi (năm nay là Kỷ Mùi) và nói 1. Nhảy 1 cung đến Dậu nói 11. Nhảy 1 cung nữa đến Hợi nói 21. Nhảy 1 cung nữa đến Sửu nói 31, 31 là tuổi Kỷ Sửu. - Tuổi có số chót là 0: Thí dụ: 20 tuổi có Can Chi gì? Sinh năm Kỷ Mùi (năm nay) phải là 1 tuổi. Vậy muốn 0 tuổi phải tiến lên 1 cung, tức là cung Thân và phải tiến cả hàng Can là Canh Thân, từ Thân ta đọc 0, nhảy 1 cung đến Tuất đọc 10, nhảy 1 cung nữa đến Tý đọc 20. Vậy 20 tuổi là Canh Tý. b. Biết Can, Chi, tìm số tuổi: Thí dụ: Tuổi Bính Tuất, bao nhiêu tuổi? Năm",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 14,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000015",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "AN SAO Trước hết vẽ bản đồ, giữa là Thiên Bàn, chung quanh là Địa Bàn với các cung. Bản số phải đủ lớn để viết trên 100 Sao. Cần phải nhớ tên các cung để an sao vào (nhưng không cần ghi tên các cung vào đó, trừ lúc ban đầu chưa quen). Ghi Âm Dương Nam Nữ, hành Mạng, an Tuần… Nếu là trai hay gái sinh năm Dương thì ghi Dương Nam hay Dương Nữ. Nếu là trai hay gái sinh năm Âm thì ghi Âm Nam, hay Âm Nữ. Rồi theo bảng sau đây ghi hành của mạng và an sao Tuần (Tuần không). Cấu trúc sơ đồ địa bàn gồm 12 cung được sắp xếp như sau: - Hàng trên cùng: Tỵ, Ngọ, Mùi, Thân. - Hàng giữa: Thìn (bên trái), Dậu (bên phải), cùng phần trống ở giữa để ghi các thông tin cá nhân bao gồm: Năm sinh, Tháng, Ngày, Giờ,",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 15,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000016",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "NĂM SINH, HÀNH MẠNG VÀ SAO TUẦN * Đối với các tuổi Giáp Tý, Ất Sửu (Hải trung Kim); Bính Dần, Đinh Mão (Lô trung Hỏa); Mậu Thìn, Kỷ Tỵ (Đại lâm Mộc); Canh Ngọ, Tân Mùi (Lộ bàng Thổ); Nhâm Thân, Quý Dậu (Kiếm phong Kim) thì Tuần đóng tại Tuất và Hợi. * Đối với các tuổi Giáp Tuất, Ất Hợi (Sơn đầu Hỏa); Bính Tý, Đinh Sửu (Giản hạ Thủy); Mậu Dần, Kỷ Mão (Thành đầu Thổ); Canh Thìn, Tân Tỵ (Bạch lạp Kim); Nhâm Ngọ, Quý Mùi (Dương liễu Mộc) thì Tuần đóng tại Thân và Dậu. * Đối với các tuổi Giáp Thân, Ất Dậu (Tuyền trung Thủy); Bính Tuất, Đinh Hợi (Ốc thượng Thổ); Mậu Tý, Kỷ Sửu (Tích lịch Hỏa); Canh Dần, Tân Mão (Tùng bách Mộc); Nhâm Thìn, Quý Tỵ (Trường lưu Thủy) thì Tuần đóng tại Ngọ và Mùi. * Đố",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 16,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000017",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Định Cục Ghi Đại Vận: Theo bảng sau đây mà định cục (tùy theo cung An Mệnh và hàng Can năm sinh). Bảng định cục xác định theo Cung An Mệnh và Tuổi (Can năm sinh): Đối với người có Cung An Mệnh tại Tý hoặc Sửu: - Tuổi Giáp, Kỷ: Thủy Cục. - Tuổi Ất, Canh: Hỏa Cục. - Tuổi Bính, Tân: Thổ Cục. - Tuổi Đinh, Nhâm: Mộc Cục. - Tuổi Mậu, Quý: Kim Cục. Đối với người có Cung An Mệnh tại Dần, Mão, Tuất hoặc Hợi: - Tuổi Giáp, Kỷ: Hỏa Cục. - Tuổi Ất, Canh: Thổ Cục. - Tuổi Bính, Tân: Mộc Cục. - Tuổi Đinh, Nhâm: Kim Cục. - Tuổi Mậu, Quý: Thủy Cục. Đối với người có Cung An Mệnh tại Thìn hoặc Tỵ: - Tuổi Giáp, Kỷ: Mộc Cục. - Tuổi Ất, Canh: Kim Cục. - Tuổi Bính, Tân: Thủy Cục. - Tuổi Đinh, Nhâm: Hỏa Cục. - Tuổi ",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 17,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000018",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "Số cục dùng để ghi Đại vận: Kể từ cung Mệnh, ghi mỗi cung một số theo chiều thuận nếu là Dương Nam, Âm Nữ; theo chiều nghịch nếu là Âm Nam, Dương Nữ. Các số là số cục tùy theo cục tìm thấy, tiếp theo mỗi cung là số đó cộng 10, 20, 30... Thí dụ: Thủy Nhị Cục, ghi 2, 12, 22, 32, 42, 52, 62, 72... AN TỬ VI: Sao Tử Vi an hành theo Cục và ngày sinh. Tùy theo Cục mà xem các bảng sau này, thấy ghi ngày sinh ở đâu, an Tử Vi ở đấy. Đối với Thủy Nhị Cục, vị trí an sao Tử Vi tương ứng với ngày sinh như sau: - Ngày 1: An tại cung có số 24. - Ngày 2: An tại cung có số 2. - Ngày 3: An tại cung có số 3. - Ngày 4: An tại cung có số 4. - Ngày 5: An tại cung có số 5. - Ngày 6: An tại cung có số 6. - Ngày 7: A",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 18,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000019",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "TỬ VI GIẢNG MINH – Thiên Phúc Vũ Tiến Phúc www.tuviglobal.com 19 Mộc tam cục bao gồm các ngày sau: Ngày 4, 14, 7, 17, 10, 20, 13, 23, 12, 15, 18, 21, 1, 11, 16, 26, 9, 24, 8, 19, 29, 6, 27, 5, 28, 2, 25, 22, 3, 30. Kim tứ cục bao gồm các ngày sau: Ngày 25, 6, 29, 10, 14, 18, 16, 19, 20, 23, 24, 27, 28, 21, 2, 22, 12, 15, 17, 26, 8, 11, 13, 9, 5, 1, 30, 4, 7, 3.",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 19,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    },
+    {
+      "chunk_id": "TVGM_chunk_fixed_512_chunk_000020",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "entities": [],
+      "excerpt": "TỬ VI GIẢNG MINH – Thiên Phúc Vũ Tiến Phúc www.tuviglobal.com 20 THỔ NGŨ CỤC: Các ngày trong tháng được sắp xếp theo vị trí như sau: - Ô 1: ngày 24, 8, 19, 3, 14, 9. - Ô 2: ngày 20, 15, 10, 5, 17. - Ô 3: ngày 29, 13, 27, 4. - Ô 4: ngày 1, 25, 12. - Ô 5: ngày 18, 7. - Ô 6: ngày 30. - Ô 7: ngày 6, 23, 16, 28, 21, 26, 2. HỎA LỤC CỤC: Các ngày trong tháng được sắp xếp theo vị trí như sau: - Ô 1: ngày 10, 24, 4, 18, 12, 27, 6, 21. - Ô 2: ngày 16, 29, 23, 11, 15. - Ô 3: ngày 22, 30, 5, 25, 9. - Ô 4: ngày 28, 2, 8, 19, 3. - Ô 5: ngày 14, 1, 20, 7, 26, 13.",
+      "parse_errors": [],
+      "source_id": "TVGM",
+      "source_page": 20,
+      "warnings": [
+        "no_entities_extracted"
+      ]
+    }
+  ],
+  "sample_size": 20,
+  "source_counts": {
+    "TVGM": 258,
+    "TVHS": 287,
+    "TVKL": 347,
+    "TVNL": 266
+  },
+  "strategy_counts": {
+    "chunk_fixed_512": 1158
+  }
+}

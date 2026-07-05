@@ -9,6 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT_DIR / "scripts"))
 
 import extract_entities  # noqa: E402
+import local_llm  # noqa: E402
 
 
 CONFIG_PATH = ROOT_DIR / "configs" / "entity_extraction.yaml"
@@ -70,6 +71,13 @@ class FakeGeminiClient:
     def extract(self, chunk: dict, config: dict) -> list[dict]:
         self.calls += 1
         response = self.responses.pop(0) if self.responses else []
+        if isinstance(response, Exception):
+            raise response
+        return response  # type: ignore[return-value]
+
+    def extract_many(self, chunks: list[dict], config: dict) -> dict[str, list[dict]]:
+        self.calls += 1
+        response = self.responses.pop(0) if self.responses else {}
         if isinstance(response, Exception):
             raise response
         return response  # type: ignore[return-value]
@@ -146,6 +154,24 @@ def test_multi_key_adapter_round_robins_successful_requests() -> None:
 
     assert [client.calls for client in clients] == [2, 2]
     assert adapter.get_usage_summary()["api_key_usage_counts"] == {"key_1": 2, "key_2": 2}
+
+
+def test_multi_key_adapter_batches_successful_requests() -> None:
+    config = load_config()
+    chunks = [
+        make_chunk("Thien Co o Cung Menh.", chunk_id="a"),
+        make_chunk("Thai Duong o Cung Ngo.", chunk_id="b"),
+    ]
+    clients = [FakeGeminiClient([{"a": [], "b": []}]), FakeGeminiClient([{}])]
+    adapter = extract_entities.MultiKeyGeminiLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    assert adapter.extract_many(chunks, config) == {"a": [], "b": []}
+    assert [client.calls for client in clients] == [1, 0]
+    assert adapter.get_usage_summary()["api_key_usage_counts"] == {"key_1": 1, "key_2": 0}
 
 
 def test_multi_key_adapter_fails_over_on_rate_limit() -> None:
@@ -860,6 +886,127 @@ def test_resume_ignores_existing_output_without_completed_state() -> None:
     assert all(record["entity_id"] != "stale" for record in records)
 
 
+def test_batch_missing_chunk_response_is_not_marked_completed(monkeypatch: pytest.MonkeyPatch) -> None:
+    chunks = [
+        make_chunk("Doan nay khong co gi.", chunk_id="first", strategy_id="chunk_fixed_256"),
+        make_chunk("Doan nay cung khong co gi.", chunk_id="second", strategy_id="chunk_fixed_256"),
+    ]
+    work_dir = smoke_dir("batch-missing-response")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    state_path = work_dir / "state.json"
+    write_jsonl(input_path, chunks)
+
+    class MissingChunkBatchAdapter:
+        extraction_model = "fake-gemini-batch"
+
+        def extract_many(self, batch: list[dict], config: dict) -> dict[str, list[dict]]:
+            return {"first": []}
+
+    monkeypatch.setattr(extract_entities, "make_llm_adapter", lambda args, config: MissingChunkBatchAdapter())
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--state-output",
+            str(state_path),
+            "--llm-batch-size",
+            "2",
+        ]
+    )
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert summary["completed"] is False
+    assert summary["stop_reason"] == "missing_batch_chunk_response"
+    assert summary["processed_chunk_count"] == 1
+    assert set(state["completed_chunks"]) == {"hash-first"}
+
+
+def test_batch_json_error_falls_back_to_single_chunk(monkeypatch: pytest.MonkeyPatch) -> None:
+    chunks = [
+        make_chunk("Doan nay noi ve dac cach.", chunk_id="first", strategy_id="chunk_fixed_256"),
+        make_chunk("Doan nay noi ve cach cuc.", chunk_id="second", strategy_id="chunk_fixed_256"),
+    ]
+    work_dir = smoke_dir("batch-fallback")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    write_jsonl(input_path, chunks)
+
+    class FallbackBatchAdapter:
+        extraction_model = "fake-gemini-batch"
+
+        def __init__(self) -> None:
+            self.single_calls = 0
+
+        def extract_many(self, batch: list[dict], config: dict) -> dict[str, list[dict]]:
+            raise ValueError("bad json")
+
+        def extract(self, chunk: dict, config: dict) -> list[dict]:
+            self.single_calls += 1
+            surface = "dac cach" if chunk["chunk_id"] == "first" else "cach cuc"
+            return [
+                {
+                    "confidence": 0.8,
+                    "entity_type": "KhaiNiem",
+                    "evidence_text": surface,
+                    "surface_text": surface,
+                }
+            ]
+
+    adapter = FallbackBatchAdapter()
+    monkeypatch.setattr(extract_entities, "make_llm_adapter", lambda args, config: adapter)
+
+    summary = extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--llm-batch-size",
+            "2",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    assert summary["completed"] is True
+    assert summary["error_count"] == 0
+    assert summary["warning_count"] == 1
+    assert summary["processed_chunk_count"] == 2
+    assert summary["llm_request_count"] == 3
+    assert adapter.single_calls == 2
+    assert {record["surface_text"] for record in records if record["extraction_source"] == "llm"} >= {
+        "dac cach",
+        "cach cuc",
+    }
+
+
+def test_progress_logging_reports_entity_counts(capsys: pytest.CaptureFixture[str]) -> None:
+    work_dir = smoke_dir("progress-logging")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    write_jsonl(input_path, [make_chunk("Thien Co o Cung Menh.", chunk_id="progress")])
+
+    extract_entities.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--llm-augmentation",
+            "off",
+            "--progress-interval",
+            "1",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert "[entity-progress]" in captured.err
+    assert "processed=1/1" in captured.err
+
+
 def test_run_loads_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[Path] = []
     monkeypatch.setattr(extract_entities, "load_dotenv", lambda path: calls.append(path))
@@ -926,6 +1073,66 @@ def test_run_stops_cleanly_when_all_keys_unavailable(monkeypatch: pytest.MonkeyP
     assert state["completed_chunks"] == {}
 
 
+def test_cli_runtime_budget_writes_partial_state_for_resume(monkeypatch: pytest.MonkeyPatch) -> None:
+    work_dir = smoke_dir("runtime-budget-resume")
+    input_path = work_dir / "chunks.jsonl"
+    output_path = work_dir / "entities.jsonl"
+    summary_path = work_dir / "partial_summary.json"
+    state_path = work_dir / "state.json"
+    chunks = [
+        make_chunk("Thien Co o Cung Menh.", chunk_id="first", strategy_id="chunk_fixed_256"),
+        make_chunk("Thai Duong o Cung Ngo.", chunk_id="second", strategy_id="chunk_fixed_256"),
+    ]
+    write_jsonl(input_path, chunks)
+    monotonic_values = [0.0, 11.0, 12.0]
+
+    def fake_monotonic() -> float:
+        return monotonic_values.pop(0) if monotonic_values else 12.0
+
+    monkeypatch.setattr(extract_entities.time, "monotonic", fake_monotonic)
+
+    exit_code = extract_entities.cli(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--partial-summary-output",
+            str(summary_path),
+            "--state-output",
+            str(state_path),
+            "--llm-augmentation",
+            "off",
+            "--max-runtime-seconds",
+            "10",
+        ]
+    )
+
+    records = read_jsonl(output_path)
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert summary["completed"] is False
+    assert summary["stop_reason"] == "max_runtime_seconds"
+    assert summary["processed_chunk_count"] == 1
+    assert len(records) > 0
+    assert set(state["completed_chunks"]) == {"hash-first"}
+
+
+def test_local_llm_json_parser_handles_common_qwen_format_noise() -> None:
+    assert local_llm.parse_json_payload('{"entities":[]} extra trailing text') == {"entities": []}
+    assert local_llm.parse_json_payload('```json\n{"entities":[{"entity_type":"Sao","surface_text":"A","evidence_text":"A","confidence":0.8,},],}\n```') == {
+        "entities": [{"confidence": 0.8, "entity_type": "Sao", "evidence_text": "A", "surface_text": "A"}]
+    }
+    payload = local_llm.parse_json_payload(
+        '{"entities":[{"entity_type":"Sao","surface_text":"A","evidence_text":"A","confidence":0.8},'
+        '{"entity_type":"Sao","surface_text":"broken"'
+    )
+    assert payload == {
+        "entities": [{"confidence": 0.8, "entity_type": "Sao", "evidence_text": "A", "surface_text": "A"}]
+    }
+
+
 def test_local_qwen_adapter_adds_llm_entities_without_loading_model() -> None:
     config = load_config()
     chunk = make_chunk("Doan nay noi ve dac cach trong luan giai.")
@@ -962,3 +1169,38 @@ def test_local_qwen_adapter_adds_llm_entities_without_loading_model() -> None:
     assert any(record["canonical_name"] == "dac cach" for record in records)
     assert any(record["extraction_source"] == "llm" for record in records)
     assert adapter.get_usage_summary()["llm_backend"] == "local"
+
+
+def test_local_qwen_adapter_accepts_top_level_entity_list() -> None:
+    config = load_config()
+    chunk = make_chunk("Doan nay noi ve dac cach trong luan giai.")
+
+    class FakeJsonClient:
+        model_name = "Qwen/Qwen2.5-7B-Instruct"
+
+        def get_usage_summary(self) -> dict:
+            return {"llm_backend": "local", "local_llm_call_count": 1}
+
+        def generate_json(self, prompt: str) -> list[dict]:
+            assert "chunk_text" in prompt
+            return [
+                {
+                    "confidence": 0.8,
+                    "entity_type": "KhaiNiem",
+                    "evidence_text": "dac cach",
+                    "surface_text": "dac cach",
+                }
+            ]
+
+    adapter = extract_entities.LocalQwenEntityLLMAdapter(FakeJsonClient())
+
+    records = extract_entities.extract_chunk_entities(
+        chunk,
+        config,
+        adapter=adapter,
+        llm_augmentation_enabled=True,
+        extraction_run_id="local-list-run",
+    )
+
+    assert any(record["canonical_name"] == "dac cach" for record in records)
+    assert any(record["extraction_source"] == "llm" for record in records)

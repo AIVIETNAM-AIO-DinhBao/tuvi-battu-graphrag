@@ -34,6 +34,7 @@ DEFAULT_SOURCE_REGISTRY = (
 )
 DEFAULT_RELATION_MODEL = "gemini-2.0-flash-lite"
 DEFAULT_REQUESTS_PER_MINUTE = 30.0
+DEFAULT_LLM_BATCH_SIZE = 4
 DEFAULT_MAX_RETRY_SLEEP_SECONDS = 300.0
 ONTOLOGY_SOURCE_ID = "tuvi_ontology_v1"
 
@@ -151,6 +152,30 @@ class SentenceSpan:
 
 def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def format_seconds(seconds: float | None) -> str:
+    if seconds is None:
+        return "unknown"
+    seconds = max(0.0, seconds)
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    minutes, remaining_seconds = divmod(int(seconds), 60)
+    if minutes < 60:
+        return f"{minutes}m{remaining_seconds:02d}s"
+    hours, remaining_minutes = divmod(minutes, 60)
+    return f"{hours}h{remaining_minutes:02d}m"
+
+
+def log_progress(prefix: str, message: str) -> None:
+    print(f"[{prefix}] {utc_now()} {message}", file=sys.stderr, flush=True)
+
+
+def summarize_exception(exc: Exception, *, max_length: int = 700) -> str:
+    message = f"{type(exc).__name__}: {exc}".replace("\n", " ").strip()
+    if len(message) > max_length:
+        return message[: max_length - 3].rstrip() + "..."
+    return message
 
 
 def make_graph_write_run_id() -> str:
@@ -776,6 +801,12 @@ class MockRelationLLMAdapter:
     def extract(self, chunk: dict[str, Any], entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return []
 
+    def extract_many(
+        self,
+        chunk_entity_batches: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+    ) -> dict[str, list[dict[str, Any]]]:
+        return {str(chunk["chunk_id"]): self.extract(chunk, entities) for chunk, entities in chunk_entity_batches}
+
 
 class GeminiKeysUnavailableError(RuntimeError):
     """Raised when every configured Gemini API key is unavailable for this run."""
@@ -823,10 +854,22 @@ class GeminiRelationLLMAdapter:
         model = self._genai.GenerativeModel(self.model_name)
         response = model.generate_content(build_relation_prompt(chunk, entities))
         payload = parse_json_payload(getattr(response, "text", ""))
-        relations = payload.get("relations", payload if isinstance(payload, list) else [])
-        if not isinstance(relations, list):
-            raise ValueError("Gemini relation response must contain a relations list.")
-        return [relation for relation in relations if isinstance(relation, dict)]
+        return extract_relations_from_payload(payload, source="Gemini")
+
+    def extract_many(
+        self,
+        chunk_entity_batches: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+    ) -> dict[str, list[dict[str, Any]]]:
+        self._rate_limiter.wait()
+        self._genai.configure(api_key=self._api_key)
+        model = self._genai.GenerativeModel(self.model_name)
+        response = model.generate_content(build_batch_relation_prompt(chunk_entity_batches))
+        payload = parse_json_payload(getattr(response, "text", ""))
+        return extract_relations_by_chunk_from_payload(
+            payload,
+            expected_chunk_ids=[str(chunk["chunk_id"]) for chunk, _ in chunk_entity_batches],
+            source="Gemini",
+        )
 
 
 class MultiKeyGeminiRelationLLMAdapter:
@@ -855,6 +898,7 @@ class MultiKeyGeminiRelationLLMAdapter:
         self._disabled = [False for _ in clients]
         self._available_after = [0.0 for _ in clients]
         self._rate_limit_attempts = [0 for _ in clients]
+        self._last_errors: list[str | None] = [None for _ in clients]
         self.api_key_usage_counts = {self._key_label(index): 0 for index in range(len(clients))}
         self.quota_failover_count = 0
 
@@ -869,6 +913,11 @@ class MultiKeyGeminiRelationLLMAdapter:
     def get_usage_summary(self) -> dict[str, Any]:
         return {
             "api_key_count": self.api_key_count,
+            "api_key_last_errors": {
+                self._key_label(index): error
+                for index, error in enumerate(self._last_errors)
+                if error
+            },
             "api_key_usage_counts": dict(self.api_key_usage_counts),
             "disabled_key_count": self.disabled_key_count,
             "quota_failover_count": self.quota_failover_count,
@@ -877,9 +926,19 @@ class MultiKeyGeminiRelationLLMAdapter:
     def _key_label(self, index: int) -> str:
         return f"key_{index + 1}"
 
+    def _last_error_summary(self) -> str:
+        errors = [
+            f"{self._key_label(index)}={error}"
+            for index, error in enumerate(self._last_errors)
+            if error
+        ]
+        return "; ".join(errors)
+
     def _next_available_index(self) -> int:
         if all(self._disabled):
-            raise GeminiKeysUnavailableError("All Gemini API keys are unavailable for this run.")
+            details = self._last_error_summary()
+            suffix = f" Last errors: {details}" if details else ""
+            raise GeminiKeysUnavailableError(f"All Gemini API keys are unavailable for this run.{suffix}")
 
         while True:
             now = self._time()
@@ -896,7 +955,9 @@ class MultiKeyGeminiRelationLLMAdapter:
                     next_available_time = available_at
 
             if next_available_time is None:
-                raise GeminiKeysUnavailableError("All Gemini API keys are unavailable for this run.")
+                details = self._last_error_summary()
+                suffix = f" Last errors: {details}" if details else ""
+                raise GeminiKeysUnavailableError(f"All Gemini API keys are unavailable for this run.{suffix}")
             self._sleep(max(0.0, next_available_time - now))
 
     def _sleep_for_rate_limit(self, index: int) -> None:
@@ -926,6 +987,47 @@ class MultiKeyGeminiRelationLLMAdapter:
                 self.api_key_usage_counts[label] += 1
                 return relations
             except Exception as exc:
+                self._last_errors[index] = summarize_exception(exc)
+                if self.stop_on_daily_quota and is_daily_quota_error(exc):
+                    self._disabled[index] = True
+                    self.quota_failover_count += 1
+                    print(
+                        f"Daily quota exhausted for Gemini API {label}; trying another key.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    continue
+                if is_rate_limit_error(exc):
+                    self.quota_failover_count += 1
+                    self._sleep_for_rate_limit(index)
+                    print(
+                        f"Rate limit for Gemini API {label}; trying another key.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    continue
+                raise
+
+    def extract_many(
+        self,
+        chunk_entity_batches: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+    ) -> dict[str, list[dict[str, Any]]]:
+        while True:
+            index = self._next_available_index()
+            client = self.clients[index]
+            label = self._key_label(index)
+            try:
+                if not hasattr(client, "extract_many"):
+                    return {
+                        str(chunk["chunk_id"]): client.extract(chunk, entities)
+                        for chunk, entities in chunk_entity_batches
+                    }
+                relations_by_chunk = client.extract_many(chunk_entity_batches)
+                self._rate_limit_attempts[index] = 0
+                self.api_key_usage_counts[label] += 1
+                return relations_by_chunk
+            except Exception as exc:
+                self._last_errors[index] = summarize_exception(exc)
                 if self.stop_on_daily_quota and is_daily_quota_error(exc):
                     self._disabled[index] = True
                     self.quota_failover_count += 1
@@ -958,10 +1060,7 @@ class LocalQwenRelationLLMAdapter:
 
     def extract(self, chunk: dict[str, Any], entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
         payload = self.client.generate_json(build_relation_prompt(chunk, entities))
-        relations = payload.get("relations", payload if isinstance(payload, list) else [])
-        if not isinstance(relations, list):
-            raise ValueError("Local Qwen relation response must contain a relations list.")
-        return [relation for relation in relations if isinstance(relation, dict)]
+        return extract_relations_from_payload(payload, source="Local Qwen")
 
 
 def build_relation_prompt(chunk: dict[str, Any], entities: list[dict[str, Any]]) -> str:
@@ -993,12 +1092,86 @@ def build_relation_prompt(chunk: dict[str, Any], entities: list[dict[str, Any]])
     )
 
 
+def build_batch_relation_prompt(
+    chunk_entity_batches: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+) -> str:
+    chunk_payload = []
+    for chunk, entities in chunk_entity_batches:
+        chunk_payload.append(
+            {
+                "chunk_id": chunk.get("chunk_id"),
+                "chunk_strategy_id": chunk.get("chunk_strategy_id"),
+                "entities": [
+                    {
+                        "entity_id": entity["entity_id"],
+                        "entity_type": entity["entity_type"],
+                        "canonical_name": entity["canonical_name"],
+                        "surface_text": entity.get("surface_text"),
+                        "char_start": entity["char_start"],
+                        "char_end": entity["char_end"],
+                    }
+                    for entity in entities
+                ],
+                "chunk_text": chunk_text(chunk),
+            }
+        )
+    relation_types = ", ".join(sorted(EXTRACTABLE_RELATION_TYPES))
+    return (
+        "Báº¡n lÃ  relation extractor cho corpus Tá»­ Vi. "
+        "Chá»‰ táº¡o relation giá»¯a cÃ¡c entity_id Ä‘Ã£ Ä‘Æ°á»£c cung cáº¥p; khÃ´ng táº¡o entity má»›i. "
+        "Relation pháº£i cÃ³ evidence_text xuáº¥t hiá»‡n nguyÃªn vÄƒn trong chunk_text. "
+        f"Whitelist relation_type: {relation_types}.\n"
+        "Return exactly one result object for every input chunk, preserving chunk_id. "
+        "If a chunk has no valid relation, return an empty relations list for that chunk.\n"
+        "Output JSON strict dáº¡ng {\"chunks\":[{\"chunk_id\":\"...\",\"relations\": "
+        "[{\"relation_type\": \"...\", \"head_entity_id\": \"...\", \"tail_entity_id\": \"...\", "
+        "\"evidence_text\": \"...\", \"relation_subtype\": \"...\", \"confidence\": 0.0}]}]}.\n"
+        f"chunks:\n{json.dumps(chunk_payload, ensure_ascii=False, separators=(',', ':'))}"
+    )
+
+
 def parse_json_payload(text: str) -> Any:
     stripped = text.strip()
     fenced = re.match(r"^```(?:json)?\s*(.*?)\s*```$", stripped, flags=re.S | re.I)
     if fenced:
         stripped = fenced.group(1).strip()
     return json.loads(stripped)
+
+
+def extract_relations_from_payload(payload: Any, *, source: str) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        relations = payload
+    elif isinstance(payload, dict):
+        relations = payload.get("relations", [])
+    else:
+        raise ValueError(f"{source} relation response must be a JSON object or list.")
+    if not isinstance(relations, list):
+        raise ValueError(f"{source} relation response must contain a relations list.")
+    return [relation for relation in relations if isinstance(relation, dict)]
+
+
+def extract_relations_by_chunk_from_payload(
+    payload: Any,
+    *,
+    expected_chunk_ids: list[str],
+    source: str,
+) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(payload, dict):
+        raise ValueError(f"{source} batch relation response must be a JSON object.")
+    chunks = payload.get("chunks")
+    if not isinstance(chunks, list):
+        raise ValueError(f"{source} batch relation response must contain a chunks list.")
+
+    expected = set(expected_chunk_ids)
+    by_chunk: dict[str, list[dict[str, Any]]] = {}
+    for item in chunks:
+        if not isinstance(item, dict):
+            continue
+        chunk_id = str(item.get("chunk_id") or "").strip()
+        if not chunk_id or chunk_id not in expected:
+            continue
+        by_chunk[chunk_id] = extract_relations_from_payload(item, source=source)
+    return by_chunk
 
 
 def validate_relation_evidence(relation: dict[str, Any], chunk: dict[str, Any] | None) -> None:
@@ -1080,11 +1253,22 @@ def extract_llm_relations(
     retry_base_seconds: float = 10.0,
     max_retry_sleep_seconds: float = DEFAULT_MAX_RETRY_SLEEP_SECONDS,
     stop_on_daily_quota: bool = True,
+    llm_batch_size: int = DEFAULT_LLM_BATCH_SIZE,
+    max_llm_requests: int | None = None,
+    progress_interval: int = 50,
     drop_counts: Counter[str] | None = None,
     state_output: Path | None = None,
     resume: bool = False,
     usage_summary: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    if llm_batch_size < 1:
+        raise ValueError("--llm-batch-size must be a positive integer.")
+    if max_llm_requests is not None and max_llm_requests < 1:
+        raise ValueError("--max-llm-requests must be a positive integer.")
+    if progress_interval < 0:
+        raise ValueError("--progress-interval must be zero or a positive integer.")
+
+    started_monotonic = time.monotonic()
     by_chunk: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entity in entities:
         by_chunk[str(entity["chunk_id"])].append(entity)
@@ -1127,13 +1311,63 @@ def extract_llm_relations(
     relations: list[dict[str, Any]] = []
     state = load_relation_state(state_output)
     completed_chunks = state.setdefault("completed_chunks", {})
+    use_batch_llm = llm_batch_size > 1 and hasattr(adapter, "extract_many")
+    llm_request_count = 0
+    llm_completed_chunk_count = 0
+    missing_response_count = 0
+    no_llm_needed_count = 0
+    resume_skipped_count = 0
+    stopped_early = False
+    stop_reason: str | None = None
+    pending: list[tuple[dict[str, Any], list[dict[str, Any]]]] = []
+
+    def llm_request_budget_exhausted() -> bool:
+        return max_llm_requests is not None and llm_request_count >= max_llm_requests
+
+    def store_completed_chunk(chunk: dict[str, Any], chunk_relations: list[dict[str, Any]]) -> None:
+        nonlocal llm_completed_chunk_count
+        relations.extend(chunk_relations)
+        llm_completed_chunk_count += 1
+        completed_chunks[relation_state_key(chunk)] = {
+            "chunk_hash": chunk.get("chunk_hash"),
+            "chunk_id": chunk.get("chunk_id"),
+            "completed_at": utc_now(),
+            "relation_count": len(chunk_relations),
+            "relation_records": chunk_relations,
+        }
+        write_relation_state(state_output, state)
+        maybe_log_progress(last_chunk_id=str(chunk.get("chunk_id") or "-"))
+
+    def maybe_log_progress(*, force: bool = False, last_chunk_id: str | None = None) -> None:
+        if progress_interval == 0 and not force:
+            return
+        if not force and llm_completed_chunk_count % progress_interval != 0:
+            return
+        elapsed = time.monotonic() - started_monotonic
+        rate = llm_completed_chunk_count / elapsed if elapsed > 0 and llm_completed_chunk_count > 0 else 0.0
+        remaining = max(0, len(pending) - llm_completed_chunk_count)
+        eta = remaining / rate if rate > 0 else None
+        log_progress(
+            "relation-progress",
+            (
+                f"processed={llm_completed_chunk_count}/{len(pending)} "
+                f"relations={len(relations)} llm_requests={llm_request_count} "
+                f"resume_skipped={resume_skipped_count} no_llm_needed={no_llm_needed_count} "
+                f"missing_responses={missing_response_count} "
+                f"elapsed={format_seconds(elapsed)} eta={format_seconds(eta)} "
+                f"last_chunk={last_chunk_id or '-'}"
+            ),
+        )
+
     for chunk in chunks:
         key = relation_state_key(chunk)
         if resume and key in completed_chunks:
+            resume_skipped_count += 1
             relations.extend(completed_chunks[key].get("relation_records") or [])
             continue
         chunk_entities = by_chunk.get(str(chunk["chunk_id"]), [])
         if len(chunk_entities) < 2:
+            no_llm_needed_count += 1
             completed_chunks[key] = {
                 "chunk_hash": chunk.get("chunk_hash"),
                 "chunk_id": chunk.get("chunk_id"),
@@ -1143,20 +1377,98 @@ def extract_llm_relations(
             }
             write_relation_state(state_output, state)
             continue
-        raw_relations = adapter.extract(chunk, chunk_entities)
-        chunk_relations = postprocess_llm_relations(raw_relations, chunk, chunk_entities, drop_counts)
-        relations.extend(chunk_relations)
-        completed_chunks[key] = {
-            "chunk_hash": chunk.get("chunk_hash"),
-            "chunk_id": chunk.get("chunk_id"),
-            "completed_at": utc_now(),
-            "relation_count": len(chunk_relations),
-            "relation_records": chunk_relations,
-        }
-        write_relation_state(state_output, state)
+        pending.append((chunk, chunk_entities))
+
+    maybe_log_progress(force=True)
+
+    for relation_batch in batched(pending, llm_batch_size if use_batch_llm else 1):
+        if llm_request_budget_exhausted():
+            stopped_early = True
+            stop_reason = "max_llm_requests"
+            if drop_counts is not None:
+                drop_counts["max_llm_requests_stop"] += len(relation_batch)
+            break
+
+        if use_batch_llm and len(relation_batch) > 1:
+            try:
+                llm_request_count += 1
+                raw_by_chunk = adapter.extract_many(relation_batch)
+            except ValueError as exc:
+                if drop_counts is not None:
+                    drop_counts["batch_response_error"] += 1
+                print(
+                    f"Relation batch response failed; falling back to single-chunk calls: {exc}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                for chunk, chunk_entities in relation_batch:
+                    if llm_request_budget_exhausted():
+                        stopped_early = True
+                        stop_reason = "max_llm_requests"
+                        if drop_counts is not None:
+                            drop_counts["max_llm_requests_stop"] += 1
+                        break
+                    llm_request_count += 1
+                    raw_relations = adapter.extract(chunk, chunk_entities)
+                    store_completed_chunk(
+                        chunk,
+                        postprocess_llm_relations(raw_relations, chunk, chunk_entities, drop_counts),
+                    )
+                if stopped_early:
+                    break
+                continue
+
+            missing_chunk_ids: list[str] = []
+            for chunk, chunk_entities in relation_batch:
+                chunk_id = str(chunk["chunk_id"])
+                if chunk_id not in raw_by_chunk:
+                    missing_chunk_ids.append(chunk_id)
+                    continue
+                store_completed_chunk(
+                    chunk,
+                    postprocess_llm_relations(raw_by_chunk[chunk_id], chunk, chunk_entities, drop_counts),
+                )
+            if missing_chunk_ids and drop_counts is not None:
+                drop_counts["missing_batch_chunk_response"] += len(missing_chunk_ids)
+            missing_response_count += len(missing_chunk_ids)
+            if missing_chunk_ids:
+                maybe_log_progress(force=True, last_chunk_id=",".join(missing_chunk_ids[:3]))
+            continue
+
+        for chunk, chunk_entities in relation_batch:
+            if llm_request_budget_exhausted():
+                stopped_early = True
+                stop_reason = "max_llm_requests"
+                if drop_counts is not None:
+                    drop_counts["max_llm_requests_stop"] += 1
+                break
+            llm_request_count += 1
+            raw_relations = adapter.extract(chunk, chunk_entities)
+            store_completed_chunk(
+                chunk,
+                postprocess_llm_relations(raw_relations, chunk, chunk_entities, drop_counts),
+            )
+        if stopped_early:
+            break
     write_relation_state(state_output, state)
+    maybe_log_progress(force=True)
     if usage_summary is not None:
-        usage_summary.update({"llm_backend": backend, "relation_model": getattr(adapter, "model_name", model_name)})
+        usage_summary.update(
+            {
+                "llm_backend": backend,
+                "llm_batch_size": llm_batch_size,
+                "llm_relation_completed_chunk_count": llm_completed_chunk_count,
+                "llm_relation_missing_chunk_response_count": missing_response_count,
+                "llm_relation_no_llm_needed_chunk_count": no_llm_needed_count,
+                "llm_relation_request_count": llm_request_count,
+                "llm_relation_resume_skipped_chunk_count": resume_skipped_count,
+                "max_llm_requests": max_llm_requests,
+                "relation_extraction_completed": not stopped_early and missing_response_count == 0,
+                "relation_stop_reason": stop_reason
+                or ("missing_batch_chunk_response" if missing_response_count else None),
+                "relation_model": getattr(adapter, "model_name", model_name),
+            }
+        )
         if hasattr(adapter, "get_usage_summary"):
             usage_summary.update(adapter.get_usage_summary())
     return deduplicate_relations(relations)
@@ -1587,6 +1899,9 @@ def build_ingest_payload(
     retry_base_seconds: float = 10.0,
     max_retry_sleep_seconds: float = DEFAULT_MAX_RETRY_SLEEP_SECONDS,
     stop_on_daily_quota: bool = True,
+    llm_batch_size: int = DEFAULT_LLM_BATCH_SIZE,
+    max_llm_requests: int | None = None,
+    progress_interval: int = 50,
     include_ontology: bool = True,
     registry: dict[str, dict[str, Any]] | None = None,
     relation_state_output: Path | None = None,
@@ -1619,6 +1934,9 @@ def build_ingest_payload(
             retry_base_seconds=retry_base_seconds,
             max_retry_sleep_seconds=max_retry_sleep_seconds,
             stop_on_daily_quota=stop_on_daily_quota,
+            llm_batch_size=llm_batch_size,
+            max_llm_requests=max_llm_requests,
+            progress_interval=progress_interval,
             drop_counts=relation_drop_counts,
             state_output=relation_state_output,
             resume=resume_relations,
@@ -1640,6 +1958,25 @@ def build_ingest_payload(
     }
     validate_relations(relations, chunks_by_hash, entity_keys)
     canonical_relation_records = build_canonical_relation_records(relations)
+    summary = build_summary(
+        chunks,
+        entities,
+        rule_relations,
+        llm_relations,
+        parent_child_relations,
+        ontology_relations,
+        relations,
+        canonical_relation_records,
+        relation_drop_counts,
+        graph_write_run_id,
+        llm_usage_summary,
+    )
+    summary["relation_mode"] = relation_mode
+    summary["completed"] = (
+        bool(summary.get("relation_extraction_completed", True))
+        if relation_mode in {"llm", "hybrid"}
+        else True
+    )
 
     return {
         "canonical_relation_records": canonical_relation_records,
@@ -1648,19 +1985,7 @@ def build_ingest_payload(
         "mention_records": build_mention_records(entities),
         "relation_records": relations,
         "source_records": build_source_records(chunks, registry),
-        "summary": build_summary(
-            chunks,
-            entities,
-            rule_relations,
-            llm_relations,
-            parent_child_relations,
-            ontology_relations,
-            relations,
-            canonical_relation_records,
-            relation_drop_counts,
-            graph_write_run_id,
-            llm_usage_summary,
-        ),
+        "summary": summary,
     }
 
 
@@ -1969,7 +2294,7 @@ def build_relation_cypher(relation_type: str, head_kind: str, tail_kind: str) ->
     """
 
 
-def batched(records: list[dict[str, Any]], batch_size: int) -> Iterable[list[dict[str, Any]]]:
+def batched(records: list[Any], batch_size: int) -> Iterable[list[Any]]:
     size = max(1, batch_size)
     for index in range(0, len(records), size):
         yield records[index : index + size]
@@ -2062,6 +2387,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-ontology", action="store_true")
     parser.add_argument("--batch-size", type=int, default=500)
     parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
+    parser.add_argument("--llm-batch-size", type=int, default=DEFAULT_LLM_BATCH_SIZE)
+    parser.add_argument("--max-llm-requests", type=int, default=None)
+    parser.add_argument("--progress-interval", type=int, default=50)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
     parser.add_argument("--max-retry-sleep-seconds", type=float, default=DEFAULT_MAX_RETRY_SLEEP_SECONDS)
@@ -2113,6 +2441,9 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         retry_base_seconds=args.retry_base_seconds,
         max_retry_sleep_seconds=args.max_retry_sleep_seconds,
         stop_on_daily_quota=args.stop_on_daily_quota,
+        llm_batch_size=args.llm_batch_size,
+        max_llm_requests=args.max_llm_requests,
+        progress_interval=args.progress_interval,
         include_ontology=not args.skip_ontology,
         registry=load_source_registry(args.source_registry),
         relation_state_output=args.state_output,

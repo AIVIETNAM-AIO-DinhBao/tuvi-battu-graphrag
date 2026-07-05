@@ -17,9 +17,6 @@ def extract_json_candidate(text: str) -> str:
     if fenced:
         stripped = fenced.group(1).strip()
 
-    if stripped.startswith("{") or stripped.startswith("["):
-        return stripped
-
     start_positions = [pos for pos in (stripped.find("{"), stripped.find("[")) if pos >= 0]
     if not start_positions:
         return stripped
@@ -51,8 +48,89 @@ def extract_json_candidate(text: str) -> str:
     return stripped[start:]
 
 
+def repair_json_candidate(candidate: str) -> str:
+    repaired = candidate.strip()
+    repaired = re.sub(r",\s*([}\]])", r"\1", repaired)
+    quote_count = 0
+    escape = False
+    for char in repaired:
+        if escape:
+            escape = False
+            continue
+        if char == "\\":
+            escape = True
+            continue
+        if char == '"':
+            quote_count += 1
+    if quote_count % 2:
+        repaired += '"'
+    for open_char, close_char in (("{", "}"), ("[", "]")):
+        delta = repaired.count(open_char) - repaired.count(close_char)
+        if delta > 0:
+            repaired += close_char * delta
+    return repaired
+
+
+def parse_partial_entities_payload(candidate: str) -> dict[str, Any] | None:
+    match = re.search(r'"entities"\s*:\s*\[', candidate)
+    if not match:
+        return None
+    index = match.end()
+    entities: list[Any] = []
+    while index < len(candidate):
+        while index < len(candidate) and candidate[index] not in "{]":
+            index += 1
+        if index >= len(candidate) or candidate[index] == "]":
+            break
+        start = index
+        depth = 0
+        in_string = False
+        escape = False
+        while index < len(candidate):
+            char = candidate[index]
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = not in_string
+            elif not in_string:
+                if char == "{":
+                    depth += 1
+                elif char == "}":
+                    depth -= 1
+                    if depth == 0:
+                        index += 1
+                        item_text = repair_json_candidate(candidate[start:index])
+                        try:
+                            item = json.loads(item_text)
+                        except json.JSONDecodeError:
+                            item = None
+                        if isinstance(item, dict):
+                            entities.append(item)
+                        break
+            index += 1
+        else:
+            break
+    if entities:
+        return {"entities": entities}
+    return None
+
+
 def parse_json_payload(text: str) -> Any:
-    return json.loads(extract_json_candidate(text))
+    candidate = extract_json_candidate(text)
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        pass
+    repaired = repair_json_candidate(candidate)
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        partial = parse_partial_entities_payload(candidate)
+        if partial is not None:
+            return partial
+        raise
 
 
 class LocalQwenJsonClient:
@@ -81,6 +159,9 @@ class LocalQwenJsonClient:
         self.call_count = 0
         self.json_error_count = 0
 
+    def warmup(self) -> None:
+        self._ensure_model()
+
     def get_usage_summary(self) -> dict[str, Any]:
         return {
             "llm_backend": "local",
@@ -105,7 +186,14 @@ class LocalQwenJsonClient:
                 "Install backend/requirements-kaggle.txt in the Kaggle notebook."
             ) from exc
 
-        model_kwargs: dict[str, Any] = {"device_map": {"": self.device} if self.device else "auto"}
+        if self.device in {None, "", "auto", "auto-cuda"}:
+            device_map: Any = "auto"
+        else:
+            device_map = {"": self.device}
+        model_kwargs: dict[str, Any] = {
+            "device_map": device_map,
+            "low_cpu_mem_usage": True,
+        }
         if self.quantization == "4bit":
             try:
                 from transformers import BitsAndBytesConfig  # type: ignore[import-not-found]
@@ -124,16 +212,35 @@ class LocalQwenJsonClient:
                 raise RuntimeError("8-bit Qwen loading requires bitsandbytes.") from exc
             model_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
         elif self.quantization == "none":
-            model_kwargs["torch_dtype"] = "auto"
+            model_kwargs["dtype"] = torch.float16 if torch.cuda.is_available() else "auto"
         else:
             raise ValueError("--local-llm-quantization must be 4bit, 8bit, or none.")
 
         self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True)
-        self._model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            trust_remote_code=True,
-            **model_kwargs,
-        )
+        try:
+            self._model = AutoModelForCausalLM.from_pretrained(
+                self.model_name,
+                trust_remote_code=True,
+                **model_kwargs,
+            )
+        except Exception as exc:
+            if self.quantization == "none":
+                raise RuntimeError(
+                    f"Failed to load non-quantized local LLM {self.model_name}. "
+                    "Use a Kaggle GPU with enough memory, or reduce the model size if quality requirements allow it."
+                ) from exc
+            raise
+        if self.device == "auto-cuda":
+            device_values = {
+                str(device).lower()
+                for device in getattr(self._model, "hf_device_map", {}).values()
+            }
+            offloaded = [device for device in sorted(device_values) if device == "cpu" or device == "disk"]
+            if offloaded:
+                raise RuntimeError(
+                    f"Non-quantized local LLM {self.model_name} was offloaded to {offloaded}. "
+                    "Use a Kaggle runtime with enough GPU memory for full-model inference."
+                )
         self._model.eval()
 
     def _format_prompt(self, prompt: str) -> str:
@@ -192,8 +299,12 @@ class LocalQwenJsonClient:
                 self.json_error_count += 1
                 last_error = exc
                 current_prompt = (
-                    f"{prompt}\n\nThe previous response was invalid JSON: {exc}. "
-                    "Return only one valid JSON object matching the requested schema."
+                    "The previous response was invalid JSON. Regenerate the answer as compact minified JSON only.\n"
+                    f"JSON error: {exc}\n"
+                    "Use exactly {\"entities\":[{\"entity_type\":\"...\",\"surface_text\":\"...\","
+                    "\"evidence_text\":\"...\",\"confidence\":0.0}]} or {\"entities\":[]}.\n"
+                    "No markdown. No explanation. At most 20 entities.\n\n"
+                    f"Original task:\n{prompt}"
                 )
                 if attempt >= self.max_json_retries:
                     break

@@ -1,0 +1,475 @@
+{
+      "avg_similarity": 0.660016,
+  "break_count": 745,
+  "break_reasons": {
+    "embedding_similarity_below_threshold": 737,
+    "max_tokens": 4,
+    "target_tokens_low_similarity": 4
+  },
+  "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+  "embedding_backend": "local",
+  "event_count": 24966,
+  "local_embedding_backend": "sentence-transformers",
+  "local_embedding_batch_size": 16,
+  "local_embedding_device": null,
+  "local_embedding_document_calls": 25911,
+  "local_embedding_model": "BAAI/bge-m3",
+  "local_embedding_normalize": true,
+  "local_embedding_query_calls": 0,
+  "max_similarity": 0.968363,
+  "min_similarity": 0.15399,
+  "sample_events": [
+    {
+      "atom_index": 1,
+      "break_reason": null,
+      "current_tokens": 6,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 18,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.627756
+    },
+    {
+      "atom_index": 2,
+      "break_reason": null,
+      "current_tokens": 24,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 32,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.566844
+    },
+    {
+      "atom_index": 3,
+      "break_reason": null,
+      "current_tokens": 56,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 7,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.441099
+    },
+    {
+      "atom_index": 4,
+      "break_reason": null,
+      "current_tokens": 63,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 19,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.460925
+    },
+    {
+      "atom_index": 5,
+      "break_reason": null,
+      "current_tokens": 82,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 27,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.658389
+    },
+    {
+      "atom_index": 6,
+      "break_reason": null,
+      "current_tokens": 109,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 26,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.612483
+    },
+    {
+      "atom_index": 7,
+      "break_reason": null,
+      "current_tokens": 135,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.707955
+    },
+    {
+      "atom_index": 8,
+      "break_reason": null,
+      "current_tokens": 150,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 7,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.696806
+    },
+    {
+      "atom_index": 9,
+      "break_reason": null,
+      "current_tokens": 157,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 9,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.640817
+    },
+    {
+      "atom_index": 10,
+      "break_reason": null,
+      "current_tokens": 166,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.655067
+    },
+    {
+      "atom_index": 11,
+      "break_reason": null,
+      "current_tokens": 181,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 30,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.805246
+    },
+    {
+      "atom_index": 12,
+      "break_reason": null,
+      "current_tokens": 211,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 38,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.728629
+    },
+    {
+      "atom_index": 13,
+      "break_reason": null,
+      "current_tokens": 249,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.611006
+    },
+    {
+      "atom_index": 14,
+      "break_reason": null,
+      "current_tokens": 264,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 17,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.656024
+    },
+    {
+      "atom_index": 15,
+      "break_reason": null,
+      "current_tokens": 281,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 19,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.728524
+    },
+    {
+      "atom_index": 16,
+      "break_reason": "embedding_similarity_below_threshold",
+      "current_tokens": 300,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 19,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.710597
+    },
+    {
+      "atom_index": 17,
+      "break_reason": null,
+      "current_tokens": 19,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 11,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.553382
+    },
+    {
+      "atom_index": 18,
+      "break_reason": null,
+      "current_tokens": 30,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 10,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.634007
+    },
+    {
+      "atom_index": 19,
+      "break_reason": null,
+      "current_tokens": 40,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 16,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.718811
+    },
+    {
+      "atom_index": 20,
+      "break_reason": null,
+      "current_tokens": 56,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 8,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.663156
+    },
+    {
+      "atom_index": 21,
+      "break_reason": null,
+      "current_tokens": 64,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 22,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.670695
+    },
+    {
+      "atom_index": 22,
+      "break_reason": null,
+      "current_tokens": 86,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 3,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.550086
+    },
+    {
+      "atom_index": 23,
+      "break_reason": null,
+      "current_tokens": 89,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 3,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.670209
+    },
+    {
+      "atom_index": 24,
+      "break_reason": null,
+      "current_tokens": 92,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 3,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.636195
+    },
+    {
+      "atom_index": 25,
+      "break_reason": null,
+      "current_tokens": 95,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 3,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.642731
+    },
+    {
+      "atom_index": 26,
+      "break_reason": null,
+      "current_tokens": 98,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 3,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.74917
+    },
+    {
+      "atom_index": 27,
+      "break_reason": null,
+      "current_tokens": 101,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 3,
+      "section_id": "TVGM_P1_1_SEC01",
+      "similarity": 0.792446
+    },
+    {
+      "atom_index": 1,
+      "break_reason": null,
+      "current_tokens": 38,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 5,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.62861
+    },
+    {
+      "atom_index": 2,
+      "break_reason": null,
+      "current_tokens": 43,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 5,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.737941
+    },
+    {
+      "atom_index": 3,
+      "break_reason": null,
+      "current_tokens": 48,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 5,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.705942
+    },
+    {
+      "atom_index": 4,
+      "break_reason": null,
+      "current_tokens": 53,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 5,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.770652
+    },
+    {
+      "atom_index": 5,
+      "break_reason": null,
+      "current_tokens": 58,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 5,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.782304
+    },
+    {
+      "atom_index": 6,
+      "break_reason": null,
+      "current_tokens": 63,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 5,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.77595
+    },
+    {
+      "atom_index": 7,
+      "break_reason": null,
+      "current_tokens": 68,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 24,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.584854
+    },
+    {
+      "atom_index": 8,
+      "break_reason": null,
+      "current_tokens": 92,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.762053
+    },
+    {
+      "atom_index": 9,
+      "break_reason": null,
+      "current_tokens": 107,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.816823
+    },
+    {
+      "atom_index": 10,
+      "break_reason": null,
+      "current_tokens": 122,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.848542
+    },
+    {
+      "atom_index": 11,
+      "break_reason": null,
+      "current_tokens": 137,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.85119
+    },
+    {
+      "atom_index": 12,
+      "break_reason": null,
+      "current_tokens": 152,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.894134
+    },
+    {
+      "atom_index": 13,
+      "break_reason": null,
+      "current_tokens": 167,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 13,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.760746
+    },
+    {
+      "atom_index": 14,
+      "break_reason": null,
+      "current_tokens": 180,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 26,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.877925
+    },
+    {
+      "atom_index": 15,
+      "break_reason": null,
+      "current_tokens": 206,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 13,
+      "section_id": "TVGM_P2_2_SEC02",
+      "similarity": 0.62006
+    },
+    {
+      "atom_index": 1,
+      "break_reason": null,
+      "current_tokens": 2,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 27,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.344968
+    },
+    {
+      "atom_index": 2,
+      "break_reason": null,
+      "current_tokens": 29,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 11,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.583173
+    },
+    {
+      "atom_index": 3,
+      "break_reason": null,
+      "current_tokens": 40,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 12,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.66796
+    },
+    {
+      "atom_index": 4,
+      "break_reason": null,
+      "current_tokens": 52,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 6,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.688069
+    },
+    {
+      "atom_index": 5,
+      "break_reason": null,
+      "current_tokens": 58,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 14,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.637822
+    },
+    {
+      "atom_index": 6,
+      "break_reason": null,
+      "current_tokens": 72,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 9,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.663342
+    },
+    {
+      "atom_index": 7,
+      "break_reason": null,
+      "current_tokens": 81,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 15,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.745013
+    },
+    {
+      "atom_index": 8,
+      "break_reason": null,
+      "current_tokens": 96,
+      "doc_id": "TVGM",
+      "next_atom_tokens": 12,
+      "section_id": "TVGM_P3_3_SEC03",
+      "similarity": 0.766571
+    }
+  ],
+  "semantic_method": "embedding_similarity",
+  "semantic_similarity_threshold": 0.74
+}

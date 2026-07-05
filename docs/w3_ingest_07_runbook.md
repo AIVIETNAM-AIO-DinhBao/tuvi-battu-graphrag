@@ -290,23 +290,86 @@ Muc tieu:
 - Ghi entity reports va state duoi `reports/` va `state/`.
 - Dong goi zip `w3_local_outputs_02_<RUN_TAG>.zip`.
 
-Notebook nay dung `--resume`.
+Notebook nay dung `--resume` va mac dinh chay LLM augmentation bang Qwen local:
+
+```python
+LLM_AUGMENTATION = "on"
+LOCAL_LLM_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+LOCAL_LLM_QUANTIZATION = "none"
+LOCAL_LLM_DEVICE = "auto-cuda"
+LOCAL_LLM_MAX_JSON_RETRIES = 2
+LLM_PREFLIGHT_CHUNK_LIMIT = 0
+LLM_PREFLIGHT_TIMEOUT_SECONDS = 900
+ENTITY_MAX_RUNTIME_SECONDS = 36000
+ENTITY_COMMAND_TIMEOUT_SECONDS = 39600
+```
+
+`none` nghia la khong dung 4-bit/8-bit quantization. `auto-cuda` cho phep HuggingFace shard full model qua nhieu GPU Kaggle neu co, nhung script se fail neu model bi offload sang CPU/disk. Neu GPU/RAM khong du de chay full model, notebook phai fail som thay vi tiep tuc decode cuc cham tren CPU.
+
+Notebook 02 co preflight tuy chon truoc moi strategy:
+
+- Chay that `extract_entities.py` tren 1 chunk voi Qwen full model.
+- Timeout mac dinh la 900 giay.
+- Mac dinh `LLM_PREFLIGHT_CHUNK_LIMIT = 0` de tranh load Qwen hai lan trong cung mot strategy.
+- Chi set `LLM_PREFLIGHT_CHUNK_LIMIT = 1` cho mot diagnostic run khi can kiem tra model/parser.
+- Sau khi preflight da pass, quay lai `0` de chay full batch; neu khong, Qwen se load mot lan cho preflight va mot lan nua cho batch that, de gay treo/OOM tren Kaggle.
+- Neu preflight timeout hoac model khong load duoc trong diagnostic run, dung notebook va khong chay batch day du.
+- Neu cell bi interrupt hoac timeout, notebook kill luon child process `extract_entities.py` de tranh Save Version tiep tuc chay ngam den het 12 tieng.
+
+Notebook 02 khong goi truc tiep script trong `/kaggle/input/.../tuvi-battu-scripts`. Cell 1 copy scripts dataset sang runtime workspace:
+
+```text
+/kaggle/working/tuvi_battu_scripts_runtime
+```
+
+roi ap cac hotfix trong notebook truoc khi chay cell 2. Vi vay khi debug, command/traceback dung phai tro toi:
+
+```text
+/kaggle/working/tuvi_battu_scripts_runtime/scripts/extract_entities.py
+```
+
+Neu traceback van tro toi `/kaggle/input/datasets/.../tuvi-battu-scripts/scripts/extract_entities.py`, ban dang chay notebook 02 cu hoac chua rerun cell 1 sau khi cap nhat notebook.
+
+Batch that co runtime budget mem 36000 giay va timeout cung 39600 giay:
+
+- Neu strategy chua xong sau 36000 giay, script tu dung sau chunk hien tai, ghi `entities/`, `state/`, `reports/`, va tra exit 0 de notebook pack zip resume.
+- Summary se co `completed = false` va `stop_reason = "max_runtime_seconds"`. Day la partial artifact hop le de chay tiep notebook 02 bang Save Version moi.
+- Neu command vuot 39600 giay, notebook se kill process. Truong hop nay la bat thuong, thuong la mot chunk bi treo qua lau.
+
+Canh bao Transformers dang:
+
+```text
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']
+```
+
+khong phai loi batch. Loi thuc su can xu ly la preflight timeout, OOM, hoac command tra non-zero exit.
 
 Thao tac:
 
 1. Attach corpus dataset, scripts dataset, va zip output tu notebook 01.
 2. Giu cung `RUN_TAG` va `SELECTED_STRATEGIES` voi notebook 01 cho version dang chay.
-3. Set `PREVIOUS_OUTPUT_SLUGS` den path chua artifact cua notebook 01, hoac de `[]` neu input root chi co artifact dung `RUN_TAG`.
-4. Run all cells.
-5. Kiem tra dau notebook co in `RESTORED_OUTPUTS` va zip notebook 01 da duoc restore.
-6. Kiem tra summary cuoi:
+3. Set `PREVIOUS_OUTPUT_SLUGS` den path chua artifact cua notebook 01, hoac de `[]` neu input root co artifact dung `RUN_TAG`.
+4. Neu day la lan resume notebook 02 sau khi het runtime budget, attach them artifact `w3_local_outputs_02_<RUN_TAG>` cua lan truoc va set `PREVIOUS_ENTITY_OUTPUT_SLUGS`, hoac de `[]` neu input root co folder/zip do.
+5. Run cell 1 va kiem tra config co `llm_quantization = none`, `llm_device = auto-cuda`, `local_llm_max_json_retries = 2`, `preflight_chunk_limit = 0`, va `entity_max_runtime_seconds = 36000`.
+6. Kiem tra cell 1 co in:
+   - `RESTORED_CHUNK_OUTPUTS` khong rong
+   - `RESTORED_ENTITY_OUTPUTS` co the rong o lan dau, nhung phai khong rong khi resume tu partial notebook 02
+   - `Notebook runtime scripts prepared = /kaggle/working/tuvi_battu_scripts_runtime`
+   - `Notebook runtime hotfixes` co `extract_entities_payload_list` lon hon `0` neu scripts dataset con ban cu
+7. Run cell 2. Khi chay that, notebook nen in truc tiep `Running strategy = ...`, khong in `Running Qwen preflight ...` tru khi ban dang diagnostic.
+8. Sau khi model load xong, notebook se hien progress theo state file, vi du `chunk_fixed_512: 12/1158 chunks completed`. Neu co `tqdm`, progress se hien thanh progress bar; neu khong co `tqdm`, notebook in log dinh ky moi 60 giay.
+9. Neu dang diagnostic voi `LLM_PREFLIGHT_CHUNK_LIMIT = 1`, chi de cell 2 chay tiep neu preflight pass. Sau khi pass, nen chay lai notebook voi `LLM_PREFLIGHT_CHUNK_LIMIT = 0` cho full batch.
+9. Kiem tra summary cuoi co `error_count = 0`, `processed_chunk_count > 0`, `entity_count > 0`, `llm_augmentation_enabled = true`, va `local_llm_call_count > 0`.
+10. Neu summary co `completed = false` va `stop_reason = max_runtime_seconds`, van save/upload zip nay lam input cho notebook 02 version tiep theo cung `RUN_TAG`/`SELECTED_STRATEGIES`; `--resume` se bo qua chunk da xong.
+11. Kiem tra artifact:
    - `<strategy>_entities.jsonl`
    - `<strategy>_entity_summary.json`
    - `<strategy>_entity_review.json`
    - `<strategy>_entity_state.json`
-7. Kiem tra cell pack artifact da ghi `w3_local_outputs_02_<RUN_TAG>.zip`.
-8. Save Version notebook 02.
-9. Tai zip ve hoac attach output version 02 lam input dataset cho notebook 03.
+12. Kiem tra cell pack artifact da ghi `w3_local_outputs_02_<RUN_TAG>.zip`.
+13. Save Version notebook 02.
+14. Chi chuyen sang notebook 03 khi moi strategy can chay co `completed = true`.
+15. Tai zip ve hoac attach output version 02 lam input dataset cho notebook 03.
 
 Khuyen nghi khong chia notebook 02 theo source, vi entity output hien duoc to chuc theo strategy.
 

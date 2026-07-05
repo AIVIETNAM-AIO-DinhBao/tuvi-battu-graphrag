@@ -31,11 +31,18 @@ LOCAL_KAGGLE_STRATEGIES = [
 LOCAL_KAGGLE_EMBEDDING_MODEL = "BAAI/bge-m3"
 LOCAL_KAGGLE_EMBEDDING_DIM = 1024
 LOCAL_KAGGLE_LLM_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+DEFAULT_GEMINI_LLM_BATCH_SIZE = 4
+DEFAULT_GEMINI_REQUESTS_PER_MINUTE = 15.0
+ALL_PHASES = ["chunking", "entity_extraction", "graph_relation", "embed_retrieval"]
 DEFAULT_SMOKE_QUERY = "Thiên Mã tại Quan Lộc"
 
 
 def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def log_progress(message: str) -> None:
+    print(f"[runner-progress] {utc_now()} {message}", file=sys.stderr, flush=True)
 
 
 def script_path(name: str) -> Path:
@@ -57,8 +64,21 @@ def as_command(argv: list[Any]) -> list[str]:
     return [str(item) for item in argv]
 
 
+def normalize_profile(profile: str) -> str:
+    if profile == "gemini":
+        return "gemini-call"
+    return profile
+
+
 def resolve_profile_args(args: argparse.Namespace) -> argparse.Namespace:
-    profile = getattr(args, "profile", "gemini")
+    profile = normalize_profile(getattr(args, "profile", "gemini-call"))
+    args.profile = profile
+    if getattr(args, "llm_batch_size", 1) < 1:
+        raise ValueError("--llm-batch-size must be a positive integer.")
+    if getattr(args, "max_llm_requests", None) is not None and args.max_llm_requests < 1:
+        raise ValueError("--max-llm-requests must be a positive integer.")
+    if getattr(args, "progress_interval", 0) < 0:
+        raise ValueError("--progress-interval must be zero or a positive integer.")
     if args.strategies is None:
         args.strategies = list(LOCAL_KAGGLE_STRATEGIES if profile == "local-kaggle" else DEFAULT_STRATEGIES)
     if args.chunks_dir is None:
@@ -68,18 +88,28 @@ def resolve_profile_args(args: argparse.Namespace) -> argparse.Namespace:
             else args.dataset_dir / "chunks"
         )
     if args.entities_dir is None:
-        args.entities_dir = (
-            args.dataset_dir / "local_kaggle" / "entities"
-            if profile == "local-kaggle"
-            else args.dataset_dir / "entities"
-        )
+        if profile == "local-kaggle":
+            args.entities_dir = args.dataset_dir / "local_kaggle" / "entities"
+        elif profile == "rule-only":
+            args.entities_dir = args.dataset_dir / "rule_only" / "entities"
+        else:
+            args.entities_dir = args.dataset_dir / "gemini_call" / "entities"
     if args.reports_dir is None:
-        args.reports_dir = (
-            args.dataset_dir / "reports" / "w3_ingest_07_local_kaggle"
-            if profile == "local-kaggle"
-            else args.dataset_dir / "reports" / "w3_ingest_07"
-        )
+        if profile == "local-kaggle":
+            args.reports_dir = args.dataset_dir / "reports" / "w3_ingest_07_local_kaggle"
+        elif profile == "rule-only":
+            args.reports_dir = args.dataset_dir / "rule_only" / "reports"
+        else:
+            args.reports_dir = args.dataset_dir / "gemini_call" / "reports"
     return args
+
+
+def profile_payload_dir(args: argparse.Namespace, strategy: str) -> Path:
+    if args.profile == "local-kaggle":
+        return args.dataset_dir / "local_kaggle" / "payloads" / strategy
+    if args.profile == "rule-only":
+        return args.dataset_dir / "rule_only" / "payloads" / strategy
+    return args.dataset_dir / "gemini_call" / "payloads" / strategy
 
 
 def command_record(
@@ -128,15 +158,12 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
     corpus_inputs = [args.dataset_dir / "corpus" / source for source in args.sources]
     commands: list[dict[str, Any]] = []
     local_profile = args.profile == "local-kaggle"
+    rule_profile = args.profile == "rule-only"
 
     for strategy in args.strategies:
         strategy_chunks_dir = chunks_dir / strategy
         chunk_summary = reports_dir / f"{strategy}_chunk_summary.json"
-        payload_dir = (
-            args.dataset_dir / "local_kaggle" / "payloads" / strategy
-            if local_profile
-            else args.dataset_dir / "payloads" / strategy
-        )
+        payload_dir = profile_payload_dir(args, strategy)
         semantic_strategy = strategy in {"chunk_semantic_embedding", "chunk_semantic_embedding_bge_m3"}
         chunk_argv: list[Any] = [
             sys.executable,
@@ -219,10 +246,17 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
             reports_dir / f"{strategy}_entity_summary.json",
             "--state-output",
             state_dir / f"{strategy}_entity_state.json",
+            "--progress-interval",
+            str(args.progress_interval),
             "--resume",
         ]
-        if args.mode == "dry-run" or args.mock_llm:
+        if rule_profile:
+            entity_argv.extend(["--llm-augmentation", "off"])
+            entity_backend = "rule"
+            entity_model = "dictionary-rule"
+        elif args.mode == "dry-run" or args.mock_llm:
             entity_argv.append("--mock-llm")
+            entity_argv.extend(["--llm-batch-size", str(args.llm_batch_size)])
             entity_backend = "mock"
             entity_model = "mock-llm-augmentation"
         elif local_profile:
@@ -252,7 +286,23 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                 entity_argv.extend(["--local-llm-device", args.local_llm_device])
         else:
             entity_backend = "gemini"
-            entity_model = None
+            entity_model = args.gemini_entity_model
+            entity_argv.extend(
+                [
+                    "--llm-augmentation",
+                    "on",
+                    "--llm-backend",
+                    "gemini",
+                    "--llm-batch-size",
+                    str(args.llm_batch_size),
+                    "--requests-per-minute",
+                    str(args.gemini_requests_per_minute),
+                ]
+            )
+            if args.gemini_entity_model:
+                entity_argv.extend(["--model", args.gemini_entity_model])
+            if args.max_llm_requests is not None:
+                entity_argv.extend(["--max-llm-requests", str(args.max_llm_requests)])
         commands.append(
             command_record(
                 command_id=f"{strategy}:entity",
@@ -270,6 +320,7 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
             )
         )
 
+        relation_mode = "rule" if rule_profile else ("hybrid" if local_profile else "llm")
         graph_argv: list[Any] = [
             sys.executable,
             "-B",
@@ -280,6 +331,8 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
             entity_output,
             "--chunking-strategy",
             strategy,
+            "--relation-mode",
+            relation_mode,
             "--summary-output",
             reports_dir / f"{strategy}_graph_write_summary.json",
             "--relation-review-output",
@@ -290,12 +343,18 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
             "20",
             "--state-output",
             state_dir / f"{strategy}_graph_relation_state.json",
+            "--progress-interval",
+            str(args.progress_interval),
             "--resume",
         ]
-        if args.mode != "production" or local_profile:
+        if args.mode != "production" or local_profile or args.graph_dry_run:
             graph_argv.append("--dry-run")
-        if args.mode == "dry-run" or args.mock_llm:
+        if rule_profile:
+            graph_backend = "rule"
+            graph_model = "rule-relation"
+        elif args.mode == "dry-run" or args.mock_llm:
             graph_argv.append("--mock-llm")
+            graph_argv.extend(["--llm-batch-size", str(args.llm_batch_size)])
             graph_backend = "mock"
             graph_model = "mock-relation-llm"
         elif local_profile:
@@ -325,7 +384,21 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                 graph_argv.extend(["--local-llm-device", args.local_llm_device])
         else:
             graph_backend = "gemini"
-            graph_model = "gemini-2.0-flash-lite"
+            graph_model = args.gemini_relation_model or "gemini-2.0-flash-lite"
+            graph_argv.extend(
+                [
+                    "--llm-backend",
+                    "gemini",
+                    "--llm-batch-size",
+                    str(args.llm_batch_size),
+                    "--requests-per-minute",
+                    str(args.gemini_requests_per_minute),
+                ]
+            )
+            if args.gemini_relation_model:
+                graph_argv.extend(["--model", args.gemini_relation_model])
+            if args.max_llm_requests is not None:
+                graph_argv.extend(["--max-llm-requests", str(args.max_llm_requests)])
         commands.append(
             command_record(
                 command_id=f"{strategy}:graph",
@@ -440,6 +513,11 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                     skip_reason=embed_skip_reason,
                 )
             )
+    if args.phases:
+        wanted_phases = set(args.phases)
+        commands = [command for command in commands if command["phase"] in wanted_phases]
+    for command in commands:
+        command["stream_logs"] = bool(args.stream_logs)
     return commands
 
 
@@ -479,10 +557,12 @@ def run_subprocess(command: dict[str, Any]) -> dict[str, Any]:
     env = os.environ.copy()
     env.setdefault("PYTHONIOENCODING", "utf-8")
     env.setdefault("PYTHONUTF8", "1")
+    stream_logs = bool(command.get("stream_logs", True))
     result = subprocess.run(
         command["argv"],
         cwd=ROOT_DIR,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=None if stream_logs else subprocess.PIPE,
         encoding="utf-8",
         errors="replace",
         env=env,
@@ -509,7 +589,8 @@ def execute_commands(
     state.setdefault("commands", {})
     executed = 0
     skipped = 0
-    for command in commands:
+    command_count = len(commands)
+    for index, command in enumerate(commands, start=1):
         command_state = state["commands"].get(command["command_id"], {})
         if (
             args.resume
@@ -519,9 +600,16 @@ def execute_commands(
             and command_state.get("profile", args.profile) == args.profile
             and command_summary_completed(command)
         ):
+            log_progress(
+                f"skip completed {index}/{command_count} command_id={command['command_id']} phase={command['phase']}"
+            )
             skipped += 1
             continue
         if command.get("skip_reason"):
+            log_progress(
+                f"skip {index}/{command_count} command_id={command['command_id']} "
+                f"phase={command['phase']} reason={command.get('skip_reason')}"
+            )
             state["commands"][command["command_id"]] = {
                 "completed_at": utc_now(),
                 "mode": args.mode,
@@ -534,6 +622,11 @@ def execute_commands(
             write_json(state_path, state)
             continue
 
+        log_progress(
+            f"start {index}/{command_count} command_id={command['command_id']} "
+            f"phase={command['phase']} backend={command.get('backend') or '-'} "
+            f"requires_gemini={command.get('requires_gemini')}"
+        )
         state["commands"][command["command_id"]] = {
             "gemini_api_key_count": command["gemini_api_key_count"],
             "mode": args.mode,
@@ -547,6 +640,10 @@ def execute_commands(
             run_subprocess(command)
             assert_command_summary_completed(command)
         except Exception as exc:
+            log_progress(
+                f"fail {index}/{command_count} command_id={command['command_id']} "
+                f"phase={command['phase']} error={type(exc).__name__}"
+            )
             state["commands"][command["command_id"]].update(
                 {
                     "error": f"{type(exc).__name__}: {exc}",
@@ -560,6 +657,9 @@ def execute_commands(
         state["commands"][command["command_id"]].update({"completed_at": utc_now(), "status": "completed"})
         state["last_completed_unit"] = command["command_id"]
         executed += 1
+        log_progress(
+            f"done {index}/{command_count} command_id={command['command_id']} phase={command['phase']}"
+        )
         write_json(state_path, state)
     return {"executed_command_count": executed, "skipped_command_count": skipped}
 
@@ -574,7 +674,12 @@ def validate_production_key_availability(commands: list[dict[str, Any]], gemini_
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run or plan W3-INGEST-07 full-corpus ingest.")
     parser.add_argument("--mode", choices=["plan", "dry-run", "production"], default="plan")
-    parser.add_argument("--profile", choices=["gemini", "local-kaggle"], default="gemini")
+    parser.add_argument(
+        "--profile",
+        choices=["gemini", "gemini-call", "rule-only", "local-kaggle"],
+        default="gemini-call",
+    )
+    parser.add_argument("--phases", nargs="+", choices=ALL_PHASES, default=None)
     parser.add_argument("--sources", nargs="+", default=DEFAULT_SOURCES)
     parser.add_argument("--strategies", nargs="+", default=None)
     parser.add_argument("--dataset-dir", type=Path, default=DEFAULT_DATASET_DIR)
@@ -589,6 +694,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--force-embedding", action="store_true")
     parser.add_argument("--mock-llm", action="store_true")
     parser.add_argument("--mock-embedding", action="store_true")
+    parser.add_argument("--graph-dry-run", action="store_true")
+    parser.add_argument("--stream-logs", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--progress-interval", type=int, default=50)
+    parser.add_argument("--llm-batch-size", type=int, default=DEFAULT_GEMINI_LLM_BATCH_SIZE)
+    parser.add_argument("--gemini-requests-per-minute", type=float, default=DEFAULT_GEMINI_REQUESTS_PER_MINUTE)
+    parser.add_argument("--gemini-entity-model", default=None)
+    parser.add_argument("--gemini-relation-model", default=None)
+    parser.add_argument("--max-llm-requests", type=int, default=None)
     parser.add_argument("--local-embedding-model", default=LOCAL_KAGGLE_EMBEDDING_MODEL)
     parser.add_argument("--local-embedding-dim", type=int, default=LOCAL_KAGGLE_EMBEDDING_DIM)
     parser.add_argument("--local-embedding-device", default=None)
@@ -627,7 +740,10 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "generated_at": utc_now(),
         "gemini_api_key_count": gemini_api_key_count,
         "mode": args.mode,
+        "phases": args.phases or ALL_PHASES,
         "profile": args.profile,
+        "progress_interval": args.progress_interval,
+        "stream_logs": args.stream_logs,
     }
     write_json(manifest_output, manifest)
 
@@ -653,8 +769,11 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                     "gemini_api_key_count": gemini_api_key_count,
                     "manifest_output": str(manifest_output),
                     "mode": args.mode,
+                    "phases": args.phases or ALL_PHASES,
                     "profile": args.profile,
+                    "progress_interval": args.progress_interval,
                     "state_output": str(state_output),
+                    "stream_logs": args.stream_logs,
                 }
                 write_json(summary_output, summary)
                 raise
@@ -668,8 +787,11 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "gemini_api_key_count": gemini_api_key_count,
         "manifest_output": str(manifest_output),
         "mode": args.mode,
+        "phases": args.phases or ALL_PHASES,
         "profile": args.profile,
+        "progress_interval": args.progress_interval,
         "state_output": str(state_output),
+        "stream_logs": args.stream_logs,
     }
     write_json(summary_output, summary)
     return summary

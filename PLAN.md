@@ -364,6 +364,18 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 **What to do:**
 - Dùng toàn bộ 4 sách Tử Vi nền đã chuẩn hóa trong `benchmark/tuvi_golden_dataset/corpus`: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
 - Không xóa hoặc rebuild corpus nền; chỉ tạo lại dữ liệu derived từ chunk/entity/relation/embedding/index.
+- Branch policy for W3-INGEST-04..07:
+  - `rule-only`: dictionary/rule entity extraction and rule relation extraction; no LLM calls for W3-INGEST-04/05.
+  - `gemini-call`: official Gemini API branch for both entity extraction and relation extraction.
+  - `local-kaggle`: keep Kaggle/Qwen notebook artifacts unchanged as a comparison branch.
+- Gemini quota policy:
+  - batch entity and relation calls with `--llm-batch-size 4`;
+  - default per-key throttle is `--requests-per-minute 15`;
+  - run W3-INGEST-04 Gemini entity first, wait for quota recovery, then run W3-INGEST-05 Gemini relation.
+- Default branch artifacts:
+  - `benchmark/tuvi_golden_dataset/rule_only/{entities,payloads,reports}/`;
+  - `benchmark/tuvi_golden_dataset/gemini_call/{entities,payloads,reports,state}/`;
+  - `notebooks/w3_local_outputs/` remains the local-Kaggle comparison output.
 - Đường vận hành hiện tại để hoàn tất W3 là local-Kaggle artifact path:
   - chunking/entity/relation/embedding chạy trên Kaggle
   - graph payload và embedding artifacts được tải về local

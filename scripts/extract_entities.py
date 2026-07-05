@@ -1,4 +1,4 @@
-"""Strategy-aware Tử Vi entity extraction for W3-INGEST-04.
+﻿"""Strategy-aware Tá»­ Vi entity extraction for W3-INGEST-04.
 
 The script reads chunk JSONL emitted by scripts/chunk_text.py and writes
 entity JSONL with chunk strategy provenance. Production extraction uses Gemini
@@ -31,6 +31,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "entity_extraction.yaml"
 DEFAULT_REVIEW_SAMPLE_SIZE = 20
 DEFAULT_REQUESTS_PER_MINUTE = 30.0
+DEFAULT_LLM_BATCH_SIZE = 4
 DEFAULT_MAX_RETRY_SLEEP_SECONDS = 300.0
 STRATEGY_PARENT_CHILD = "chunk_structure_parent_child"
 REQUIRED_CHUNK_KEYS = {
@@ -61,6 +62,30 @@ def normalize_lookup(value: Any) -> str:
 
 def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def format_seconds(seconds: float | None) -> str:
+    if seconds is None:
+        return "unknown"
+    seconds = max(0.0, seconds)
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    minutes, remaining_seconds = divmod(int(seconds), 60)
+    if minutes < 60:
+        return f"{minutes}m{remaining_seconds:02d}s"
+    hours, remaining_minutes = divmod(minutes, 60)
+    return f"{hours}h{remaining_minutes:02d}m"
+
+
+def log_progress(prefix: str, message: str) -> None:
+    print(f"[{prefix}] {utc_now()} {message}", file=sys.stderr, flush=True)
+
+
+def summarize_exception(exc: Exception, *, max_length: int = 700) -> str:
+    message = f"{type(exc).__name__}: {exc}".replace("\n", " ").strip()
+    if len(message) > max_length:
+        return message[: max_length - 3].rstrip() + "..."
+    return message
 
 
 def make_extraction_run_id() -> str:
@@ -297,7 +322,7 @@ def dictionary_candidates(text: str, config: dict[str, Any]) -> list[dict[str, A
 def sentence_spans(text: str) -> list[tuple[int, int, str]]:
     spans: list[tuple[int, int, str]] = []
     start = 0
-    for match in re.finditer(r"[.!?…]\s+", text):
+    for match in re.finditer(r"[.!?â€¦]\s+", text):
         end = match.end()
         segment = text[start:end].strip()
         if segment:
@@ -319,9 +344,9 @@ def has_luan_giai_trigger(sentence: str, config: dict[str, Any]) -> bool:
     lookup = normalize_lookup(sentence)
     triggers = [normalize_lookup(trigger) for trigger in config.get("luan_giai_triggers", [])]
     for trigger in triggers:
-        if trigger and trigger != "thì" and trigger in lookup:
+        if trigger and trigger != "thÃ¬" and trigger in lookup:
             return True
-    return bool(re.search(r"\b(?:gặp|nếu|có)\b.{0,80}\bthì\b", lookup, flags=re.UNICODE))
+    return bool(re.search(r"\b(?:gáº·p|náº¿u|cÃ³)\b.{0,80}\bthÃ¬\b", lookup, flags=re.UNICODE))
 
 
 def luan_giai_candidates(text: str, config: dict[str, Any]) -> list[dict[str, Any]]:
@@ -355,6 +380,13 @@ class MockLLMAdapter:
         text = chunk_text(chunk)
         candidates = dictionary_candidates(text, config) + luan_giai_candidates(text, config)
         return [{**candidate, "extraction_source": "llm"} for candidate in candidates]
+
+    def extract_many(
+        self,
+        chunks: list[dict[str, Any]],
+        config: dict[str, Any],
+    ) -> dict[str, list[dict[str, Any]]]:
+        return {str(chunk["chunk_id"]): self.extract(chunk, config) for chunk in chunks}
 
 
 class GeminiKeysUnavailableError(RuntimeError):
@@ -407,10 +439,59 @@ class GeminiLLMAdapter:
         model = self._genai.GenerativeModel(self.model_name)
         response = model.generate_content(build_extraction_prompt(chunk, config))
         payload = parse_json_payload(getattr(response, "text", ""))
-        entities = payload.get("entities", payload if isinstance(payload, list) else [])
-        if not isinstance(entities, list):
-            raise ValueError("Gemini response must contain an entities list.")
-        return [entity for entity in entities if isinstance(entity, dict)]
+        return extract_entities_from_payload(payload, source="Gemini")
+
+    def extract_many(
+        self,
+        chunks: list[dict[str, Any]],
+        config: dict[str, Any],
+    ) -> dict[str, list[dict[str, Any]]]:
+        self._rate_limiter.wait()
+        self._genai.configure(api_key=self._api_key)
+        model = self._genai.GenerativeModel(self.model_name)
+        response = model.generate_content(build_batch_extraction_prompt(chunks, config))
+        payload = parse_json_payload(getattr(response, "text", ""))
+        return extract_entities_by_chunk_from_payload(
+            payload,
+            expected_chunk_ids=[str(chunk["chunk_id"]) for chunk in chunks],
+            source="Gemini",
+        )
+
+
+def extract_entities_from_payload(payload: Any, *, source: str) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        entities = payload
+    elif isinstance(payload, dict):
+        entities = payload.get("entities", [])
+    else:
+        raise ValueError(f"{source} response must be a JSON object or list.")
+    if not isinstance(entities, list):
+        raise ValueError(f"{source} response must contain an entities list.")
+    return [entity for entity in entities if isinstance(entity, dict)]
+
+
+def extract_entities_by_chunk_from_payload(
+    payload: Any,
+    *,
+    expected_chunk_ids: list[str],
+    source: str,
+) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(payload, dict):
+        raise ValueError(f"{source} batch response must be a JSON object.")
+    chunks = payload.get("chunks")
+    if not isinstance(chunks, list):
+        raise ValueError(f"{source} batch response must contain a chunks list.")
+
+    expected = set(expected_chunk_ids)
+    by_chunk: dict[str, list[dict[str, Any]]] = {}
+    for item in chunks:
+        if not isinstance(item, dict):
+            continue
+        chunk_id = str(item.get("chunk_id") or "").strip()
+        if not chunk_id or chunk_id not in expected:
+            continue
+        by_chunk[chunk_id] = extract_entities_from_payload(item, source=source)
+    return by_chunk
 
 
 class MultiKeyGeminiLLMAdapter:
@@ -439,6 +520,7 @@ class MultiKeyGeminiLLMAdapter:
         self._disabled = [False for _ in clients]
         self._available_after = [0.0 for _ in clients]
         self._rate_limit_attempts = [0 for _ in clients]
+        self._last_errors: list[str | None] = [None for _ in clients]
         self.api_key_usage_counts = {self._key_label(index): 0 for index in range(len(clients))}
         self.quota_failover_count = 0
 
@@ -453,6 +535,11 @@ class MultiKeyGeminiLLMAdapter:
     def get_usage_summary(self) -> dict[str, Any]:
         return {
             "api_key_count": self.api_key_count,
+            "api_key_last_errors": {
+                self._key_label(index): error
+                for index, error in enumerate(self._last_errors)
+                if error
+            },
             "api_key_usage_counts": dict(self.api_key_usage_counts),
             "disabled_key_count": self.disabled_key_count,
             "quota_failover_count": self.quota_failover_count,
@@ -461,9 +548,19 @@ class MultiKeyGeminiLLMAdapter:
     def _key_label(self, index: int) -> str:
         return f"key_{index + 1}"
 
+    def _last_error_summary(self) -> str:
+        errors = [
+            f"{self._key_label(index)}={error}"
+            for index, error in enumerate(self._last_errors)
+            if error
+        ]
+        return "; ".join(errors)
+
     def _next_available_index(self) -> int:
         if all(self._disabled):
-            raise GeminiKeysUnavailableError("All Gemini API keys are unavailable for this run.")
+            details = self._last_error_summary()
+            suffix = f" Last errors: {details}" if details else ""
+            raise GeminiKeysUnavailableError(f"All Gemini API keys are unavailable for this run.{suffix}")
 
         while True:
             now = self._time()
@@ -480,7 +577,9 @@ class MultiKeyGeminiLLMAdapter:
                     next_available_time = available_at
 
             if next_available_time is None:
-                raise GeminiKeysUnavailableError("All Gemini API keys are unavailable for this run.")
+                details = self._last_error_summary()
+                suffix = f" Last errors: {details}" if details else ""
+                raise GeminiKeysUnavailableError(f"All Gemini API keys are unavailable for this run.{suffix}")
             self._sleep(max(0.0, next_available_time - now))
 
     def _sleep_for_rate_limit(self, index: int) -> None:
@@ -510,6 +609,45 @@ class MultiKeyGeminiLLMAdapter:
                 self.api_key_usage_counts[label] += 1
                 return entities
             except Exception as exc:
+                self._last_errors[index] = summarize_exception(exc)
+                if self.stop_on_daily_quota and is_daily_quota_error(exc):
+                    self._disabled[index] = True
+                    self.quota_failover_count += 1
+                    print(
+                        f"Daily quota exhausted for Gemini API {label}; trying another key.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    continue
+                if is_rate_limit_error(exc):
+                    self.quota_failover_count += 1
+                    self._sleep_for_rate_limit(index)
+                    print(
+                        f"Rate limit for Gemini API {label}; trying another key.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    continue
+                raise
+
+    def extract_many(
+        self,
+        chunks: list[dict[str, Any]],
+        config: dict[str, Any],
+    ) -> dict[str, list[dict[str, Any]]]:
+        while True:
+            index = self._next_available_index()
+            client = self.clients[index]
+            label = self._key_label(index)
+            try:
+                if not hasattr(client, "extract_many"):
+                    return {str(chunk["chunk_id"]): client.extract(chunk, config) for chunk in chunks}
+                entities_by_chunk = client.extract_many(chunks, config)
+                self._rate_limit_attempts[index] = 0
+                self.api_key_usage_counts[label] += 1
+                return entities_by_chunk
+            except Exception as exc:
+                self._last_errors[index] = summarize_exception(exc)
                 if self.stop_on_daily_quota and is_daily_quota_error(exc):
                     self._disabled[index] = True
                     self.quota_failover_count += 1
@@ -537,48 +675,64 @@ class LocalQwenEntityLLMAdapter:
         self.extraction_model = client.model_name
         self.llm_backend = "local"
 
+    def warmup(self) -> None:
+        self.client.warmup()
+
     def get_usage_summary(self) -> dict[str, Any]:
         return self.client.get_usage_summary()
 
     def extract(self, chunk: dict[str, Any], config: dict[str, Any]) -> list[dict[str, Any]]:
         payload = self.client.generate_json(build_extraction_prompt(chunk, config))
-        entities = payload.get("entities", payload if isinstance(payload, list) else [])
-        if not isinstance(entities, list):
-            raise ValueError("Local Qwen response must contain an entities list.")
-        return [entity for entity in entities if isinstance(entity, dict)]
+        return extract_entities_from_payload(payload, source="Local Qwen")
 
 
 def build_extraction_prompt(chunk: dict[str, Any], config: dict[str, Any]) -> str:
     taxonomy = ", ".join(config["entity_types"])
     return (
-        "You are the LLM augmentation step for a dictionary-first Tu Vi entity pipeline. "
-        "Return only additional entity candidates that appear verbatim in chunk_text; do not infer.\n"
+        "You are the LLM augmentation step for a dictionary-first Tu Vi entity pipeline.\n"
+        "Return compact minified JSON only. No markdown. No explanation.\n"
+        "If there are no additional candidates, return {\"entities\":[]}.\n"
+        "Return at most 20 additional entity candidates that appear verbatim in chunk_text; do not infer.\n"
         f"Taxonomy: {taxonomy}\n"
         "Dictionary and rule candidates have already been extracted before this prompt; "
         "do not use the model as a replacement for those deterministic sources.\n"
         "Create LuanGiai only when the chunk has an explicit interpretation claim with evidence, "
         "for example 'X chu ve Y', 'X thi Y', 'gap X thi Y', 'nen luan la Y', or 'co nghia la Y'.\n"
-        "Output strict JSON as {\"entities\": [{\"entity_type\": \"...\", "
-        "\"surface_text\": \"...\", \"canonical_name\": \"...\", "
-        "\"char_start\": 0, \"char_end\": 10, \"evidence_text\": \"...\", "
-        "\"confidence\": 0.0, \"needs_review\": false}]}.\n"
+        "Use exactly this item schema: "
+        "{\"entity_type\":\"...\",\"surface_text\":\"...\",\"evidence_text\":\"...\",\"confidence\":0.0}.\n"
+        "Do not include char_start, char_end, canonical_name, aliases, or needs_review.\n"
         f"chunk_id: {chunk.get('chunk_id')}\n"
         f"chunk_strategy_id: {chunk.get('chunk_strategy_id')}\n"
         f"chunk_text:\n{chunk_text(chunk)}"
     )
+
+
+def build_batch_extraction_prompt(chunks: list[dict[str, Any]], config: dict[str, Any]) -> str:
+    taxonomy = ", ".join(config["entity_types"])
+    chunk_payload = [
+        {
+            "chunk_id": chunk.get("chunk_id"),
+            "chunk_strategy_id": chunk.get("chunk_strategy_id"),
+            "chunk_text": chunk_text(chunk),
+        }
+        for chunk in chunks
+    ]
     return (
-        "Bạn là extractor entity cho corpus Tử Vi. "
-        "Chỉ trích entity xuất hiện nguyên văn trong chunk_text, không suy diễn.\n"
+        "You are the LLM augmentation step for a dictionary-first Tu Vi entity pipeline.\n"
+        "Return compact minified JSON only. No markdown. No explanation.\n"
+        "Return exactly one result object for every input chunk, preserving chunk_id.\n"
+        "If a chunk has no additional candidates, return an empty entities list for that chunk.\n"
+        "Return at most 20 additional entity candidates per chunk that appear verbatim in chunk_text; do not infer.\n"
         f"Taxonomy: {taxonomy}\n"
-        "LuanGiai chỉ được tạo khi có claim diễn giải có evidence như 'X chủ về Y', "
-        "'X thì Y', 'gặp X thì Y', 'nên luận là Y', 'có nghĩa là Y'.\n"
-        "Output JSON strict dạng {\"entities\": [{\"entity_type\": \"...\", "
-        "\"surface_text\": \"...\", \"canonical_name\": \"...\", "
-        "\"char_start\": 0, \"char_end\": 10, \"evidence_text\": \"...\", "
-        "\"confidence\": 0.0, \"needs_review\": false}]}.\n"
-        f"chunk_id: {chunk.get('chunk_id')}\n"
-        f"chunk_strategy_id: {chunk.get('chunk_strategy_id')}\n"
-        f"chunk_text:\n{chunk_text(chunk)}"
+        "Dictionary and rule candidates have already been extracted before this prompt; "
+        "do not use the model as a replacement for those deterministic sources.\n"
+        "Create LuanGiai only when the chunk has an explicit interpretation claim with evidence, "
+        "for example 'X chu ve Y', 'X thi Y', 'gap X thi Y', 'nen luan la Y', or 'co nghia la Y'.\n"
+        "Use exactly this output schema: "
+        "{\"chunks\":[{\"chunk_id\":\"...\",\"entities\":[{\"entity_type\":\"...\","
+        "\"surface_text\":\"...\",\"evidence_text\":\"...\",\"confidence\":0.0}]}]}.\n"
+        "Do not include char_start, char_end, canonical_name, aliases, or needs_review.\n"
+        f"chunks:\n{json.dumps(chunk_payload, ensure_ascii=False, separators=(',', ':'))}"
     )
 
 
@@ -758,6 +912,40 @@ def extract_chunk_entities(
     )
 
 
+def extract_chunk_entities_batch(
+    chunks: list[dict[str, Any]],
+    config: dict[str, Any],
+    *,
+    adapter: Any,
+    extraction_run_id: str,
+) -> dict[str, list[dict[str, Any]]]:
+    llm_entities_by_chunk = adapter.extract_many(chunks, config)
+    extraction_model = f"dictionary-rule+{adapter.extraction_model}"
+    records_by_chunk: dict[str, list[dict[str, Any]]] = {}
+    for chunk in chunks:
+        chunk_id = str(chunk["chunk_id"])
+        if chunk_id not in llm_entities_by_chunk:
+            continue
+        raw_entities = deterministic_candidates(chunk, config)
+        raw_entities.extend(
+            {
+                **entity,
+                "extraction_source": str(entity.get("extraction_source") or "llm"),
+            }
+            for entity in llm_entities_by_chunk[chunk_id]
+            if isinstance(entity, dict)
+        )
+        records_by_chunk[chunk_id] = postprocess_entities(
+            raw_entities,
+            chunk,
+            config,
+            extraction_model=extraction_model,
+            extraction_run_id=extraction_run_id,
+            default_extraction_source="dictionary",
+        )
+    return records_by_chunk
+
+
 def infer_chunk_type(chunk: dict[str, Any]) -> str | None:
     chunk_type = chunk.get("chunk_type")
     if chunk_type:
@@ -821,6 +1009,12 @@ def completed_state_entry(chunk: dict[str, Any], entity_count: int, extraction_r
         "entity_count": entity_count,
         "extraction_run_id": extraction_run_id,
     }
+
+
+def batched(records: list[dict[str, Any]], batch_size: int) -> Iterable[list[dict[str, Any]]]:
+    size = max(1, batch_size)
+    for index in range(0, len(records), size):
+        yield records[index : index + size]
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
@@ -987,7 +1181,7 @@ def make_llm_adapter(args: argparse.Namespace, config: dict[str, Any]) -> Any:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Extract Tử Vi entities from strategy-aware chunks.")
+    parser = argparse.ArgumentParser(description="Extract Tá»­ Vi entities from strategy-aware chunks.")
     parser.add_argument("--input", nargs="+", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--chunking-strategy", default=None)
@@ -997,6 +1191,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--state-output", type=Path, default=None)
     parser.add_argument("--extraction-run-id", default=None)
     parser.add_argument("--llm-augmentation", choices=["on", "off"], default=None)
+    parser.add_argument("--limit-chunks", type=int, default=None)
+    parser.add_argument("--max-runtime-seconds", type=float, default=None)
     parser.add_argument("--include-parent-chunks", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--mock-llm", action="store_true")
@@ -1010,6 +1206,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--local-llm-top-p", type=float, default=0.9)
     parser.add_argument("--local-llm-max-json-retries", type=int, default=1)
     parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
+    parser.add_argument("--llm-batch-size", type=int, default=DEFAULT_LLM_BATCH_SIZE)
+    parser.add_argument("--max-llm-requests", type=int, default=None)
+    parser.add_argument("--progress-interval", type=int, default=50)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
     parser.add_argument("--max-retry-sleep-seconds", type=float, default=DEFAULT_MAX_RETRY_SLEEP_SECONDS)
@@ -1024,6 +1223,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     extraction_policy = dict(config.get("extraction_policy") or {})
     extraction_run_id = args.extraction_run_id or make_extraction_run_id()
     state_output = args.state_output or Path(str(args.output) + ".state.json")
+    run_started_monotonic = time.monotonic()
     llm_default = bool(extraction_policy.get("llm_augmentation_default", True))
     llm_augmentation_enabled = llm_default if args.llm_augmentation is None else args.llm_augmentation == "on"
     input_files = discover_input_files(args.input)
@@ -1043,6 +1243,16 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         chunks,
         include_parent_chunks=args.include_parent_chunks,
     )
+    if args.limit_chunks is not None:
+        if args.limit_chunks < 1:
+            raise ValueError("--limit-chunks must be a positive integer.")
+        processable_chunks = processable_chunks[: args.limit_chunks]
+    if args.llm_batch_size < 1:
+        raise ValueError("--llm-batch-size must be a positive integer.")
+    if args.max_llm_requests is not None and args.max_llm_requests < 1:
+        raise ValueError("--max-llm-requests must be a positive integer.")
+    if args.progress_interval < 0:
+        raise ValueError("--progress-interval must be zero or a positive integer.")
     state = load_state(state_output)
     completed_chunks = state.setdefault("completed_chunks", {})
     resume_skipped_chunks = [
@@ -1053,6 +1263,8 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
     ]
 
     adapter = make_llm_adapter(args, config) if llm_augmentation_enabled else None
+    if chunks_to_process and hasattr(adapter, "warmup"):
+        adapter.warmup()
 
     entities: list[dict[str, Any]] = (
         filter_entities_for_completed_chunks(read_jsonl_records(args.output), completed_chunks)
@@ -1060,34 +1272,196 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         else []
     )
     errors: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
     completed = True
+    stop_reason: str | None = None
     processed_chunk_count = 0
-    for chunk in chunks_to_process:
-        try:
-            chunk_entities = extract_chunk_entities(
-                chunk,
-                config,
-                adapter=adapter,
-                llm_augmentation_enabled=llm_augmentation_enabled,
-                extraction_run_id=extraction_run_id,
-            )
-            entities.extend(chunk_entities)
-            processed_chunk_count += 1
-            completed_chunks[state_key(chunk)] = completed_state_entry(
-                chunk,
-                len(chunk_entities),
-                extraction_run_id,
-            )
-            write_state(state_output, state)
-        except GeminiKeysUnavailableError as exc:
+    llm_batch_size = max(1, int(args.llm_batch_size or 1))
+    progress_interval = int(args.progress_interval or 0)
+    llm_request_count = 0
+    use_batch_llm = (
+        llm_augmentation_enabled
+        and adapter is not None
+        and llm_batch_size > 1
+        and hasattr(adapter, "extract_many")
+    )
+    processing_batch_size = llm_batch_size if use_batch_llm else 1
+
+    def maybe_log_progress(*, force: bool = False, last_chunk_id: str | None = None) -> None:
+        if progress_interval == 0 and not force:
+            return
+        if not force and processed_chunk_count % progress_interval != 0:
+            return
+        elapsed = time.monotonic() - run_started_monotonic
+        rate = processed_chunk_count / elapsed if elapsed > 0 and processed_chunk_count > 0 else 0.0
+        remaining = max(0, len(chunks_to_process) - processed_chunk_count)
+        eta = remaining / rate if rate > 0 else None
+        log_progress(
+            "entity-progress",
+            (
+                f"processed={processed_chunk_count}/{len(chunks_to_process)} "
+                f"overall={len(resume_skipped_chunks) + processed_chunk_count}/{len(processable_chunks)} "
+                f"entities={len(entities)} llm_requests={llm_request_count} "
+                f"errors={len(errors)} warnings={len(warnings)} "
+                f"elapsed={format_seconds(elapsed)} eta={format_seconds(eta)} "
+                f"last_chunk={last_chunk_id or '-'}"
+            ),
+        )
+
+    maybe_log_progress(force=True)
+
+    def runtime_budget_exhausted() -> bool:
+        return (
+            args.max_runtime_seconds is not None
+            and processed_chunk_count > 0
+            and time.monotonic() - run_started_monotonic >= args.max_runtime_seconds
+        )
+
+    def llm_request_budget_exhausted() -> bool:
+        return (
+            llm_augmentation_enabled
+            and adapter is not None
+            and args.max_llm_requests is not None
+            and llm_request_count >= args.max_llm_requests
+        )
+
+    def store_chunk_entities(chunk: dict[str, Any], chunk_entities: list[dict[str, Any]]) -> None:
+        nonlocal processed_chunk_count
+        entities.extend(chunk_entities)
+        processed_chunk_count += 1
+        completed_chunks[state_key(chunk)] = completed_state_entry(
+            chunk,
+            len(chunk_entities),
+            extraction_run_id,
+        )
+        write_state(state_output, state)
+        maybe_log_progress(last_chunk_id=str(chunk.get("chunk_id") or "-"))
+
+    for chunk_batch in batched(chunks_to_process, processing_batch_size):
+        if (
+            runtime_budget_exhausted()
+        ):
             completed = False
-            errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(exc)})
+            stop_reason = "max_runtime_seconds"
             break
-        except Exception as exc:  # noqa: BLE001 - batch extraction must continue per chunk.
-            errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(exc)})
+        if llm_request_budget_exhausted():
+            completed = False
+            stop_reason = "max_llm_requests"
+            break
+
+        if use_batch_llm and len(chunk_batch) > 1:
+            try:
+                llm_request_count += 1
+                batch_records = extract_chunk_entities_batch(
+                    chunk_batch,
+                    config,
+                    adapter=adapter,
+                    extraction_run_id=extraction_run_id,
+                )
+            except GeminiKeysUnavailableError as exc:
+                completed = False
+                errors.append(
+                    {
+                        "chunk_id": ",".join(str(chunk.get("chunk_id")) for chunk in chunk_batch),
+                        "error": str(exc),
+                    }
+                )
+                break
+            except ValueError as exc:
+                warnings.append(
+                    {
+                        "chunk_id": ",".join(str(chunk.get("chunk_id")) for chunk in chunk_batch),
+                        "warning": f"batch_response_error: {exc}; fallback_to_single_chunk",
+                    }
+                )
+                for chunk in chunk_batch:
+                    if runtime_budget_exhausted():
+                        completed = False
+                        stop_reason = "max_runtime_seconds"
+                        break
+                    if llm_request_budget_exhausted():
+                        completed = False
+                        stop_reason = "max_llm_requests"
+                        break
+                    try:
+                        if llm_augmentation_enabled and adapter is not None:
+                            llm_request_count += 1
+                        store_chunk_entities(
+                            chunk,
+                            extract_chunk_entities(
+                                chunk,
+                                config,
+                                adapter=adapter,
+                                llm_augmentation_enabled=llm_augmentation_enabled,
+                                extraction_run_id=extraction_run_id,
+                            ),
+                        )
+                    except GeminiKeysUnavailableError as fallback_exc:
+                        completed = False
+                        errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(fallback_exc)})
+                        break
+                    except Exception as fallback_exc:  # noqa: BLE001 - continue per chunk.
+                        errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(fallback_exc)})
+                if completed is False and stop_reason != "missing_batch_chunk_response":
+                    break
+                continue
+            except Exception as exc:  # noqa: BLE001 - fall back only for parse/shape errors.
+                errors.append(
+                    {
+                        "chunk_id": ",".join(str(chunk.get("chunk_id")) for chunk in chunk_batch),
+                        "error": str(exc),
+                    }
+                )
+                continue
+
+            missing_chunk_ids: list[str] = []
+            for chunk in chunk_batch:
+                chunk_id = str(chunk["chunk_id"])
+                if chunk_id not in batch_records:
+                    missing_chunk_ids.append(chunk_id)
+                    continue
+                store_chunk_entities(chunk, batch_records[chunk_id])
+            if missing_chunk_ids:
+                completed = False
+                stop_reason = "missing_batch_chunk_response"
+                for chunk_id in missing_chunk_ids:
+                    errors.append({"chunk_id": chunk_id, "error": "missing chunk_id in batch LLM response"})
+            continue
+
+        for chunk in chunk_batch:
+            if runtime_budget_exhausted():
+                completed = False
+                stop_reason = "max_runtime_seconds"
+                break
+            if llm_request_budget_exhausted():
+                completed = False
+                stop_reason = "max_llm_requests"
+                break
+            try:
+                if llm_augmentation_enabled and adapter is not None:
+                    llm_request_count += 1
+                store_chunk_entities(
+                    chunk,
+                    extract_chunk_entities(
+                        chunk,
+                        config,
+                        adapter=adapter,
+                        llm_augmentation_enabled=llm_augmentation_enabled,
+                        extraction_run_id=extraction_run_id,
+                    ),
+                )
+            except GeminiKeysUnavailableError as exc:
+                completed = False
+                errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(exc)})
+                break
+            except Exception as exc:  # noqa: BLE001 - batch extraction must continue per chunk.
+                errors.append({"chunk_id": chunk.get("chunk_id"), "error": str(exc)})
+        if completed is False and stop_reason != "missing_batch_chunk_response":
+            break
 
     write_jsonl(args.output, entities)
     write_state(state_output, state)
+    maybe_log_progress(force=True)
     if args.review_output:
         write_review_report(args.review_output, build_review_report(processable_chunks, entities, errors))
 
@@ -1096,6 +1470,7 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "completed": completed,
         "entity_count": len(entities),
         "error_count": len(errors),
+        "error_samples": errors[:10],
         "extraction_model": (
             f"dictionary-rule+{adapter.extraction_model}" if adapter is not None else "dictionary-rule"
         ),
@@ -1104,6 +1479,11 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "input_chunk_count": len(chunks),
         "llm_backend": resolve_llm_backend(args) if llm_augmentation_enabled else "off",
         "llm_augmentation_enabled": llm_augmentation_enabled,
+        "llm_batch_size": llm_batch_size,
+        "llm_request_count": llm_request_count,
+        "limit_chunks": args.limit_chunks,
+        "max_llm_requests": args.max_llm_requests,
+        "max_runtime_seconds": args.max_runtime_seconds,
         "output": str(args.output),
         "parent_skipped_count": len(parent_skipped_chunks),
         "processed_chunk_count": processed_chunk_count,
@@ -1112,6 +1492,10 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         "resume_skipped_count": len(resume_skipped_chunks),
         "skipped_chunk_count": len(parent_skipped_chunks) + len(resume_skipped_chunks),
         "state_output": str(state_output),
+        "stop_reason": stop_reason,
+        "elapsed_seconds": round(time.monotonic() - run_started_monotonic, 3),
+        "warning_count": len(warnings),
+        "warning_samples": warnings[:10],
     }
     if hasattr(adapter, "get_usage_summary"):
         summary.update(adapter.get_usage_summary())
@@ -1128,7 +1512,13 @@ def cli(argv: list[str] | None = None) -> int:
 
     print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
     if summary.get("completed") is False:
+        if summary.get("stop_reason") in {"max_runtime_seconds", "max_llm_requests"}:
+            print("Info: Entity extraction reached a configured budget; partial output/state were written for resume.", file=sys.stderr)
+            return 0
         print("Error: Entity extraction stopped before completion; see partial summary/state for resume.", file=sys.stderr)
+        return 2
+    if int(summary.get("error_count") or 0) > 0:
+        print("Error: Entity extraction completed with per-chunk errors; see error_samples/review/state.", file=sys.stderr)
         return 2
     return 0
 

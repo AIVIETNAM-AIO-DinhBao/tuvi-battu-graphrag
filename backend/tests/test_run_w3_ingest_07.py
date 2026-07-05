@@ -135,11 +135,141 @@ def test_gemini_plan_emits_gemini_embedding_slot() -> None:
     commands = runner.build_commands(args, gemini_api_key_count=1)
     embed = next(command for command in commands if command["phase"] == "embed_retrieval")
     graph = next(command for command in commands if command["phase"] == "graph_relation")
+    entity = next(command for command in commands if command["phase"] == "entity_extraction")
 
     assert embed["embedding_slot"] == "gemini"
     assert "--embedding-slot" in embed["argv"]
     assert "gemini" in embed["argv"]
     assert "--payload-output-dir" in graph["argv"]
+    assert entity["backend"] == "gemini"
+    assert "--llm-batch-size" in entity["argv"]
+    assert "4" in entity["argv"]
+    assert "--requests-per-minute" in entity["argv"]
+    assert "15.0" in entity["argv"]
+    assert graph["backend"] == "gemini"
+    assert "--relation-mode" in graph["argv"]
+    assert "llm" in graph["argv"]
+    assert "--llm-batch-size" in graph["argv"]
+
+
+def test_rule_only_plan_uses_rule_entity_and_relation_modes() -> None:
+    work_dir = smoke_dir("rule-only-plan")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "plan",
+            "--profile",
+            "rule-only",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=0)
+    entity = next(command for command in commands if command["phase"] == "entity_extraction")
+    graph = next(command for command in commands if command["phase"] == "graph_relation")
+
+    assert args.profile == "rule-only"
+    assert entity["backend"] == "rule"
+    assert entity["requires_gemini"] is False
+    assert "--llm-augmentation" in entity["argv"]
+    assert "off" in entity["argv"]
+    assert "--llm-backend" not in entity["argv"]
+    assert graph["backend"] == "rule"
+    assert graph["requires_gemini"] is False
+    assert "--relation-mode" in graph["argv"]
+    assert "rule" in graph["argv"]
+    assert "--mock-llm" not in graph["argv"]
+
+
+def test_phase_filter_can_plan_entity_without_graph() -> None:
+    work_dir = smoke_dir("phase-filter")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "plan",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+            "--phases",
+            "entity_extraction",
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+
+    assert {command["phase"] for command in commands} == {"entity_extraction"}
+    assert len(commands) == 1
+
+
+def test_graph_dry_run_keeps_production_gemini_relation_calls() -> None:
+    work_dir = smoke_dir("graph-dry-run")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "production",
+            "--profile",
+            "gemini-call",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+            "--phases",
+            "graph_relation",
+            "--graph-dry-run",
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+    graph = commands[0]
+
+    assert graph["phase"] == "graph_relation"
+    assert graph["backend"] == "gemini"
+    assert graph["requires_gemini"] is True
+    assert "--dry-run" in graph["argv"]
+    assert "--mock-llm" not in graph["argv"]
+
+
+def test_gemini_model_overrides_are_forwarded_to_entity_and_relation() -> None:
+    work_dir = smoke_dir("gemini-model-overrides")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "plan",
+            "--profile",
+            "gemini-call",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+            "--gemini-entity-model",
+            "gemini-3.1-flash-lite-preview",
+            "--gemini-relation-model",
+            "gemini-3.1-flash-lite-preview",
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+    entity = next(command for command in commands if command["phase"] == "entity_extraction")
+    graph = next(command for command in commands if command["phase"] == "graph_relation")
+
+    assert entity["model"] == "gemini-3.1-flash-lite-preview"
+    assert graph["model"] == "gemini-3.1-flash-lite-preview"
+    assert "--model" in entity["argv"]
+    assert "--model" in graph["argv"]
+    assert "gemini-3.1-flash-lite-preview" in entity["argv"]
+    assert "gemini-3.1-flash-lite-preview" in graph["argv"]
 
 
 def test_dry_run_commands_use_mock_flags_and_skip_db_embed() -> None:
@@ -256,6 +386,52 @@ def test_resume_skips_completed_command_state(monkeypatch: pytest.MonkeyPatch) -
     assert result["skipped_command_count"] == 2
     assert "chunk_fixed_512:entity" in executed
     assert "chunk_fixed_512:graph" in executed
+
+
+def test_execute_commands_logs_runner_progress(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    work_dir = smoke_dir("runner-progress")
+    reports_dir = work_dir / "reports"
+    state_path = work_dir / "state.json"
+    executed: list[str] = []
+
+    def fake_run_subprocess(command: dict) -> None:
+        executed.append(command["command_id"])
+        if command.get("summary_output"):
+            runner.write_json(Path(command["summary_output"]), {"completed": True})
+
+    monkeypatch.setattr(runner, "run_subprocess", fake_run_subprocess)
+    args = runner.parse_args(
+        [
+            "--mode",
+            "dry-run",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--phases",
+            "entity_extraction",
+            "--state-output",
+            str(state_path),
+            "--reports-dir",
+            str(reports_dir),
+            "--chunks-dir",
+            str(work_dir / "chunks"),
+            "--entities-dir",
+            str(work_dir / "entities"),
+        ]
+    )
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+
+    runner.execute_commands(commands, args=args, state_path=state_path)
+
+    captured = capsys.readouterr()
+    assert executed == ["chunk_fixed_512:entity"]
+    assert "[runner-progress]" in captured.err
+    assert "start 1/1 command_id=chunk_fixed_512:entity" in captured.err
+    assert "done 1/1 command_id=chunk_fixed_512:entity" in captured.err
 
 
 def test_resume_does_not_skip_command_completed_in_different_mode(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -106,6 +106,13 @@ class FakeRelationClient:
             raise response
         return response  # type: ignore[return-value]
 
+    def extract_many(self, chunk_entity_batches: list[tuple[dict, list[dict]]]) -> dict[str, list[dict]]:
+        self.calls += 1
+        response = self.responses.pop(0) if self.responses else {}
+        if isinstance(response, Exception):
+            raise response
+        return response  # type: ignore[return-value]
+
 
 def no_sleep(_: float) -> None:
     return None
@@ -248,6 +255,26 @@ def test_relation_multi_key_adapter_round_robins_successful_requests() -> None:
 
     assert [client.calls for client in clients] == [2, 2]
     assert adapter.get_usage_summary()["api_key_usage_counts"] == {"key_1": 2, "key_2": 2}
+
+
+def test_relation_multi_key_adapter_batches_successful_requests() -> None:
+    first = make_chunk("Thien Ma tai Quan Loc.", chunk_id="first")
+    second = make_chunk("Thai Duong tai Menh.", chunk_id="second")
+    first_entities = [make_entity(first, "Thien Ma", "Sao"), make_entity(first, "Quan Loc", "Cung")]
+    second_entities = [make_entity(second, "Thai Duong", "Sao"), make_entity(second, "Menh", "Cung")]
+    clients = [FakeRelationClient([{"first": [], "second": []}]), FakeRelationClient([{}])]
+    adapter = writer.MultiKeyGeminiRelationLLMAdapter(
+        clients,
+        sleep_fn=no_sleep,
+        time_fn=fake_time,
+    )
+
+    assert adapter.extract_many([(first, first_entities), (second, second_entities)]) == {
+        "first": [],
+        "second": [],
+    }
+    assert [client.calls for client in clients] == [1, 0]
+    assert adapter.get_usage_summary()["api_key_usage_counts"] == {"key_1": 1, "key_2": 0}
 
 
 def test_relation_multi_key_adapter_fails_over_on_rate_limit() -> None:
@@ -600,6 +627,117 @@ def test_llm_relation_resume_skips_completed_chunk_state(monkeypatch: pytest.Mon
 
     assert calls["count"] == 0
     assert records == [relation]
+
+
+def test_llm_relation_batch_missing_chunk_response_is_not_completed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = make_chunk("Thien Ma tai Quan Loc.", chunk_id="first")
+    second = make_chunk("Thai Duong tai Menh.", chunk_id="second")
+    entities = [
+        make_entity(first, "Thien Ma", "Sao"),
+        make_entity(first, "Quan Loc", "Cung"),
+        make_entity(second, "Thai Duong", "Sao"),
+        make_entity(second, "Menh", "Cung"),
+    ]
+    work_dir = smoke_dir("relation-batch-missing")
+    state_path = work_dir / "graph_relation_state.json"
+    drop_counts: writer.Counter[str] = writer.Counter()
+
+    class MissingBatchAdapter:
+        model_name = "missing-batch"
+
+        def extract_many(self, batch: list[tuple[dict, list[dict]]]) -> dict[str, list[dict]]:
+            return {"first": []}
+
+    monkeypatch.setattr(writer, "MockRelationLLMAdapter", MissingBatchAdapter)
+
+    records = writer.extract_llm_relations(
+        [first, second],
+        entities,
+        mock_llm=True,
+        model_name="mock",
+        llm_batch_size=2,
+        state_output=state_path,
+        drop_counts=drop_counts,
+    )
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert records == []
+    assert set(state["completed_chunks"]) == {"hash-first"}
+    assert drop_counts["missing_batch_chunk_response"] == 1
+
+
+def test_llm_relation_batch_json_error_falls_back_to_single_chunk(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = make_chunk("Thien Ma tai Quan Loc.", chunk_id="first")
+    second = make_chunk("Thai Duong tai Menh.", chunk_id="second")
+    first_entities = [make_entity(first, "Thien Ma", "Sao"), make_entity(first, "Quan Loc", "Cung")]
+    second_entities = [make_entity(second, "Thai Duong", "Sao"), make_entity(second, "Menh", "Cung")]
+    entities = [*first_entities, *second_entities]
+    drop_counts: writer.Counter[str] = writer.Counter()
+    usage_summary: dict = {}
+
+    class FallbackBatchAdapter:
+        model_name = "fallback-batch"
+
+        def __init__(self) -> None:
+            self.single_calls = 0
+
+        def extract_many(self, batch: list[tuple[dict, list[dict]]]) -> dict[str, list[dict]]:
+            raise ValueError("bad json")
+
+        def extract(self, chunk: dict, chunk_entities: list[dict]) -> list[dict]:
+            self.single_calls += 1
+            return [
+                {
+                    "confidence": 0.9,
+                    "evidence_text": chunk["chunk_text"],
+                    "head_entity_id": chunk_entities[0]["entity_id"],
+                    "relation_type": "THUOC_CUNG",
+                    "tail_entity_id": chunk_entities[1]["entity_id"],
+                }
+            ]
+
+    adapter = FallbackBatchAdapter()
+    monkeypatch.setattr(writer, "MockRelationLLMAdapter", lambda: adapter)
+
+    records = writer.extract_llm_relations(
+        [first, second],
+        entities,
+        mock_llm=True,
+        model_name="mock",
+        llm_batch_size=2,
+        drop_counts=drop_counts,
+        usage_summary=usage_summary,
+    )
+
+    assert len(records) == 2
+    assert adapter.single_calls == 2
+    assert drop_counts["batch_response_error"] == 1
+    assert usage_summary["llm_relation_request_count"] == 3
+    assert usage_summary["relation_extraction_completed"] is True
+
+
+def test_llm_relation_progress_logging(capsys: pytest.CaptureFixture[str]) -> None:
+    chunk = make_chunk("Thien Ma tai Quan Loc.")
+    entities = [
+        make_entity(chunk, "Thien Ma", "Sao"),
+        make_entity(chunk, "Quan Loc", "Cung"),
+    ]
+
+    writer.extract_llm_relations(
+        [chunk],
+        entities,
+        mock_llm=True,
+        model_name="mock",
+        progress_interval=1,
+    )
+
+    captured = capsys.readouterr()
+    assert "[relation-progress]" in captured.err
+    assert "processed=1/1" in captured.err
 
 
 def test_local_qwen_relation_adapter_uses_existing_entity_ids() -> None:

@@ -1,0 +1,67 @@
+{
+      "chunk_strategy_id": "chunk_fixed_512",
+  "documents": {
+    "TVGM": {
+      "avg_tokens": 312.16,
+      "child_chunks": 0,
+      "chunk_chunks": 258,
+      "chunk_types": {
+        "chunk": 258
+      },
+      "max_tokens": 512,
+      "min_tokens": 11,
+      "parent_chunks": 0,
+      "retrieval_unit_chunks": 258,
+      "total_chunks": 258
+    },
+    "TVHS": {
+      "avg_tokens": 364.67,
+      "child_chunks": 0,
+      "chunk_chunks": 287,
+      "chunk_types": {
+        "chunk": 287
+      },
+      "max_tokens": 512,
+      "min_tokens": 28,
+      "parent_chunks": 0,
+      "retrieval_unit_chunks": 287,
+      "total_chunks": 287
+    },
+    "TVKL": {
+      "avg_tokens": 348.38,
+      "child_chunks": 0,
+      "chunk_chunks": 347,
+      "chunk_types": {
+        "chunk": 347
+      },
+      "max_tokens": 512,
+      "min_tokens": 73,
+      "parent_chunks": 0,
+      "retrieval_unit_chunks": 347,
+      "total_chunks": 347
+    },
+    "TVNL": {
+      "avg_tokens": 369.61,
+      "child_chunks": 0,
+      "chunk_chunks": 266,
+      "chunk_types": {
+        "chunk": 266
+      },
+      "max_tokens": 512,
+      "min_tokens": 67,
+      "parent_chunks": 0,
+      "retrieval_unit_chunks": 266,
+      "total_chunks": 266
+    }
+  },
+  "legacy_or_auxiliary": false,
+  "official_baseline": true,
+  "outputs": {
+    "TVGM": "/kaggle/working/w3_local_outputs/chunks/chunk_fixed_512/TVGM_chunks.jsonl",
+    "TVHS": "/kaggle/working/w3_local_outputs/chunks/chunk_fixed_512/TVHS_chunks.jsonl",
+    "TVKL": "/kaggle/working/w3_local_outputs/chunks/chunk_fixed_512/TVKL_chunks.jsonl",
+    "TVNL": "/kaggle/working/w3_local_outputs/chunks/chunk_fixed_512/TVNL_chunks.jsonl"
+  },
+  "semantic_method": null,
+  "total_chunks": 1158
+}

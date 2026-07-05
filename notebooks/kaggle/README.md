@@ -170,7 +170,25 @@ Avoid:
 - Chunk semantic embedding: `BAAI/bge-m3`
 - Dense embedding artifact slot: `bge_m3`
 - Dense vector dim: `1024`
-- Relation/entity augmentation: `Qwen/Qwen2.5-7B-Instruct`
+- Entity extraction: dictionary/rule + Qwen augmentation with `LLM_AUGMENTATION = 'on'`
+- Entity local LLM quantization: `none`
+- Entity local LLM device: `auto-cuda`
+- Entity JSON retries: `2`
+- Entity Qwen preflight: optional diagnostic only; default `LLM_PREFLIGHT_CHUNK_LIMIT = 0`
+- Entity runtime budget: 36000 seconds soft stop, 39600 seconds hard timeout
+- Relation augmentation: `Qwen/Qwen2.5-7B-Instruct`
+
+Entity extraction uses the full non-quantized Qwen model. Notebook 02 supports a real one-chunk Qwen preflight, but this is disabled by default because it loads Qwen in a separate subprocess before the full batch. Set `LLM_PREFLIGHT_CHUNK_LIMIT = 1` only for a diagnostic run; after it passes, set it back to `0` so the full batch loads Qwen once. If Qwen fails to load, is too slow, or the command times out, the notebook kills the child process and fails instead of silently producing zero entities or burning the whole Kaggle session.
+
+`auto-cuda` allows HuggingFace to shard the full model across multiple Kaggle GPUs when available, but rejects CPU/disk offload after load. This keeps the run on full-quality weights without falling into extremely slow CPU inference.
+
+Notebook 02 does not execute scripts directly from the read-only Kaggle input dataset. Cell 1 copies `tuvi-battu-scripts` to `/kaggle/working/tuvi_battu_scripts_runtime`, applies notebook hotfixes there, and cell 2 runs `/kaggle/working/tuvi_battu_scripts_runtime/scripts/extract_entities.py`. If a traceback still points to `/kaggle/input/.../tuvi-battu-scripts/scripts/extract_entities.py`, rerun the updated notebook from cell 1.
+
+Cell 2 shows progress from the entity `state` file while the subprocess runs. With `tqdm` installed this appears as a progress bar; otherwise the notebook prints periodic `completed/total` updates.
+
+If a strategy reaches the soft runtime budget, `extract_entities.py` writes partial `entities/`, `state/`, and `reports/`, exits successfully, and notebook 02 still packs the zip. Re-upload that zip as the next notebook 02 input with the same `RUN_TAG` and `SELECTED_STRATEGIES`; notebook 02 restores notebook 01 chunks through `PREVIOUS_OUTPUT_SLUGS` and optional notebook 02 partial state through `PREVIOUS_ENTITY_OUTPUT_SLUGS`. `--resume` skips completed chunks. Move to notebook 03 only after summaries show `completed = true`.
+
+The Transformers warning about invalid `temperature`, `top_p`, or `top_k` generation flags is not the failure condition by itself. Treat OOM, preflight timeout, non-zero command exit, or non-zero `error_count` as the actionable failures.
 
 This does **not** overwrite Gemini baseline vectors in Neo4j. BGE-M3 imports go to:
 
