@@ -42,7 +42,8 @@
           "span_id": { "type": "string" },
           "page_pdf": { "type": "integer" },
           "page_book": { "type": "integer" },
-          "quote": { "type": "string" }
+          "quote": { "type": "string" },
+          "relevance_note": { "type": "string" }
         }
       }
     },
