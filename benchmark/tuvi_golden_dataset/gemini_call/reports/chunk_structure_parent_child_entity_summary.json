@@ -2,49 +2,20 @@
   "api_key_count": 4,
   "api_key_last_errors": {},
   "api_key_usage_counts": {
-    "key_1": 209,
-    "key_2": 209,
-    "key_3": 209,
-    "key_4": 209
+    "key_1": 1,
+    "key_2": 1,
+    "key_3": 0,
+    "key_4": 0
   },
   "chunk_count": 3344,
-  "completed": false,
+  "completed": true,
   "disabled_key_count": 0,
-  "elapsed_seconds": 2420.502,
-  "entity_count": 113055,
-  "error_count": 7,
-  "error_samples": [
-    {
-      "chunk_id": "TVNL_chunk_structure_parent_child_child_000350",
-      "error": "missing chunk_id in batch LLM response"
-    },
-    {
-      "chunk_id": "TVNL_chunk_structure_parent_child_child_000351",
-      "error": "missing chunk_id in batch LLM response"
-    },
-    {
-      "chunk_id": "TVNL_chunk_structure_parent_child_child_000352",
-      "error": "missing chunk_id in batch LLM response"
-    },
-    {
-      "chunk_id": "TVNL_chunk_structure_parent_child_child_000353",
-      "error": "missing chunk_id in batch LLM response"
-    },
-    {
-      "chunk_id": "TVNL_chunk_structure_parent_child_child_000475",
-      "error": "missing chunk_id in batch LLM response"
-    },
-    {
-      "chunk_id": "TVNL_chunk_structure_parent_child_child_000476",
-      "error": "missing chunk_id in batch LLM response"
-    },
-    {
-      "chunk_id": "TVNL_chunk_structure_parent_child_child_000477",
-      "error": "missing chunk_id in batch LLM response"
-    }
-  ],
+  "elapsed_seconds": 13.898,
+  "entity_count": 113229,
+  "error_count": 0,
+  "error_samples": [],
   "extraction_model": "dictionary-rule+gemini-3.1-flash-lite-preview",
-  "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411",
+  "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d",
   "input_chunk_count": 4504,
   "input_files": [
     "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\notebooks\\w3_local_outputs\\chunks\\chunk_structure_parent_child\\TVGM_chunks.jsonl",
@@ -56,19 +27,19 @@
   "llm_augmentation_enabled": true,
   "llm_backend": "gemini",
   "llm_batch_size": 4,
-  "llm_request_count": 836,
+  "llm_request_count": 2,
   "max_llm_requests": null,
   "max_runtime_seconds": null,
   "output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\entities\\chunk_structure_parent_child\\chunk_structure_parent_child_entities.jsonl",
   "parent_skipped_count": 1160,
-  "processed_chunk_count": 3337,
+  "processed_chunk_count": 7,
   "quota_failover_count": 0,
   "resume": true,
-  "resume_skipped_count": 0,
+  "resume_skipped_count": 3337,
   "review_output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_structure_parent_child_entity_review.json",
-  "skipped_chunk_count": 1160,
+  "skipped_chunk_count": 4497,
   "state_output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\production\\chunk_structure_parent_child_entity_state.json",
-  "stop_reason": "missing_batch_chunk_response",
+  "stop_reason": null,
   "warning_count": 0,
   "warning_samples": []
 }

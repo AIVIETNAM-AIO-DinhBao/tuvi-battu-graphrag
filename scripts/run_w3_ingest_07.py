@@ -33,6 +33,8 @@ LOCAL_KAGGLE_EMBEDDING_DIM = 1024
 LOCAL_KAGGLE_LLM_MODEL = "Qwen/Qwen2.5-7B-Instruct"
 DEFAULT_GEMINI_LLM_BATCH_SIZE = 4
 DEFAULT_GEMINI_REQUESTS_PER_MINUTE = 15.0
+DEFAULT_GEMINI_RELATION_MODEL = "gemini-3.1-flash-lite-preview"
+DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK = 96
 ALL_PHASES = ["chunking", "entity_extraction", "graph_relation", "embed_retrieval"]
 DEFAULT_SMOKE_QUERY = "Thiên Mã tại Quan Lộc"
 
@@ -79,6 +81,8 @@ def resolve_profile_args(args: argparse.Namespace) -> argparse.Namespace:
         raise ValueError("--max-llm-requests must be a positive integer.")
     if getattr(args, "progress_interval", 0) < 0:
         raise ValueError("--progress-interval must be zero or a positive integer.")
+    if getattr(args, "max_relation_candidates_per_chunk", 1) < 1:
+        raise ValueError("--max-relation-candidates-per-chunk must be a positive integer.")
     if args.strategies is None:
         args.strategies = list(LOCAL_KAGGLE_STRATEGIES if profile == "local-kaggle" else DEFAULT_STRATEGIES)
     if args.chunks_dir is None:
@@ -345,8 +349,18 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
             state_dir / f"{strategy}_graph_relation_state.json",
             "--progress-interval",
             str(args.progress_interval),
+            "--max-relation-candidates-per-chunk",
+            str(args.max_relation_candidates_per_chunk),
             "--resume",
         ]
+        if args.relation_entity_types:
+            graph_argv.extend(["--relation-entity-types", *args.relation_entity_types])
+        if args.include_needs_review_entities:
+            graph_argv.append("--include-needs-review-entities")
+        if args.include_khai_niem_candidates:
+            graph_argv.append("--include-khai-niem-candidates")
+        if args.include_luan_giai_relations:
+            graph_argv.append("--include-luan-giai-relations")
         if args.mode != "production" or local_profile or args.graph_dry_run:
             graph_argv.append("--dry-run")
         if rule_profile:
@@ -384,7 +398,7 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                 graph_argv.extend(["--local-llm-device", args.local_llm_device])
         else:
             graph_backend = "gemini"
-            graph_model = args.gemini_relation_model or "gemini-2.0-flash-lite"
+            graph_model = args.gemini_relation_model or DEFAULT_GEMINI_RELATION_MODEL
             graph_argv.extend(
                 [
                     "--llm-backend",
@@ -702,6 +716,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--gemini-entity-model", default=None)
     parser.add_argument("--gemini-relation-model", default=None)
     parser.add_argument("--max-llm-requests", type=int, default=None)
+    parser.add_argument("--relation-entity-types", nargs="+", default=None)
+    parser.add_argument("--include-needs-review-entities", action="store_true")
+    parser.add_argument("--include-khai-niem-candidates", action="store_true")
+    parser.add_argument("--include-luan-giai-relations", action="store_true")
+    parser.add_argument(
+        "--max-relation-candidates-per-chunk",
+        type=int,
+        default=DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK,
+    )
     parser.add_argument("--local-embedding-model", default=LOCAL_KAGGLE_EMBEDDING_MODEL)
     parser.add_argument("--local-embedding-dim", type=int, default=LOCAL_KAGGLE_EMBEDDING_DIM)
     parser.add_argument("--local-embedding-device", default=None)

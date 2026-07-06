@@ -32,10 +32,11 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_SOURCE_REGISTRY = (
     ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "guideline" / "source_registry.json"
 )
-DEFAULT_RELATION_MODEL = "gemini-2.0-flash-lite"
+DEFAULT_RELATION_MODEL = "gemini-3.1-flash-lite-preview"
 DEFAULT_REQUESTS_PER_MINUTE = 30.0
 DEFAULT_LLM_BATCH_SIZE = 4
 DEFAULT_MAX_RETRY_SLEEP_SECONDS = 300.0
+DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK = 96
 ONTOLOGY_SOURCE_ID = "tuvi_ontology_v1"
 
 ENTITY_TYPES = {
@@ -70,8 +71,44 @@ RELATION_TYPES = {
 }
 STRUCTURAL_RELATION_TYPES = {"HAS_SOURCE", "HAS_CHUNK", "HAS_PARENT", "CONTAINS_CHILD"}
 EXTRACTABLE_RELATION_TYPES = RELATION_TYPES - {"MENTIONS", *STRUCTURAL_RELATION_TYPES}
+DEFAULT_LLM_RELATION_TYPES = {"THUOC_CUNG", "DOI_CHIEU", "LIEN_KE", "RELATED_TO", "LUU_Y"}
 CANONICAL_AGGREGATED_RELATION_TYPES = EXTRACTABLE_RELATION_TYPES
 THUOC_CUNG_HEAD_TYPES = {"Sao", "ToHop", "TuHoa", "TrangThaiSao", "CucBanMenh"}
+DEFAULT_RELATION_ENTITY_TYPES = (
+    "Sao",
+    "Cung",
+    "ThienCan",
+    "DiaChi",
+    "NguHanh",
+    "ToHop",
+    "QuanHeCung",
+    "TrangThaiSao",
+    "TuHoa",
+    "VanHan",
+    "DaiHan",
+    "CucBanMenh",
+)
+RELATION_ENTITY_TYPE_PRIORITY = {
+    entity_type: index
+    for index, entity_type in enumerate(
+        (
+            "Sao",
+            "Cung",
+            "ToHop",
+            "TuHoa",
+            "TrangThaiSao",
+            "CucBanMenh",
+            "ThienCan",
+            "DiaChi",
+            "NguHanh",
+            "QuanHeCung",
+            "VanHan",
+            "DaiHan",
+            "KhaiNiem",
+            "LuanGiai",
+        )
+    )
+}
 REQUIRED_CHUNK_KEYS = {
     "chunk_hash",
     "chunk_id",
@@ -356,7 +393,137 @@ def write_relation_state(path: Path | None, state: dict[str, Any]) -> None:
 
 
 def relation_state_key(chunk: dict[str, Any]) -> str:
-    return str(chunk.get("chunk_hash") or chunk.get("chunk_id"))
+    strategy_id = str(chunk.get("chunk_strategy_id") or "unknown_strategy")
+    chunk_id = str(chunk.get("chunk_id") or chunk.get("chunk_hash"))
+    return f"{strategy_id}:{chunk_id}"
+
+
+def normalize_relation_entity_types(entity_types: Iterable[str] | None = None) -> tuple[str, ...]:
+    values = tuple(entity_types or DEFAULT_RELATION_ENTITY_TYPES)
+    unknown = sorted({str(entity_type) for entity_type in values if str(entity_type) not in ENTITY_TYPES})
+    if unknown:
+        raise ValueError(f"Unsupported --relation-entity-types: {', '.join(unknown)}")
+    return tuple(dict.fromkeys(str(entity_type) for entity_type in values))
+
+
+def effective_relation_entity_types(
+    entity_types: Iterable[str] | None,
+    *,
+    include_khai_niem_candidates: bool = False,
+    include_luan_giai_relations: bool = False,
+) -> set[str]:
+    allowed = set(normalize_relation_entity_types(entity_types))
+    if include_khai_niem_candidates:
+        allowed.add("KhaiNiem")
+    if include_luan_giai_relations:
+        allowed.add("LuanGiai")
+    return allowed
+
+
+def allowed_extractable_relation_types(*, include_luan_giai_relations: bool = False) -> set[str]:
+    allowed = set(DEFAULT_LLM_RELATION_TYPES)
+    if include_luan_giai_relations:
+        allowed.update({"APPLIES_TO", "GIAI_THICH"})
+    return allowed
+
+
+def relation_candidate_rank(entity: dict[str, Any]) -> tuple[int, float, int, int, str]:
+    entity_type = str(entity.get("entity_type") or "")
+    priority = RELATION_ENTITY_TYPE_PRIORITY.get(entity_type, len(RELATION_ENTITY_TYPE_PRIORITY))
+    try:
+        confidence = float(entity.get("confidence", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        confidence = 0.0
+    return (
+        priority,
+        -confidence,
+        int(entity.get("char_start") or 0),
+        int(entity.get("char_end") or 0),
+        str(entity.get("entity_id") or ""),
+    )
+
+
+def relation_candidate_text_order(entity: dict[str, Any]) -> tuple[int, int, str]:
+    return (
+        int(entity.get("char_start") or 0),
+        int(entity.get("char_end") or 0),
+        str(entity.get("entity_id") or ""),
+    )
+
+
+def filter_relation_candidates(
+    entities: list[dict[str, Any]],
+    *,
+    relation_entity_types: Iterable[str] | None = None,
+    include_needs_review_entities: bool = False,
+    include_khai_niem_candidates: bool = False,
+    include_luan_giai_relations: bool = False,
+    max_candidates: int | None = DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK,
+    candidate_stats: Counter[str] | None = None,
+    dropped_type_counts: Counter[str] | None = None,
+) -> list[dict[str, Any]]:
+    if max_candidates is not None and max_candidates < 1:
+        raise ValueError("--max-relation-candidates-per-chunk must be a positive integer.")
+
+    allowed_types = effective_relation_entity_types(
+        relation_entity_types,
+        include_khai_niem_candidates=include_khai_niem_candidates,
+        include_luan_giai_relations=include_luan_giai_relations,
+    )
+    kept: list[dict[str, Any]] = []
+    for entity in entities:
+        entity_type = str(entity.get("entity_type") or "")
+        if candidate_stats is not None:
+            candidate_stats["raw_entity_count"] += 1
+
+        is_luan_giai_opt_in = include_luan_giai_relations and entity_type == "LuanGiai"
+        if entity.get("needs_review") and not include_needs_review_entities and not is_luan_giai_opt_in:
+            if candidate_stats is not None:
+                candidate_stats["dropped_entity_count"] += 1
+                candidate_stats["dropped_needs_review_count"] += 1
+            if dropped_type_counts is not None:
+                dropped_type_counts[entity_type] += 1
+            continue
+
+        if entity_type == "KhaiNiem" and not include_khai_niem_candidates:
+            if candidate_stats is not None:
+                candidate_stats["dropped_entity_count"] += 1
+                candidate_stats["dropped_type_count"] += 1
+            if dropped_type_counts is not None:
+                dropped_type_counts[entity_type] += 1
+            continue
+
+        if entity_type == "LuanGiai" and not include_luan_giai_relations:
+            if candidate_stats is not None:
+                candidate_stats["dropped_entity_count"] += 1
+                candidate_stats["dropped_type_count"] += 1
+            if dropped_type_counts is not None:
+                dropped_type_counts[entity_type] += 1
+            continue
+
+        if entity_type not in allowed_types:
+            if candidate_stats is not None:
+                candidate_stats["dropped_entity_count"] += 1
+                candidate_stats["dropped_type_count"] += 1
+            if dropped_type_counts is not None:
+                dropped_type_counts[entity_type] += 1
+            continue
+
+        kept.append(entity)
+
+    if max_candidates is not None and len(kept) > max_candidates:
+        kept = sorted(kept, key=relation_candidate_rank)
+        dropped_by_cap = kept[max_candidates:]
+        kept = kept[:max_candidates]
+        if candidate_stats is not None:
+            candidate_stats["dropped_entity_count"] += len(dropped_by_cap)
+            candidate_stats["capped_entity_count"] += len(dropped_by_cap)
+            candidate_stats["capped_chunk_count"] += 1
+
+    kept = sorted(kept, key=relation_candidate_text_order)
+    if candidate_stats is not None:
+        candidate_stats["candidate_entity_count"] += len(kept)
+    return kept
 
 
 def load_source_registry(path: Path | None = DEFAULT_SOURCE_REGISTRY) -> dict[str, dict[str, Any]]:
@@ -770,6 +937,12 @@ def derive_related_relations(
 def derive_rule_relations(
     chunks: list[dict[str, Any]],
     entities: list[dict[str, Any]],
+    *,
+    relation_entity_types: Iterable[str] | None = None,
+    include_needs_review_entities: bool = False,
+    include_khai_niem_candidates: bool = False,
+    include_luan_giai_relations: bool = False,
+    max_relation_candidates_per_chunk: int | None = DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK,
 ) -> list[dict[str, Any]]:
     by_chunk: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entity in entities:
@@ -779,16 +952,25 @@ def derive_rule_relations(
     relations: list[dict[str, Any]] = []
     for chunk_id, chunk_entities in by_chunk.items():
         chunk = chunks_by_id[chunk_id]
+        chunk_candidates = filter_relation_candidates(
+            chunk_entities,
+            relation_entity_types=relation_entity_types,
+            include_needs_review_entities=include_needs_review_entities,
+            include_khai_niem_candidates=include_khai_niem_candidates,
+            include_luan_giai_relations=include_luan_giai_relations,
+            max_candidates=max_relation_candidates_per_chunk,
+        )
         text = chunk_text(chunk)
         for sentence in sentence_spans(text):
-            sent_entities = entities_in_sentence(chunk_entities, sentence)
+            sent_entities = entities_in_sentence(chunk_candidates, sentence)
             if len(sent_entities) < 1:
                 continue
             current: list[dict[str, Any]] = []
             current.extend(derive_thuoc_cung_relations(sentence, chunk, sent_entities))
             current.extend(derive_doi_chieu_relations(sentence, chunk, sent_entities))
             current.extend(derive_lien_ke_relations(sentence, chunk, sent_entities))
-            current.extend(derive_luan_giai_relations(sentence, chunk, sent_entities))
+            if include_luan_giai_relations:
+                current.extend(derive_luan_giai_relations(sentence, chunk, sent_entities))
             current.extend(derive_luu_y_relations(sentence, chunk, sent_entities))
             current.extend(derive_related_relations(sentence, chunk, sent_entities, current))
             relations.extend(current)
@@ -836,6 +1018,7 @@ class GeminiRelationLLMAdapter:
         model_name: str,
         *,
         requests_per_minute: float | None = DEFAULT_REQUESTS_PER_MINUTE,
+        allowed_relation_types: Iterable[str] | None = None,
     ) -> None:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is required unless --mock-llm or --relation-mode rule is used.")
@@ -847,12 +1030,15 @@ class GeminiRelationLLMAdapter:
         self._genai = genai
         self._rate_limiter = RequestRateLimiter(requests_per_minute)
         self.model_name = model_name
+        self.allowed_relation_types = set(allowed_relation_types or DEFAULT_LLM_RELATION_TYPES)
 
     def extract(self, chunk: dict[str, Any], entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
         self._rate_limiter.wait()
         self._genai.configure(api_key=self._api_key)
         model = self._genai.GenerativeModel(self.model_name)
-        response = model.generate_content(build_relation_prompt(chunk, entities))
+        response = model.generate_content(
+            build_relation_prompt(chunk, entities, allowed_relation_types=self.allowed_relation_types)
+        )
         payload = parse_json_payload(getattr(response, "text", ""))
         return extract_relations_from_payload(payload, source="Gemini")
 
@@ -863,7 +1049,9 @@ class GeminiRelationLLMAdapter:
         self._rate_limiter.wait()
         self._genai.configure(api_key=self._api_key)
         model = self._genai.GenerativeModel(self.model_name)
-        response = model.generate_content(build_batch_relation_prompt(chunk_entity_batches))
+        response = model.generate_content(
+            build_batch_relation_prompt(chunk_entity_batches, allowed_relation_types=self.allowed_relation_types)
+        )
         payload = parse_json_payload(getattr(response, "text", ""))
         return extract_relations_by_chunk_from_payload(
             payload,
@@ -1050,20 +1238,28 @@ class MultiKeyGeminiRelationLLMAdapter:
 
 
 class LocalQwenRelationLLMAdapter:
-    def __init__(self, client: LocalQwenJsonClient) -> None:
+    def __init__(self, client: LocalQwenJsonClient, allowed_relation_types: Iterable[str] | None = None) -> None:
         self.client = client
         self.model_name = client.model_name
         self.llm_backend = "local"
+        self.allowed_relation_types = set(allowed_relation_types or DEFAULT_LLM_RELATION_TYPES)
 
     def get_usage_summary(self) -> dict[str, Any]:
         return self.client.get_usage_summary()
 
     def extract(self, chunk: dict[str, Any], entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        payload = self.client.generate_json(build_relation_prompt(chunk, entities))
+        payload = self.client.generate_json(
+            build_relation_prompt(chunk, entities, allowed_relation_types=self.allowed_relation_types)
+        )
         return extract_relations_from_payload(payload, source="Local Qwen")
 
 
-def build_relation_prompt(chunk: dict[str, Any], entities: list[dict[str, Any]]) -> str:
+def build_relation_prompt(
+    chunk: dict[str, Any],
+    entities: list[dict[str, Any]],
+    *,
+    allowed_relation_types: Iterable[str] | None = None,
+) -> str:
     entity_payload = [
         {
             "entity_id": entity["entity_id"],
@@ -1075,10 +1271,11 @@ def build_relation_prompt(chunk: dict[str, Any], entities: list[dict[str, Any]])
         }
         for entity in entities
     ]
-    relation_types = ", ".join(sorted(EXTRACTABLE_RELATION_TYPES))
+    relation_types = ", ".join(sorted(allowed_relation_types or DEFAULT_LLM_RELATION_TYPES))
     return (
         "Bạn là relation extractor cho corpus Tử Vi. "
         "Chỉ tạo relation giữa các entity_id đã được cung cấp; không tạo entity mới. "
+        "Các entity đã được lọc trước; không tạo relation với entity không có trong danh sách. "
         "Relation phải có evidence_text xuất hiện nguyên văn trong chunk_text. "
         f"Whitelist relation_type: {relation_types}.\n"
         "Output JSON strict dạng {\"relations\": [{\"relation_type\": \"...\", "
@@ -1094,6 +1291,8 @@ def build_relation_prompt(chunk: dict[str, Any], entities: list[dict[str, Any]])
 
 def build_batch_relation_prompt(
     chunk_entity_batches: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+    *,
+    allowed_relation_types: Iterable[str] | None = None,
 ) -> str:
     chunk_payload = []
     for chunk, entities in chunk_entity_batches:
@@ -1115,21 +1314,20 @@ def build_batch_relation_prompt(
                 "chunk_text": chunk_text(chunk),
             }
         )
-    relation_types = ", ".join(sorted(EXTRACTABLE_RELATION_TYPES))
+    relation_types = ", ".join(sorted(allowed_relation_types or DEFAULT_LLM_RELATION_TYPES))
     return (
-        "Báº¡n lÃ  relation extractor cho corpus Tá»­ Vi. "
-        "Chá»‰ táº¡o relation giá»¯a cÃ¡c entity_id Ä‘Ã£ Ä‘Æ°á»£c cung cáº¥p; khÃ´ng táº¡o entity má»›i. "
-        "Relation pháº£i cÃ³ evidence_text xuáº¥t hiá»‡n nguyÃªn vÄƒn trong chunk_text. "
+        "Bạn là relation extractor cho corpus Tử Vi. "
+        "Chỉ tạo relation giữa các entity_id đã được cung cấp; không tạo entity mới. "
+        "Các entity đã được lọc trước; không tạo relation với entity không có trong danh sách. "
+        "Relation phải có evidence_text xuất hiện nguyên văn trong chunk_text. "
         f"Whitelist relation_type: {relation_types}.\n"
         "Return exactly one result object for every input chunk, preserving chunk_id. "
         "If a chunk has no valid relation, return an empty relations list for that chunk.\n"
-        "Output JSON strict dáº¡ng {\"chunks\":[{\"chunk_id\":\"...\",\"relations\": "
+        "Output JSON strict dạng {\"chunks\":[{\"chunk_id\":\"...\",\"relations\": "
         "[{\"relation_type\": \"...\", \"head_entity_id\": \"...\", \"tail_entity_id\": \"...\", "
         "\"evidence_text\": \"...\", \"relation_subtype\": \"...\", \"confidence\": 0.0}]}]}.\n"
         f"chunks:\n{json.dumps(chunk_payload, ensure_ascii=False, separators=(',', ':'))}"
     )
-
-
 def parse_json_payload(text: str) -> Any:
     stripped = text.strip()
     fenced = re.match(r"^```(?:json)?\s*(.*?)\s*```$", stripped, flags=re.S | re.I)
@@ -1193,8 +1391,14 @@ def postprocess_llm_relations(
     chunk: dict[str, Any],
     entities: list[dict[str, Any]],
     drop_counts: Counter[str] | None = None,
+    *,
+    allowed_relation_types: Iterable[str] | None = None,
+    include_needs_review_entities: bool = False,
+    include_khai_niem_candidates: bool = False,
+    include_luan_giai_relations: bool = False,
 ) -> list[dict[str, Any]]:
     entities_by_id = {str(entity["entity_id"]): entity for entity in entities}
+    allowed_types = set(allowed_relation_types or DEFAULT_LLM_RELATION_TYPES)
     records: list[dict[str, Any]] = []
     for raw in raw_relations:
         relation_type = str(raw.get("relation_type") or "").strip()
@@ -1202,11 +1406,34 @@ def postprocess_llm_relations(
             if drop_counts is not None:
                 drop_counts["unsupported_relation_type"] += 1
             continue
+        if relation_type not in allowed_types:
+            if drop_counts is not None:
+                drop_counts["relation_type_not_allowed"] += 1
+            continue
         head = entities_by_id.get(str(raw.get("head_entity_id") or raw.get("head_id") or ""))
         tail = entities_by_id.get(str(raw.get("tail_entity_id") or raw.get("tail_id") or ""))
         if head is None or tail is None or head["entity_id"] == tail["entity_id"]:
             if drop_counts is not None:
                 drop_counts["unknown_or_same_endpoint"] += 1
+            continue
+        endpoint_types = {str(head.get("entity_type")), str(tail.get("entity_type"))}
+        if "LuanGiai" in endpoint_types and not include_luan_giai_relations:
+            if drop_counts is not None:
+                drop_counts["endpoint_luan_giai_not_allowed"] += 1
+            continue
+        if "KhaiNiem" in endpoint_types and not include_khai_niem_candidates:
+            if drop_counts is not None:
+                drop_counts["endpoint_khai_niem_not_allowed"] += 1
+            continue
+        head_review_blocked = bool(head.get("needs_review")) and not (
+            include_luan_giai_relations and str(head.get("entity_type")) == "LuanGiai"
+        )
+        tail_review_blocked = bool(tail.get("needs_review")) and not (
+            include_luan_giai_relations and str(tail.get("entity_type")) == "LuanGiai"
+        )
+        if not include_needs_review_entities and (head_review_blocked or tail_review_blocked):
+            if drop_counts is not None:
+                drop_counts["endpoint_needs_review_not_allowed"] += 1
             continue
 
         evidence_text = normalize_text(raw.get("evidence_text") or "")
@@ -1256,6 +1483,11 @@ def extract_llm_relations(
     llm_batch_size: int = DEFAULT_LLM_BATCH_SIZE,
     max_llm_requests: int | None = None,
     progress_interval: int = 50,
+    relation_entity_types: Iterable[str] | None = None,
+    include_needs_review_entities: bool = False,
+    include_khai_niem_candidates: bool = False,
+    include_luan_giai_relations: bool = False,
+    max_relation_candidates_per_chunk: int | None = DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK,
     drop_counts: Counter[str] | None = None,
     state_output: Path | None = None,
     resume: bool = False,
@@ -1267,8 +1499,16 @@ def extract_llm_relations(
         raise ValueError("--max-llm-requests must be a positive integer.")
     if progress_interval < 0:
         raise ValueError("--progress-interval must be zero or a positive integer.")
+    if max_relation_candidates_per_chunk is not None and max_relation_candidates_per_chunk < 1:
+        raise ValueError("--max-relation-candidates-per-chunk must be a positive integer.")
 
     started_monotonic = time.monotonic()
+    relation_entity_types = normalize_relation_entity_types(relation_entity_types)
+    allowed_relation_types = allowed_extractable_relation_types(
+        include_luan_giai_relations=include_luan_giai_relations
+    )
+    candidate_stats: Counter[str] = Counter()
+    dropped_type_counts: Counter[str] = Counter()
     by_chunk: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entity in entities:
         by_chunk[str(entity["chunk_id"])].append(entity)
@@ -1287,7 +1527,8 @@ def extract_llm_relations(
                 temperature=local_llm_temperature,
                 top_p=local_llm_top_p,
                 max_json_retries=local_llm_max_json_retries,
-            )
+            ),
+            allowed_relation_types=allowed_relation_types,
         )
     elif backend == "gemini":
         clients = [
@@ -1295,6 +1536,7 @@ def extract_llm_relations(
                 api_key,
                 model_name,
                 requests_per_minute=requests_per_minute,
+                allowed_relation_types=allowed_relation_types,
             )
             for api_key in load_gemini_api_keys()
         ]
@@ -1324,11 +1566,17 @@ def extract_llm_relations(
     def llm_request_budget_exhausted() -> bool:
         return max_llm_requests is not None and llm_request_count >= max_llm_requests
 
-    def store_completed_chunk(chunk: dict[str, Any], chunk_relations: list[dict[str, Any]]) -> None:
+    def store_completed_chunk(
+        chunk: dict[str, Any],
+        chunk_relations: list[dict[str, Any]],
+        *,
+        candidate_count: int,
+    ) -> None:
         nonlocal llm_completed_chunk_count
         relations.extend(chunk_relations)
         llm_completed_chunk_count += 1
         completed_chunks[relation_state_key(chunk)] = {
+            "candidate_count": candidate_count,
             "chunk_hash": chunk.get("chunk_hash"),
             "chunk_id": chunk.get("chunk_id"),
             "completed_at": utc_now(),
@@ -1361,14 +1609,25 @@ def extract_llm_relations(
 
     for chunk in chunks:
         key = relation_state_key(chunk)
+        chunk_entities = by_chunk.get(str(chunk["chunk_id"]), [])
+        chunk_candidates = filter_relation_candidates(
+            chunk_entities,
+            relation_entity_types=relation_entity_types,
+            include_needs_review_entities=include_needs_review_entities,
+            include_khai_niem_candidates=include_khai_niem_candidates,
+            include_luan_giai_relations=include_luan_giai_relations,
+            max_candidates=max_relation_candidates_per_chunk,
+            candidate_stats=candidate_stats,
+            dropped_type_counts=dropped_type_counts,
+        )
         if resume and key in completed_chunks:
             resume_skipped_count += 1
             relations.extend(completed_chunks[key].get("relation_records") or [])
             continue
-        chunk_entities = by_chunk.get(str(chunk["chunk_id"]), [])
-        if len(chunk_entities) < 2:
+        if len(chunk_candidates) < 2:
             no_llm_needed_count += 1
             completed_chunks[key] = {
+                "candidate_count": len(chunk_candidates),
                 "chunk_hash": chunk.get("chunk_hash"),
                 "chunk_id": chunk.get("chunk_id"),
                 "completed_at": utc_now(),
@@ -1377,7 +1636,7 @@ def extract_llm_relations(
             }
             write_relation_state(state_output, state)
             continue
-        pending.append((chunk, chunk_entities))
+        pending.append((chunk, chunk_candidates))
 
     maybe_log_progress(force=True)
 
@@ -1412,7 +1671,17 @@ def extract_llm_relations(
                     raw_relations = adapter.extract(chunk, chunk_entities)
                     store_completed_chunk(
                         chunk,
-                        postprocess_llm_relations(raw_relations, chunk, chunk_entities, drop_counts),
+                        postprocess_llm_relations(
+                            raw_relations,
+                            chunk,
+                            chunk_entities,
+                            drop_counts,
+                            allowed_relation_types=allowed_relation_types,
+                            include_needs_review_entities=include_needs_review_entities,
+                            include_khai_niem_candidates=include_khai_niem_candidates,
+                            include_luan_giai_relations=include_luan_giai_relations,
+                        ),
+                        candidate_count=len(chunk_entities),
                     )
                 if stopped_early:
                     break
@@ -1426,7 +1695,17 @@ def extract_llm_relations(
                     continue
                 store_completed_chunk(
                     chunk,
-                    postprocess_llm_relations(raw_by_chunk[chunk_id], chunk, chunk_entities, drop_counts),
+                    postprocess_llm_relations(
+                        raw_by_chunk[chunk_id],
+                        chunk,
+                        chunk_entities,
+                        drop_counts,
+                        allowed_relation_types=allowed_relation_types,
+                        include_needs_review_entities=include_needs_review_entities,
+                        include_khai_niem_candidates=include_khai_niem_candidates,
+                        include_luan_giai_relations=include_luan_giai_relations,
+                    ),
+                    candidate_count=len(chunk_entities),
                 )
             if missing_chunk_ids and drop_counts is not None:
                 drop_counts["missing_batch_chunk_response"] += len(missing_chunk_ids)
@@ -1446,7 +1725,17 @@ def extract_llm_relations(
             raw_relations = adapter.extract(chunk, chunk_entities)
             store_completed_chunk(
                 chunk,
-                postprocess_llm_relations(raw_relations, chunk, chunk_entities, drop_counts),
+                postprocess_llm_relations(
+                    raw_relations,
+                    chunk,
+                    chunk_entities,
+                    drop_counts,
+                    allowed_relation_types=allowed_relation_types,
+                    include_needs_review_entities=include_needs_review_entities,
+                    include_khai_niem_candidates=include_khai_niem_candidates,
+                    include_luan_giai_relations=include_luan_giai_relations,
+                ),
+                candidate_count=len(chunk_entities),
             )
         if stopped_early:
             break
@@ -1463,7 +1752,29 @@ def extract_llm_relations(
                 "llm_relation_request_count": llm_request_count,
                 "llm_relation_resume_skipped_chunk_count": resume_skipped_count,
                 "max_llm_requests": max_llm_requests,
+                "max_relation_candidates_per_chunk": max_relation_candidates_per_chunk,
                 "relation_extraction_completed": not stopped_early and missing_response_count == 0,
+                "relation_allowed_entity_types": sorted(
+                    effective_relation_entity_types(
+                        relation_entity_types,
+                        include_khai_niem_candidates=include_khai_niem_candidates,
+                        include_luan_giai_relations=include_luan_giai_relations,
+                    )
+                ),
+                "relation_allowed_relation_types": sorted(allowed_relation_types),
+                "relation_candidate_capped_chunk_count": candidate_stats["capped_chunk_count"],
+                "relation_candidate_capped_entity_count": candidate_stats["capped_entity_count"],
+                "relation_candidate_count": candidate_stats["candidate_entity_count"],
+                "relation_candidate_dropped_count": candidate_stats["dropped_entity_count"],
+                "relation_candidate_dropped_needs_review_count": candidate_stats[
+                    "dropped_needs_review_count"
+                ],
+                "relation_candidate_dropped_type_count": candidate_stats["dropped_type_count"],
+                "relation_candidate_dropped_type_counts": dict(sorted(dropped_type_counts.items())),
+                "relation_candidate_raw_entity_count": candidate_stats["raw_entity_count"],
+                "relation_include_khai_niem_candidates": include_khai_niem_candidates,
+                "relation_include_luan_giai_relations": include_luan_giai_relations,
+                "relation_include_needs_review_entities": include_needs_review_entities,
                 "relation_stop_reason": stop_reason
                 or ("missing_batch_chunk_response" if missing_response_count else None),
                 "relation_model": getattr(adapter, "model_name", model_name),
@@ -1902,6 +2213,11 @@ def build_ingest_payload(
     llm_batch_size: int = DEFAULT_LLM_BATCH_SIZE,
     max_llm_requests: int | None = None,
     progress_interval: int = 50,
+    relation_entity_types: Iterable[str] | None = None,
+    include_needs_review_entities: bool = False,
+    include_khai_niem_candidates: bool = False,
+    include_luan_giai_relations: bool = False,
+    max_relation_candidates_per_chunk: int | None = DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK,
     include_ontology: bool = True,
     registry: dict[str, dict[str, Any]] | None = None,
     relation_state_output: Path | None = None,
@@ -1913,8 +2229,21 @@ def build_ingest_payload(
     graph_write_run_id = make_graph_write_run_id()
     relation_drop_counts: Counter[str] = Counter()
     llm_usage_summary: dict[str, Any] = {}
+    relation_entity_types = normalize_relation_entity_types(relation_entity_types)
 
-    rule_relations = derive_rule_relations(chunks, entities) if relation_mode in {"rule", "hybrid"} else []
+    rule_relations = (
+        derive_rule_relations(
+            chunks,
+            entities,
+            relation_entity_types=relation_entity_types,
+            include_needs_review_entities=include_needs_review_entities,
+            include_khai_niem_candidates=include_khai_niem_candidates,
+            include_luan_giai_relations=include_luan_giai_relations,
+            max_relation_candidates_per_chunk=max_relation_candidates_per_chunk,
+        )
+        if relation_mode in {"rule", "hybrid"}
+        else []
+    )
     llm_relations = (
         extract_llm_relations(
             chunks,
@@ -1937,6 +2266,11 @@ def build_ingest_payload(
             llm_batch_size=llm_batch_size,
             max_llm_requests=max_llm_requests,
             progress_interval=progress_interval,
+            relation_entity_types=relation_entity_types,
+            include_needs_review_entities=include_needs_review_entities,
+            include_khai_niem_candidates=include_khai_niem_candidates,
+            include_luan_giai_relations=include_luan_giai_relations,
+            max_relation_candidates_per_chunk=max_relation_candidates_per_chunk,
             drop_counts=relation_drop_counts,
             state_output=relation_state_output,
             resume=resume_relations,
@@ -1972,6 +2306,20 @@ def build_ingest_payload(
         llm_usage_summary,
     )
     summary["relation_mode"] = relation_mode
+    summary["relation_allowed_entity_types"] = sorted(
+        effective_relation_entity_types(
+            relation_entity_types,
+            include_khai_niem_candidates=include_khai_niem_candidates,
+            include_luan_giai_relations=include_luan_giai_relations,
+        )
+    )
+    summary["relation_allowed_relation_types"] = sorted(
+        allowed_extractable_relation_types(include_luan_giai_relations=include_luan_giai_relations)
+    )
+    summary["relation_include_khai_niem_candidates"] = include_khai_niem_candidates
+    summary["relation_include_luan_giai_relations"] = include_luan_giai_relations
+    summary["relation_include_needs_review_entities"] = include_needs_review_entities
+    summary["max_relation_candidates_per_chunk"] = max_relation_candidates_per_chunk
     summary["completed"] = (
         bool(summary.get("relation_extraction_completed", True))
         if relation_mode in {"llm", "hybrid"}
@@ -2389,6 +2737,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--requests-per-minute", type=float, default=DEFAULT_REQUESTS_PER_MINUTE)
     parser.add_argument("--llm-batch-size", type=int, default=DEFAULT_LLM_BATCH_SIZE)
     parser.add_argument("--max-llm-requests", type=int, default=None)
+    parser.add_argument("--relation-entity-types", nargs="+", default=list(DEFAULT_RELATION_ENTITY_TYPES))
+    parser.add_argument("--include-needs-review-entities", action="store_true")
+    parser.add_argument("--include-khai-niem-candidates", action="store_true")
+    parser.add_argument("--include-luan-giai-relations", action="store_true")
+    parser.add_argument(
+        "--max-relation-candidates-per-chunk",
+        type=int,
+        default=DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK,
+    )
     parser.add_argument("--progress-interval", type=int, default=50)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-base-seconds", type=float, default=10.0)
@@ -2444,6 +2801,11 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
         llm_batch_size=args.llm_batch_size,
         max_llm_requests=args.max_llm_requests,
         progress_interval=args.progress_interval,
+        relation_entity_types=args.relation_entity_types,
+        include_needs_review_entities=args.include_needs_review_entities,
+        include_khai_niem_candidates=args.include_khai_niem_candidates,
+        include_luan_giai_relations=args.include_luan_giai_relations,
+        max_relation_candidates_per_chunk=args.max_relation_candidates_per_chunk,
         include_ontology=not args.skip_ontology,
         registry=load_source_registry(args.source_registry),
         relation_state_output=args.state_output,

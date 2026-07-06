@@ -126,6 +126,94 @@ def relation_types(payload: dict) -> set[str]:
     return {relation["relation_type"] for relation in payload["relation_records"]}
 
 
+def test_relation_candidate_filter_drops_review_luan_giai_and_khai_niem_by_default() -> None:
+    chunk = make_chunk("SaoA CungA KhaiA LuậnA.")
+    sao = make_entity(chunk, "SaoA", "Sao")
+    cung = make_entity(chunk, "CungA", "Cung")
+    khai_niem = make_entity(chunk, "KhaiA", "KhaiNiem")
+    luan_giai = make_entity(chunk, "LuậnA", "LuanGiai")
+    sao["needs_review"] = True
+    stats: writer.Counter[str] = writer.Counter()
+    type_counts: writer.Counter[str] = writer.Counter()
+
+    candidates = writer.filter_relation_candidates(
+        [sao, cung, khai_niem, luan_giai],
+        candidate_stats=stats,
+        dropped_type_counts=type_counts,
+    )
+
+    assert [entity["entity_id"] for entity in candidates] == [cung["entity_id"]]
+    assert stats["raw_entity_count"] == 4
+    assert stats["candidate_entity_count"] == 1
+    assert stats["dropped_needs_review_count"] == 1
+    assert type_counts["Sao"] == 1
+    assert type_counts["KhaiNiem"] == 1
+    assert type_counts["LuanGiai"] == 1
+
+
+def test_relation_candidate_filter_can_include_khai_niem_when_enabled() -> None:
+    chunk = make_chunk("CungA KhaiA.")
+    cung = make_entity(chunk, "CungA", "Cung")
+    khai_niem = make_entity(chunk, "KhaiA", "KhaiNiem")
+
+    candidates = writer.filter_relation_candidates(
+        [cung, khai_niem],
+        include_khai_niem_candidates=True,
+    )
+
+    assert {entity["entity_type"] for entity in candidates} == {"Cung", "KhaiNiem"}
+
+
+def test_relation_candidate_filter_caps_by_priority_and_reports_summary() -> None:
+    chunk = make_chunk("SaoA CungA DiaA NguA ToHopA.")
+    entities = [
+        make_entity(chunk, "SaoA", "Sao"),
+        make_entity(chunk, "CungA", "Cung"),
+        make_entity(chunk, "DiaA", "DiaChi"),
+        make_entity(chunk, "NguA", "NguHanh"),
+        make_entity(chunk, "ToHopA", "ToHop"),
+    ]
+    stats: writer.Counter[str] = writer.Counter()
+
+    candidates = writer.filter_relation_candidates(
+        entities,
+        max_candidates=2,
+        candidate_stats=stats,
+    )
+
+    assert [entity["entity_type"] for entity in candidates] == ["Sao", "Cung"]
+    assert stats["capped_chunk_count"] == 1
+    assert stats["capped_entity_count"] == 3
+    assert stats["candidate_entity_count"] == 2
+
+
+def test_llm_relation_usage_summary_reports_candidate_filtering() -> None:
+    chunk = make_chunk("SaoA CungA KhaiA LuậnA DiaA.")
+    sao = make_entity(chunk, "SaoA", "Sao")
+    cung = make_entity(chunk, "CungA", "Cung")
+    khai_niem = make_entity(chunk, "KhaiA", "KhaiNiem")
+    luan_giai = make_entity(chunk, "LuậnA", "LuanGiai")
+    dia_chi = make_entity(chunk, "DiaA", "DiaChi")
+    sao["needs_review"] = True
+    usage_summary: dict = {}
+
+    writer.extract_llm_relations(
+        [chunk],
+        [sao, cung, khai_niem, luan_giai, dia_chi],
+        mock_llm=True,
+        model_name="mock",
+        max_relation_candidates_per_chunk=1,
+        usage_summary=usage_summary,
+    )
+
+    assert usage_summary["relation_candidate_raw_entity_count"] == 5
+    assert usage_summary["relation_candidate_count"] == 1
+    assert usage_summary["relation_candidate_dropped_needs_review_count"] == 1
+    assert usage_summary["relation_candidate_capped_chunk_count"] == 1
+    assert usage_summary["relation_candidate_dropped_type_counts"]["KhaiNiem"] == 1
+    assert usage_summary["relation_candidate_dropped_type_counts"]["LuanGiai"] == 1
+
+
 def test_rejects_non_tuvi_chunk_domain() -> None:
     chunk = make_chunk("Thiên Mã tại Quan Lộc.")
     chunk["domain"] = "BATU"
@@ -379,7 +467,7 @@ def test_rule_derives_giap_lien_ke_with_subtype() -> None:
     assert relation["relation_subtype"] == "giáp"
 
 
-def test_rule_derives_luan_giai_relations() -> None:
+def test_rule_skips_luan_giai_relations_by_default() -> None:
     chunk = make_chunk("Gặp Hóa Kỵ thì cần xét kỹ.")
     entities = [
         make_entity(chunk, "Hóa Kỵ", "TuHoa"),
@@ -393,6 +481,31 @@ def test_rule_derives_luan_giai_relations() -> None:
     ]
 
     payload = writer.build_ingest_payload([chunk], entities, relation_mode="rule", include_ontology=False)
+
+    assert "APPLIES_TO" not in relation_types(payload)
+    assert "GIAI_THICH" not in relation_types(payload)
+
+
+def test_rule_derives_luan_giai_relations_when_enabled() -> None:
+    chunk = make_chunk("Gặp Hóa Kỵ thì cần xét kỹ.")
+    entities = [
+        make_entity(chunk, "Hóa Kỵ", "TuHoa"),
+        make_entity(
+            chunk,
+            "Gặp Hóa Kỵ thì cần xét kỹ.",
+            "LuanGiai",
+            "Gặp Hóa Kỵ thì cần xét kỹ.",
+            entity_id_suffix="LUAN_GIAI",
+        ),
+    ]
+
+    payload = writer.build_ingest_payload(
+        [chunk],
+        entities,
+        relation_mode="rule",
+        include_ontology=False,
+        include_luan_giai_relations=True,
+    )
 
     assert {"APPLIES_TO", "GIAI_THICH"} <= relation_types(payload)
     applies_to = next(item for item in payload["relation_records"] if item["relation_type"] == "APPLIES_TO")
@@ -542,6 +655,54 @@ def test_llm_relation_postprocess_counts_invalid_drops() -> None:
     assert drop_counts["evidence_not_in_chunk"] == 1
 
 
+def test_llm_relation_postprocess_rejects_luan_giai_and_disabled_relation_types() -> None:
+    chunk = make_chunk("SaoA luận tốt.")
+    sao = make_entity(chunk, "SaoA", "Sao")
+    luan_giai = make_entity(chunk, "luận tốt", "LuanGiai")
+    drop_counts: writer.Counter[str] = writer.Counter()
+    raw_relations = [
+        {
+            "relation_type": "RELATED_TO",
+            "head_entity_id": luan_giai["entity_id"],
+            "tail_entity_id": sao["entity_id"],
+            "evidence_text": chunk["chunk_text"],
+        },
+        {
+            "relation_type": "APPLIES_TO",
+            "head_entity_id": luan_giai["entity_id"],
+            "tail_entity_id": sao["entity_id"],
+            "evidence_text": chunk["chunk_text"],
+        },
+    ]
+
+    records = writer.postprocess_llm_relations(raw_relations, chunk, [sao, luan_giai], drop_counts)
+
+    assert records == []
+    assert drop_counts["endpoint_luan_giai_not_allowed"] == 1
+    assert drop_counts["relation_type_not_allowed"] == 1
+
+
+def test_llm_relation_postprocess_rejects_needs_review_endpoint() -> None:
+    chunk = make_chunk("SaoA tai CungA.")
+    sao = make_entity(chunk, "SaoA", "Sao")
+    cung = make_entity(chunk, "CungA", "Cung")
+    sao["needs_review"] = True
+    drop_counts: writer.Counter[str] = writer.Counter()
+    raw_relations = [
+        {
+            "relation_type": "THUOC_CUNG",
+            "head_entity_id": sao["entity_id"],
+            "tail_entity_id": cung["entity_id"],
+            "evidence_text": chunk["chunk_text"],
+        }
+    ]
+
+    records = writer.postprocess_llm_relations(raw_relations, chunk, [sao, cung], drop_counts)
+
+    assert records == []
+    assert drop_counts["endpoint_needs_review_not_allowed"] == 1
+
+
 def test_canonical_relation_aggregation_groups_evidence_relations() -> None:
     first = make_chunk("Thiên Mã tại Quan Lộc.", chunk_id="first")
     second = make_chunk("Thiên Mã tại Quan Lộc.", chunk_id="second")
@@ -597,7 +758,7 @@ def test_llm_relation_resume_skips_completed_chunk_state(monkeypatch: pytest.Mon
         state_path,
         {
             "completed_chunks": {
-                chunk["chunk_hash"]: {
+                writer.relation_state_key(chunk): {
                     "chunk_id": chunk["chunk_id"],
                     "relation_count": 1,
                     "relation_records": [relation],
@@ -629,6 +790,45 @@ def test_llm_relation_resume_skips_completed_chunk_state(monkeypatch: pytest.Mon
     assert records == [relation]
 
 
+def test_relation_state_key_distinguishes_duplicate_chunk_hashes(monkeypatch: pytest.MonkeyPatch) -> None:
+    first = make_chunk("SaoA tai CungA.", chunk_id="first")
+    second = make_chunk("SaoB tai CungB.", chunk_id="second")
+    second["chunk_hash"] = first["chunk_hash"]
+    entities = [
+        make_entity(first, "SaoA", "Sao"),
+        make_entity(first, "CungA", "Cung"),
+        make_entity(second, "SaoB", "Sao"),
+        make_entity(second, "CungB", "Cung"),
+    ]
+    work_dir = smoke_dir("relation-duplicate-hash-state")
+    state_path = work_dir / "graph_relation_state.json"
+    calls = {"count": 0}
+
+    class CountingAdapter:
+        model_name = "counting"
+
+        def extract(self, *_: object) -> list[dict]:
+            calls["count"] += 1
+            return []
+
+    monkeypatch.setattr(writer, "MockRelationLLMAdapter", CountingAdapter)
+
+    writer.extract_llm_relations(
+        [first, second],
+        entities,
+        mock_llm=True,
+        model_name="mock",
+        state_output=state_path,
+    )
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert calls["count"] == 2
+    assert set(state["completed_chunks"]) == {
+        writer.relation_state_key(first),
+        writer.relation_state_key(second),
+    }
+
+
 def test_llm_relation_batch_missing_chunk_response_is_not_completed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -640,7 +840,7 @@ def test_llm_relation_batch_missing_chunk_response_is_not_completed(
         make_entity(second, "Thai Duong", "Sao"),
         make_entity(second, "Menh", "Cung"),
     ]
-    work_dir = smoke_dir("relation-batch-missing")
+    work_dir = smoke_dir("relation-batch-missing-v2")
     state_path = work_dir / "graph_relation_state.json"
     drop_counts: writer.Counter[str] = writer.Counter()
 
@@ -664,7 +864,7 @@ def test_llm_relation_batch_missing_chunk_response_is_not_completed(
 
     state = json.loads(state_path.read_text(encoding="utf-8"))
     assert records == []
-    assert set(state["completed_chunks"]) == {"hash-first"}
+    assert set(state["completed_chunks"]) == {writer.relation_state_key(first)}
     assert drop_counts["missing_batch_chunk_response"] == 1
 
 

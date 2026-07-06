@@ -3480,6 +3480,14 @@
       "entity_count": 40,
       "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411"
     },
+    "1f03bc9601ff59b40cb793b289dbc7d49409f619156abb94c42ac1595ce87d50": {
+      "chunk_hash": "1f03bc9601ff59b40cb793b289dbc7d49409f619156abb94c42ac1595ce87d50",
+      "chunk_id": "TVNL_chunk_structure_parent_child_child_000350",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-05T16:17:10.533782Z",
+      "entity_count": 14,
+      "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d"
+    },
     "1f09f4c7b7f6720b24715aa89f4c8ed0534ad325547f1a72bfad7c9b64c1b61a": {
       "chunk_hash": "1f09f4c7b7f6720b24715aa89f4c8ed0534ad325547f1a72bfad7c9b64c1b61a",
       "chunk_id": "TVGM_chunk_structure_parent_child_child_000665",
@@ -5352,6 +5360,14 @@
       "entity_count": 16,
       "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411"
     },
+    "318f918a4bf6ccbc1f2e506bcad87e9ebef72a87dcb5c2983c6aa4e4c1544188": {
+      "chunk_hash": "318f918a4bf6ccbc1f2e506bcad87e9ebef72a87dcb5c2983c6aa4e4c1544188",
+      "chunk_id": "TVNL_chunk_structure_parent_child_child_000352",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-05T16:17:10.568472Z",
+      "entity_count": 18,
+      "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d"
+    },
     "31902a11b9be79bad3a4f1590a72d8a1a4e9fc0178c1910e16d1561ebee35470": {
       "chunk_hash": "31902a11b9be79bad3a4f1590a72d8a1a4e9fc0178c1910e16d1561ebee35470",
       "chunk_id": "TVKL_chunk_structure_parent_child_child_000454",
@@ -6103,6 +6119,14 @@
       "completed_at": "2026-07-04T17:22:48.252488Z",
       "entity_count": 51,
       "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411"
+    },
+    "39b645de766c96d3e21a6a3bb363677af4cdb75135ced0fa5a22efa0219703e6": {
+      "chunk_hash": "39b645de766c96d3e21a6a3bb363677af4cdb75135ced0fa5a22efa0219703e6",
+      "chunk_id": "TVNL_chunk_structure_parent_child_child_000353",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-05T16:17:10.590647Z",
+      "entity_count": 7,
+      "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d"
     },
     "39cc11b1e31e71106191fc3ce64c0ff877fcba3021e0d7904e2356b81c7f4b8a": {
       "chunk_hash": "39cc11b1e31e71106191fc3ce64c0ff877fcba3021e0d7904e2356b81c7f4b8a",
@@ -8975,6 +8999,14 @@
       "completed_at": "2026-07-04T17:32:09.558832Z",
       "entity_count": 18,
       "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411"
+    },
+    "53a15aa4bde454925af68ce31884f416e9a4fde31e19dba320906847d022108b": {
+      "chunk_hash": "53a15aa4bde454925af68ce31884f416e9a4fde31e19dba320906847d022108b",
+      "chunk_id": "TVNL_chunk_structure_parent_child_child_000475",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-05T16:17:12.669841Z",
+      "entity_count": 32,
+      "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d"
     },
     "53b4cc7aee25f4ff9a036f71893e9ebbe6b34bdc700f38d3a6eba9c5b6070cfa": {
       "chunk_hash": "53b4cc7aee25f4ff9a036f71893e9ebbe6b34bdc700f38d3a6eba9c5b6070cfa",
@@ -15424,6 +15456,14 @@
       "entity_count": 69,
       "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411"
     },
+    "92f4f112f5e22f1029a728f95dc2eaa18d5ea6720a6ae8b314a2d22e08a0eaf9": {
+      "chunk_hash": "92f4f112f5e22f1029a728f95dc2eaa18d5ea6720a6ae8b314a2d22e08a0eaf9",
+      "chunk_id": "TVNL_chunk_structure_parent_child_child_000351",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-05T16:17:10.551673Z",
+      "entity_count": 15,
+      "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d"
+    },
     "931cfcb8a58d74fec0f299eabdd1c84e08ce77f8bc3c66b676401ba94cfd44bd": {
       "chunk_hash": "931cfcb8a58d74fec0f299eabdd1c84e08ce77f8bc3c66b676401ba94cfd44bd",
       "chunk_id": "TVGM_chunk_structure_parent_child_child_000430",
@@ -15743,6 +15783,14 @@
       "completed_at": "2026-07-04T17:26:41.754106Z",
       "entity_count": 15,
       "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411"
+    },
+    "95e4067b8080d5b19ad5e5363ef3df0f8e11b625c11a6d12b0b21d3322845432": {
+      "chunk_hash": "95e4067b8080d5b19ad5e5363ef3df0f8e11b625c11a6d12b0b21d3322845432",
+      "chunk_id": "TVNL_chunk_structure_parent_child_child_000477",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-05T16:17:12.705582Z",
+      "entity_count": 47,
+      "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d"
     },
     "95f36a023b67980e9f1619428726c542936ae7c5eb55006622447a5df6e39cfa": {
       "chunk_hash": "95f36a023b67980e9f1619428726c542936ae7c5eb55006622447a5df6e39cfa",
@@ -16351,6 +16399,14 @@
       "completed_at": "2026-07-04T17:50:43.813785Z",
       "entity_count": 15,
       "extraction_run_id": "entity_extract_20260704T171547Z_1c55e411"
+    },
+    "9bc488ffd4fe15408c2b4800a77d664aa323e2f34934f238de83ccb651756fc6": {
+      "chunk_hash": "9bc488ffd4fe15408c2b4800a77d664aa323e2f34934f238de83ccb651756fc6",
+      "chunk_id": "TVNL_chunk_structure_parent_child_child_000476",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-05T16:17:12.686819Z",
+      "entity_count": 41,
+      "extraction_run_id": "entity_extract_20260705T161700Z_06e1128d"
     },
     "9be4db588cc250d7a4ea515c96757ad4b59fe913323d0b8c2c265ec5451890de": {
       "chunk_hash": "9be4db588cc250d7a4ea515c96757ad4b59fe913323d0b8c2c265ec5451890de",

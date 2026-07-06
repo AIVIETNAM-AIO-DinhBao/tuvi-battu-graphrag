@@ -2,30 +2,30 @@
   "chunk_type_counts": {
     "child": 3344
   },
-  "entity_count": 113055,
+  "entity_count": 113229,
   "entity_type_counts": {
     "CucBanMenh": 1894,
-    "Cung": 16016,
+    "Cung": 16047,
     "DaiHan": 49,
-    "DiaChi": 19179,
-    "KhaiNiem": 2002,
-    "LuanGiai": 11319,
-    "NguHanh": 10095,
-    "QuanHeCung": 3680,
-    "Sao": 34186,
-    "ThienCan": 6417,
-    "ToHop": 2692,
-    "TrangThaiSao": 3277,
-    "TuHoa": 916,
+    "DiaChi": 19216,
+    "KhaiNiem": 2006,
+    "LuanGiai": 11326,
+    "NguHanh": 10119,
+    "QuanHeCung": 3682,
+    "Sao": 34240,
+    "ThienCan": 6418,
+    "ToHop": 2693,
+    "TrangThaiSao": 3282,
+    "TuHoa": 924,
     "VanHan": 1333
   },
-  "error_count": 7,
+  "error_count": 0,
   "extraction_source_counts": {
-    "dictionary": 97241,
-    "llm": 10638,
-    "rule": 5176
+    "dictionary": 97396,
+    "llm": 10654,
+    "rule": 5179
   },
-  "generated_at": "2026-07-04T17:56:08.488140Z",
+  "generated_at": "2026-07-05T16:17:14.818925Z",
   "reviewed_chunks": [
     {
       "chunk_id": "TVGM_chunk_structure_parent_child_child_000001",

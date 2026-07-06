@@ -150,6 +150,9 @@ def test_gemini_plan_emits_gemini_embedding_slot() -> None:
     assert "--relation-mode" in graph["argv"]
     assert "llm" in graph["argv"]
     assert "--llm-batch-size" in graph["argv"]
+    assert "--max-relation-candidates-per-chunk" in graph["argv"]
+    assert "96" in graph["argv"]
+    assert "--include-luan-giai-relations" not in graph["argv"]
 
 
 def test_rule_only_plan_uses_rule_entity_and_relation_modes() -> None:
@@ -184,6 +187,8 @@ def test_rule_only_plan_uses_rule_entity_and_relation_modes() -> None:
     assert "--relation-mode" in graph["argv"]
     assert "rule" in graph["argv"]
     assert "--mock-llm" not in graph["argv"]
+    assert "--max-relation-candidates-per-chunk" in graph["argv"]
+    assert "--include-luan-giai-relations" not in graph["argv"]
 
 
 def test_phase_filter_can_plan_entity_without_graph() -> None:
@@ -237,6 +242,46 @@ def test_graph_dry_run_keeps_production_gemini_relation_calls() -> None:
     assert graph["requires_gemini"] is True
     assert "--dry-run" in graph["argv"]
     assert "--mock-llm" not in graph["argv"]
+
+
+def test_relation_candidate_flags_are_forwarded_to_graph_writer() -> None:
+    work_dir = smoke_dir("relation-candidate-flags")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "plan",
+            "--profile",
+            "gemini-call",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+            "--phases",
+            "graph_relation",
+            "--relation-entity-types",
+            "Sao",
+            "Cung",
+            "--include-needs-review-entities",
+            "--include-khai-niem-candidates",
+            "--include-luan-giai-relations",
+            "--max-relation-candidates-per-chunk",
+            "12",
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=1)
+    graph = commands[0]
+
+    assert "--relation-entity-types" in graph["argv"]
+    assert "Sao" in graph["argv"]
+    assert "Cung" in graph["argv"]
+    assert "--include-needs-review-entities" in graph["argv"]
+    assert "--include-khai-niem-candidates" in graph["argv"]
+    assert "--include-luan-giai-relations" in graph["argv"]
+    assert "--max-relation-candidates-per-chunk" in graph["argv"]
+    assert "12" in graph["argv"]
 
 
 def test_gemini_model_overrides_are_forwarded_to_entity_and_relation() -> None:
