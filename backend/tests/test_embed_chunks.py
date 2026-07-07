@@ -185,6 +185,35 @@ def test_prepare_embedding_updates_marks_bge_slot_metadata() -> None:
     assert updates[0]["vector_property"] == "embedding_bge_m3"
 
 
+def test_prepare_embedding_update_batch_uses_local_document_batch() -> None:
+    class FakeLocalBatchClient:
+        embedding_backend = "local"
+        model_name = "BAAI/bge-m3"
+
+        def __init__(self) -> None:
+            self.documents: list[str] = []
+
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            self.documents.extend(texts)
+            return [embed_chunks.mock_embedding(text, expected_dim=1024) for text in texts]
+
+        def embed_document(self, text: str, title: str | None = None) -> list[float]:
+            pytest.fail("local batch path should call embed_documents")
+
+    client = FakeLocalBatchClient()
+    updates = embed_chunks.prepare_embedding_update_batch(
+        [make_chunk()],
+        client,
+        expected_dim=1024,
+        embedding_slot="bge_m3",
+    )
+
+    assert len(updates) == 1
+    assert client.documents == [f"title: TVGM_SEC01 | text: {make_chunk()['text']}"]
+    assert updates[0]["embedding_slot"] == "bge_m3"
+    assert updates[0]["embedding_model"] == "BAAI/bge-m3"
+
+
 def test_prepare_embedding_update_skips_empty_text() -> None:
     client = embed_chunks.MockEmbeddingClient()
     chunk = make_chunk()
@@ -311,6 +340,7 @@ def test_parse_args_defaults_to_safe_requests_per_minute() -> None:
     assert args.progress_every == 25
     assert args.include_parent_chunks is False
     assert args.smoke_query == "Tu Vi"
+    assert args.smoke_candidate_k == 500
     assert args.smoke_limit == 5
     assert args.embedding_backend is None
     assert args.embedding_slot == "gemini"
@@ -494,10 +524,11 @@ def test_run_summary_reports_embedded_chunk_types_and_keyword_coverage() -> None
 
 
 def test_retrieval_smoke_queries_filter_strategy_and_child_type() -> None:
-    dense = embed_chunks.build_dense_retrieval_smoke_cypher(child_only=True, limit=3)
+    dense = embed_chunks.build_dense_retrieval_smoke_cypher(child_only=True, limit=3, candidate_k=500)
     sparse = embed_chunks.build_sparse_retrieval_smoke_cypher(child_only=True, limit=3)
 
     assert "chunkVector" in dense
+    assert "$candidate_k" in dense
     assert "chunkFulltext" in sparse
     assert "node.chunk_strategy_id = $chunk_strategy_id" in dense
     assert "node.chunk_type = 'child'" in dense

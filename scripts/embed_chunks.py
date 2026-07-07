@@ -760,8 +760,34 @@ def prepare_embedding_update(
     text = make_embedding_text(chunk)
     if not text:
         return None
+    title = make_title(chunk)
+    embedding = client.embed_document(text, title=title)
+    return build_embedding_update(
+        chunk,
+        embedding,
+        client,
+        expected_dim=expected_dim,
+        embedded_at=embedded_at,
+        embedding_slot=embedding_slot,
+        text=text,
+        title=title,
+    )
+
+
+def build_embedding_update(
+    chunk: dict[str, Any],
+    embedding: list[float],
+    client: Any,
+    *,
+    expected_dim: int,
+    embedded_at: str | None = None,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
+    text: str | None = None,
+    title: str | None = None,
+) -> dict[str, Any]:
+    text = make_embedding_text(chunk) if text is None else text
+    title = make_title(chunk) if title is None else title
     spec = get_embedding_slot_spec(embedding_slot)
-    embedding = client.embed_document(text, title=make_title(chunk))
     validate_embedding_dimension(embedding, expected_dim)
     return {
         "chunk_hash": chunk["chunk_hash"],
@@ -776,10 +802,69 @@ def prepare_embedding_update(
         "keywords": normalize_keywords(chunk.get("mention_keywords") or []),
         "parent_id": chunk.get("parent_id"),
         "retrieval_unit": chunk_retrieval_unit(chunk),
-        "title": make_title(chunk),
+        "title": title,
         "vector_index_name": spec.vector_index_name,
         "vector_property": spec.vector_property,
     }
+
+
+def make_local_embedding_document(text: str, title: str | None = None) -> str:
+    return f"title: {title} | text: {text}" if title else text
+
+
+def supports_local_document_batch(client: Any) -> bool:
+    return getattr(client, "embedding_backend", None) == "local" and callable(
+        getattr(client, "embed_documents", None)
+    )
+
+
+def prepare_embedding_update_batch(
+    chunks: list[dict[str, Any]],
+    client: Any,
+    *,
+    expected_dim: int,
+    embedded_at: str | None = None,
+    embedding_slot: str = DEFAULT_EMBEDDING_SLOT,
+) -> list[dict[str, Any]]:
+    candidates = [
+        (chunk, text, make_title(chunk))
+        for chunk in chunks
+        if (text := make_embedding_text(chunk))
+    ]
+    if not candidates:
+        return []
+    if not supports_local_document_batch(client):
+        return [
+            update
+            for chunk, _, _ in candidates
+            if (
+                update := prepare_embedding_update(
+                    chunk,
+                    client,
+                    expected_dim=expected_dim,
+                    embedded_at=embedded_at,
+                    embedding_slot=embedding_slot,
+                )
+            )
+        ]
+
+    documents = [make_local_embedding_document(text, title) for _, text, title in candidates]
+    embeddings = client.embed_documents(documents)
+    if len(embeddings) != len(candidates):
+        raise ValueError(f"Embedding batch returned {len(embeddings)} vectors for {len(candidates)} documents.")
+    return [
+        build_embedding_update(
+            chunk,
+            embedding,
+            client,
+            expected_dim=expected_dim,
+            embedded_at=embedded_at,
+            embedding_slot=embedding_slot,
+            text=text,
+            title=title,
+        )
+        for (chunk, text, title), embedding in zip(candidates, embeddings, strict=True)
+    ]
 
 
 def build_write_embedding_updates_cypher(embedding_slot: str = DEFAULT_EMBEDDING_SLOT) -> str:
@@ -887,6 +972,7 @@ def build_run_summary(
         "selected_chunk_type_counts": chunk_type_counts(selected_chunk_records),
         "embedded_chunk_type_counts": chunk_type_counts(updates),
         "selected_chunks": selected_chunks,
+        "smoke_candidate_k": args.smoke_candidate_k,
         "source_id": args.source_id,
         "update_count": update_count,
         "vector_index_name": getattr(args, "vector_index_name", slot_spec.vector_index_name),
@@ -902,12 +988,14 @@ def build_dense_retrieval_smoke_cypher(
     *,
     child_only: bool,
     limit: int,
+    candidate_k: int | None = None,
     vector_index_name: str = "chunkVector",
 ) -> str:
     child_filter = "AND (node.chunk_type = 'child' OR node.retrieval_unit = true)" if child_only else ""
     index_name = safe_index_name(vector_index_name)
+    candidate_k = max(candidate_k or limit, limit)
     return f"""
-        CALL db.index.vector.queryNodes('{index_name}', $limit, $query_embedding)
+        CALL db.index.vector.queryNodes('{index_name}', $candidate_k, $query_embedding)
         YIELD node, score
         WHERE node.domain = $domain
           AND node.source_id = $source_id
@@ -966,16 +1054,19 @@ def dense_retrieval_smoke_tx(
     query_embedding: list[float],
     child_only: bool,
 ) -> list[dict[str, Any]]:
+    candidate_k = max(args.smoke_candidate_k, args.smoke_limit)
     result = tx.run(
         build_dense_retrieval_smoke_cypher(
             child_only=child_only,
             limit=args.smoke_limit,
+            candidate_k=candidate_k,
             vector_index_name=args.vector_index_name,
         ),
         domain=args.domain,
         source_id=args.source_id,
         chunk_strategy_id=args.chunking_strategy,
         query_embedding=query_embedding,
+        candidate_k=candidate_k,
         limit=args.smoke_limit,
     )
     return [normalize_hit_record(record) for record in result]
@@ -1342,6 +1433,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--summary-output", type=Path, default=None)
     parser.add_argument("--retrieval-smoke-output", type=Path, default=None)
     parser.add_argument("--smoke-query", default="Tu Vi")
+    parser.add_argument("--smoke-candidate-k", type=int, default=500)
     parser.add_argument("--smoke-limit", type=int, default=5)
     return resolve_embedding_slot_args(parser.parse_args(argv))
 
@@ -1448,18 +1540,21 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
             pending_updates: list[dict[str, Any]] = []
             written_count = 0
             embedded_at = utc_now()
+            embedding_batch_size = args.local_embedding_batch_size if supports_local_document_batch(client) else 1
+            processed_count = 0
+            next_progress_at = args.progress_every if args.progress_every else None
             try:
-                for index, chunk in enumerate(chunks, start=1):
-                    update = prepare_embedding_update(
-                        chunk,
+                for chunk_batch in batched(chunks, embedding_batch_size):
+                    batch_updates = prepare_embedding_update_batch(
+                        chunk_batch,
                         client,
                         expected_dim=args.expected_dim,
                         embedded_at=embedded_at,
                         embedding_slot=args.embedding_slot,
                     )
-                    if update:
-                        updates.append(update)
-                        pending_updates.append(update)
+                    updates.extend(batch_updates)
+                    pending_updates.extend(batch_updates)
+                    processed_count += len(chunk_batch)
 
                     if pending_updates and not args.dry_run and len(pending_updates) >= args.batch_size:
                         written_count += session.execute_write(
@@ -1470,13 +1565,15 @@ def run(argv: list[str] | None = None) -> dict[str, Any]:
                         )
                         pending_updates = []
 
-                    if args.progress_every and index % args.progress_every == 0:
+                    if next_progress_at is not None and processed_count >= next_progress_at:
                         print(
                             f"Embedded {len(updates)}/{len(chunks)} selected chunks "
                             f"for {args.source_id}/{args.chunking_strategy}.",
                             file=sys.stderr,
                             flush=True,
                         )
+                        while next_progress_at <= processed_count:
+                            next_progress_at += args.progress_every
 
                 if pending_updates and not args.dry_run:
                     written_count += session.execute_write(

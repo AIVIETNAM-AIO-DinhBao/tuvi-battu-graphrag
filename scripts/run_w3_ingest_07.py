@@ -481,6 +481,7 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                 embed_dim = args.local_embedding_dim
                 embed_skip_reason = "skipped_local_embedding_dry_run" if args.mode == "dry-run" else None
             else:
+                db_embedding_slot = args.db_embedding_slot
                 embed_argv = [
                     sys.executable,
                     "-B",
@@ -496,18 +497,50 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                     "--smoke-query",
                     args.smoke_query,
                     "--embedding-slot",
-                    "gemini",
+                    db_embedding_slot,
                 ]
                 if args.force_embedding:
                     embed_argv.append("--force")
-                if args.mode != "production" or args.mock_embedding:
+                if db_embedding_slot == "bge_m3":
+                    if args.mode != "production" or args.mock_embedding:
+                        embed_argv.append("--mock-embedding")
+                        embed_backend = "mock"
+                        embed_model = "mock-embedding"
+                    else:
+                        embed_argv.extend(
+                            [
+                                "--embedding-backend",
+                                "local",
+                                "--model",
+                                args.local_embedding_model,
+                                "--expected-dim",
+                                str(args.local_embedding_dim),
+                                "--local-embedding-model",
+                                args.local_embedding_model,
+                                "--local-embedding-batch-size",
+                                str(args.local_embedding_batch_size),
+                                "--local-embedding-implementation",
+                                args.local_embedding_implementation,
+                                "--vector-index-name",
+                                args.local_vector_index_name,
+                            ]
+                        )
+                        if args.local_embedding_device:
+                            embed_argv.extend(["--local-embedding-device", args.local_embedding_device])
+                        if not args.local_embedding_normalize:
+                            embed_argv.append("--no-local-embedding-normalize")
+                        embed_backend = "local"
+                        embed_model = args.local_embedding_model
+                    embed_dim = args.local_embedding_dim
+                elif args.mode != "production" or args.mock_embedding:
                     embed_argv.append("--mock-embedding")
                     embed_backend = "mock"
                     embed_model = "mock-embedding"
+                    embed_dim = 768
                 else:
                     embed_backend = "gemini"
                     embed_model = "gemini-embedding-2"
-                embed_dim = 768
+                    embed_dim = 768
                 embed_skip_reason = "skipped_requires_db" if args.mode == "dry-run" else None
             commands.append(
                 command_record(
@@ -521,7 +554,7 @@ def build_commands(args: argparse.Namespace, gemini_api_key_count: int) -> list[
                     gemini_api_key_count=gemini_api_key_count,
                     requires_gemini=embed_backend == "gemini",
                     backend=embed_backend,
-                    embedding_slot="bge_m3" if local_profile else "gemini",
+                    embedding_slot="bge_m3" if local_profile else args.db_embedding_slot,
                     model=embed_model,
                     expected_dim=embed_dim,
                     summary_output=reports_dir / f"embed_{source}_{strategy}.json",
@@ -718,6 +751,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--force-embedding", action="store_true")
+    parser.add_argument("--db-embedding-slot", choices=["gemini", "bge_m3"], default="gemini")
     parser.add_argument("--mock-llm", action="store_true")
     parser.add_argument("--mock-embedding", action="store_true")
     parser.add_argument("--graph-dry-run", action="store_true")

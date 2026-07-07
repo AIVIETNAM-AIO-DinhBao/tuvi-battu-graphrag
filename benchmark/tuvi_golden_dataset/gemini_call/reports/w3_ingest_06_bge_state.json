@@ -1,0 +1,113 @@
+{
+  "commands": {
+    "TVGM:chunk_fixed_512:embed_retrieval": {
+      "completed_at": "2026-07-07T04:00:53.284694Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T03:47:25.536576Z",
+      "status": "completed"
+    },
+    "TVGM:chunk_semantic_embedding_bge_m3:embed_retrieval": {
+      "completed_at": "2026-07-07T07:00:28.850313Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T06:44:31.811415Z",
+      "status": "completed"
+    },
+    "TVGM:chunk_structure_parent_child:embed_retrieval": {
+      "completed_at": "2026-07-07T05:52:49.466277Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T05:37:33.535513Z",
+      "status": "completed"
+    },
+    "TVHS:chunk_fixed_512:embed_retrieval": {
+      "completed_at": "2026-07-07T04:48:16.200551Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T04:32:49.313122Z",
+      "status": "completed"
+    },
+    "TVHS:chunk_semantic_embedding_bge_m3:embed_retrieval": {
+      "completed_at": "2026-07-07T06:44:31.807404Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T06:27:30.358069Z",
+      "status": "completed"
+    },
+    "TVHS:chunk_structure_parent_child:embed_retrieval": {
+      "completed_at": "2026-07-07T05:37:33.531454Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T05:20:36.570761Z",
+      "status": "completed"
+    },
+    "TVKL:chunk_fixed_512:embed_retrieval": {
+      "completed_at": "2026-07-07T04:19:23.040594Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T04:01:49.447645Z",
+      "status": "completed"
+    },
+    "TVKL:chunk_semantic_embedding_bge_m3:embed_retrieval": {
+      "completed_at": "2026-07-07T06:13:08.166961Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T05:52:49.471325Z",
+      "status": "completed"
+    },
+    "TVKL:chunk_structure_parent_child:embed_retrieval": {
+      "completed_at": "2026-07-07T05:06:23.610193Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T04:48:16.208154Z",
+      "status": "completed"
+    },
+    "TVNL:chunk_fixed_512:embed_retrieval": {
+      "completed_at": "2026-07-07T04:32:49.310559Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T04:19:23.044673Z",
+      "status": "completed"
+    },
+    "TVNL:chunk_semantic_embedding_bge_m3:embed_retrieval": {
+      "completed_at": "2026-07-07T06:27:30.354286Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T06:13:08.170258Z",
+      "status": "completed"
+    },
+    "TVNL:chunk_structure_parent_child:embed_retrieval": {
+      "completed_at": "2026-07-07T05:20:36.567415Z",
+      "gemini_api_key_count": 4,
+      "mode": "production",
+      "phase": "embed_retrieval",
+      "profile": "gemini-call",
+      "started_at": "2026-07-07T05:06:23.613983Z",
+      "status": "completed"
+    }
+  },
+  "last_completed_unit": "TVGM:chunk_semantic_embedding_bge_m3:embed_retrieval"
+}

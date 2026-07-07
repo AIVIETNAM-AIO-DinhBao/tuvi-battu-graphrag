@@ -155,6 +155,42 @@ def test_gemini_plan_emits_gemini_embedding_slot() -> None:
     assert "--include-luan-giai-relations" not in graph["argv"]
 
 
+def test_gemini_profile_can_plan_bge_db_embedding_slot() -> None:
+    work_dir = smoke_dir("gemini-bge-db-slot-plan")
+    args = runner.parse_args(
+        [
+            "--mode",
+            "production",
+            "--profile",
+            "gemini-call",
+            "--sources",
+            "TVGM",
+            "--strategies",
+            "chunk_fixed_512",
+            "--dataset-dir",
+            str(work_dir / "dataset"),
+            "--phases",
+            "embed_retrieval",
+            "--db-embedding-slot",
+            "bge_m3",
+        ]
+    )
+
+    commands = runner.build_commands(args, gemini_api_key_count=0)
+    embed = commands[0]
+
+    assert embed["phase"] == "embed_retrieval"
+    assert embed["backend"] == "local"
+    assert embed["embedding_slot"] == "bge_m3"
+    assert embed["expected_dim"] == 1024
+    assert embed["requires_gemini"] is False
+    assert "--chunks-input" not in embed["argv"]
+    assert "--embedding-backend" in embed["argv"]
+    assert "local" in embed["argv"]
+    assert "--vector-index-name" in embed["argv"]
+    assert "chunkVectorBgeM3" in embed["argv"]
+
+
 def test_rule_only_plan_uses_rule_entity_and_relation_modes() -> None:
     work_dir = smoke_dir("rule-only-plan")
     args = runner.parse_args(

@@ -698,3 +698,102 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
 ### Status
 - Code path for local-Kaggle artifact import/retrieval is complete and regression-tested.
 - W3 is ready for manual acceptance on real Neo4j/Supabase by running Kaggle artifacts through the import scripts and `smoke_retrieval.py --embedding-slot bge_m3`.
+
+---
+
+## W3-INGEST-06 Live DB Acceptance Update - 2026-07-07
+
+### Runtime Status
+- W3-INGEST-06 is now accepted against the live Neo4j DB for the `gemini_call` corpus path.
+- BGE-M3 embeddings were written to the separate slot:
+  - vector property: `Chunk.embedding_bge_m3`
+  - vector index: `chunkVectorBgeM3`
+  - expected dimension: `1024`
+  - embedding model: `BAAI/bge-m3`
+- Gemini baseline embeddings remain untouched:
+  - `Chunk.embedding`
+  - `chunkVector`
+  - `768`
+
+### Strategies And Sources Covered
+- Strategies:
+  - `chunk_fixed_512`
+  - `chunk_structure_parent_child`
+  - `chunk_semantic_embedding_bge_m3`
+- Sources:
+  - `TVGM`
+  - `TVHS`
+  - `TVKL`
+  - `TVNL`
+
+### Embedding Results
+- `embed_<source>_<strategy>.json` artifacts exist for all `12` source/strategy pairs.
+- All `12` embed summaries have:
+  - `completed = true`
+  - `embedding_slot = "bge_m3"`
+  - `embedding_property = "embedding_bge_m3"`
+  - `embedding_backend = "local"`
+- DB write totals by strategy:
+  - `chunk_fixed_512`: `1158 / 1158`
+  - `chunk_semantic_embedding_bge_m3`: `1690 / 1690`
+  - `chunk_structure_parent_child`: `3342` child chunks embedded; `1160` parent chunks intentionally skipped by child-only retrieval policy.
+
+### Retrieval Smoke Results
+- `retrieval_<source>_<strategy>.json` artifacts exist for all `12` source/strategy pairs.
+- All `12` retrieval summaries have:
+  - dense hits present
+  - sparse hits present
+  - `embedding_slot = "bge_m3"`
+- Retrieval grouped diagnostics:
+  - `chunk_fixed_512`: min dense hits `5`, min sparse hits `5`
+  - `chunk_semantic_embedding_bge_m3`: min dense hits `5`, min sparse hits `5`
+  - `chunk_structure_parent_child`: min dense hits `5`, min sparse hits `5`
+- Parent expansion diagnostics pass for parent-child strategy:
+  - `TVGM`: parent expansion hit rate `1.0`
+  - `TVHS`: parent expansion hit rate `1.0`
+  - `TVKL`: parent expansion hit rate `1.0`
+  - `TVNL`: parent expansion hit rate `1.0`
+
+### Runner Artifacts
+- Main W3-06 BGE runner artifacts:
+  - `benchmark/tuvi_golden_dataset/gemini_call/reports/w3_ingest_06_bge_command_manifest.json`
+  - `benchmark/tuvi_golden_dataset/gemini_call/reports/w3_ingest_06_bge_run_summary.json`
+  - `benchmark/tuvi_golden_dataset/gemini_call/reports/w3_ingest_06_bge_state.json`
+- Runner summary:
+  - `completed = true`
+  - `command_count = 12`
+  - `executed_command_count = 11`
+  - `skipped_command_count = 1`
+  - `error = null`
+- The skipped command was an already-completed resume unit.
+
+### Code Updates Made For Acceptance
+- `scripts/embed_chunks.py`
+  - Added local batch document embedding path for BGE-M3 via `embed_documents`.
+  - Added `--smoke-candidate-k` so dense smoke retrieves a larger candidate pool before applying source/strategy filters.
+  - Preserved slot-specific metadata fields for `bge_m3`.
+- `scripts/run_w3_ingest_07.py`
+  - Added `--db-embedding-slot` with support for `bge_m3` in DB embed/retrieval phase.
+  - DB BGE-M3 embed commands use local backend and do not require Gemini.
+- Tests updated:
+  - `backend/tests/test_embed_chunks.py`
+  - `backend/tests/test_run_w3_ingest_07.py`
+
+### Verification
+- Focused acceptance regression:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_embed_chunks.py backend\tests\test_smoke_retrieval.py backend\tests\test_run_w3_ingest_07.py backend\tests\test_import_artifacts.py -q -p no:cacheprovider`
+  - Result: `64 passed`
+
+### Caveats
+- `chunk_structure_parent_child` payload contains `4504` chunk rows, but Neo4j has `4502` unique `Chunk` nodes for this strategy because two child chunk pairs share the same `chunk_hash`.
+- Duplicate hash pairs:
+  - `TVHS_chunk_structure_parent_child_child_000070` and `TVHS_chunk_structure_parent_child_child_000071`
+  - `TVNL_chunk_structure_parent_child_child_000784` and `TVNL_chunk_structure_parent_child_child_000785`
+- The graph writer/importer uses `MERGE (c:Chunk {chunk_hash: row.chunk_hash})`, so duplicate hashes collapse to one node.
+- This does not block W3-INGEST-06 acceptance because all unique retrieval child nodes are embedded and dense/sparse retrieval smoke passes.
+- Temporary scratch/log directories may remain locally:
+  - `pytest-cache-files-w3-06/`
+  - `benchmark/tuvi_golden_dataset/gemini_call/reports/logs/`
+  - Windows returned access-denied when attempting cleanup, likely due to local file attribute/handle behavior.
+
+**Status**: COMPLETE - W3-INGEST-06 is accepted on the live DB for BGE-M3 embedding and retrieval indexing across all 3 strategies and 4 sources, with dense/sparse smoke retrieval and parent expansion diagnostics passing.

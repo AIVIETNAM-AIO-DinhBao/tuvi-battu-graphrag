@@ -1,0 +1,18 @@
+{
+  "command_count": 12,
+  "completed": true,
+  "error": null,
+  "executed_command_count": 11,
+  "gemini_api_key_count": 4,
+  "generated_at": "2026-07-07T07:00:28.856837Z",
+  "manifest_output": "benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\w3_ingest_06_bge_command_manifest.json",
+  "mode": "production",
+  "phases": [
+    "embed_retrieval"
+  ],
+  "profile": "gemini-call",
+  "progress_interval": 50,
+  "skipped_command_count": 1,
+  "state_output": "benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\w3_ingest_06_bge_state.json",
+  "stream_logs": true
+}

@@ -1,0 +1,135 @@
+{
+  "chunk_strategy_id": "chunk_fixed_512",
+  "dense_hits": [
+    {
+      "chunk_hash": "fb811a6eae076eea3b4bec9cf9da3982e0787a9b6ce88593a78d82dd872156ad",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000258",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.787284791469574,
+      "source_id": "TVHS",
+      "source_page": 212
+    },
+    {
+      "chunk_hash": "19077810c27757034020810feca256e0dbc2f020b900c884afbf5a172c609ea1",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000259",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.7675671577453613,
+      "source_id": "TVHS",
+      "source_page": 213
+    },
+    {
+      "chunk_hash": "3493497a61cb699bd12205af848afd13d2e3db3e34e2e83972fe27d4ac5d0ad9",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000260",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.7617967128753662,
+      "source_id": "TVHS",
+      "source_page": 214
+    },
+    {
+      "chunk_hash": "0054506d58378e3fcb35314a52222c0ac8fc9fa7e8f799f4c1a222c5c4dde24f",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000019",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.7524970769882202,
+      "source_id": "TVHS",
+      "source_page": 19
+    },
+    {
+      "chunk_hash": "0e3ac875a0509e2f2c9a12d3e59fcde77dcaf2d61aee40da550a0dc943513bcb",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000287",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.7521356344223022,
+      "source_id": "TVHS",
+      "source_page": 237
+    }
+  ],
+  "diagnostics": {
+    "dense_hit_count": 5,
+    "embedding_property": "embedding_bge_m3",
+    "embedding_slot": "bge_m3",
+    "parent_expansion": {
+      "child_hits_with_parent": 0,
+      "parent_expansion_hit_rate": 0.0,
+      "parent_fetch_count": 0,
+      "parent_ids": []
+    },
+    "sparse_hit_count": 5
+  },
+  "domain": "TUVI",
+  "embedding_slot": "bge_m3",
+  "generated_at": "2026-07-07T07:05:56.432119Z",
+  "parent_expansion_records": [],
+  "query": "Thiên Mã tại Quan Lộc",
+  "source_id": "TVHS",
+  "sparse_hits": [
+    {
+      "chunk_hash": "d056389728d71d141a95d4b21aedb81298b74c0f70e328fcc788a03b9dd0feea",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000074",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 7.742518901824951,
+      "source_id": "TVHS",
+      "source_page": 56
+    },
+    {
+      "chunk_hash": "dbee1296e24fcd7f0ca9d7fedfa499b1ea7b059461536c75bdbae6d4c667ee68",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000075",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 6.751159191131592,
+      "source_id": "TVHS",
+      "source_page": 57
+    },
+    {
+      "chunk_hash": "6d9058fc164490600e69299f23d7476bb4e705be2bc784fc469a34cd1a844f75",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000185",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 6.661064147949219,
+      "source_id": "TVHS",
+      "source_page": 144
+    },
+    {
+      "chunk_hash": "19077810c27757034020810feca256e0dbc2f020b900c884afbf5a172c609ea1",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000259",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 6.561924934387207,
+      "source_id": "TVHS",
+      "source_page": 213
+    },
+    {
+      "chunk_hash": "3492f4de7e498ad716eb02f087f309b737350cf78dd5937ec3492e920d11504b",
+      "chunk_id": "TVHS_chunk_fixed_512_chunk_000073",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 6.262374401092529,
+      "source_id": "TVHS",
+      "source_page": 55
+    }
+  ]
+}
