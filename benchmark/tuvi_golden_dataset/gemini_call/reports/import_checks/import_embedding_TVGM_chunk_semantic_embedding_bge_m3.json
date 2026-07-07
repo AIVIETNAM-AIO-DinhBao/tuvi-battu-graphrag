@@ -1,0 +1,16 @@
+{
+  "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+  "completed": true,
+  "db_write_counts": {},
+  "dry_run": true,
+  "embedding_property": "embedding_bge_m3",
+  "embedding_slot": "bge_m3",
+  "expected_dim": 1024,
+  "files": [
+    "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_semantic_embedding_bge_m3\\TVGM_chunk_semantic_embedding_bge_m3_embeddings.jsonl"
+  ],
+  "generated_at": "2026-07-07T13:31:33.128206Z",
+  "source_id": "TVGM",
+  "update_count": 377,
+  "vector_index_name": "chunkVectorBgeM3"
+}

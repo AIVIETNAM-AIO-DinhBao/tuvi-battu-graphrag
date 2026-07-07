@@ -1330,26 +1330,32 @@ def run_offline_embedding(args: argparse.Namespace) -> dict[str, Any]:
         if not (args.resume and offline_state_key(chunk) in completed_chunks)
     ]
     try:
-        for chunk in pending_chunks:
-            update = prepare_embedding_update(
-                chunk,
+        slot_spec = get_embedding_slot_spec(args.embedding_slot)
+        for chunk_batch in batched(pending_chunks, args.batch_size):
+            batch_updates = prepare_embedding_update_batch(
+                chunk_batch,
                 client,
                 expected_dim=args.expected_dim,
                 embedding_slot=args.embedding_slot,
             )
-            if not update:
-                continue
-            slot_spec = get_embedding_slot_spec(args.embedding_slot)
-            update["embedding_backend"] = getattr(client, "embedding_backend", args.embedding_backend or slot_spec.default_backend)
-            update["embedding_text"] = make_embedding_text(chunk)
-            updates.append(update)
-            completed_chunks[offline_state_key(chunk)] = {
-                "chunk_hash": chunk.get("chunk_hash"),
-                "chunk_id": chunk.get("chunk_id"),
-                "completed_at": utc_now(),
-                "embedding_model": client.model_name,
-            }
-            processed += 1
+            chunks_by_id = {str(chunk.get("chunk_id")): chunk for chunk in chunk_batch}
+            for update in batch_updates:
+                chunk = chunks_by_id.get(str(update.get("chunk_id")))
+                update["embedding_backend"] = getattr(
+                    client,
+                    "embedding_backend",
+                    args.embedding_backend or slot_spec.default_backend,
+                )
+                if chunk is not None:
+                    update["embedding_text"] = make_embedding_text(chunk)
+                updates.append(update)
+                completed_chunks[offline_state_key(update)] = {
+                    "chunk_hash": update.get("chunk_hash"),
+                    "chunk_id": update.get("chunk_id"),
+                    "completed_at": utc_now(),
+                    "embedding_model": client.model_name,
+                }
+                processed += 1
             write_offline_embedding_state(args.state_output, state)
     except Exception as exc:  # noqa: BLE001 - persist partial artifact before returning.
         completed = False

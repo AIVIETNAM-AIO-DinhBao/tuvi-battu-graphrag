@@ -1130,7 +1130,12 @@ def iter_semantic_embedding_windows(
         if not atoms:
             continue
 
-        atom_vectors = [embedding_client.embed_document(atom.text) for atom in atoms]
+        if getattr(embedding_client, "embedding_backend", None) == "local" and callable(
+            getattr(embedding_client, "embed_documents", None)
+        ):
+            atom_vectors = embedding_client.embed_documents([atom.text for atom in atoms])
+        else:
+            atom_vectors = [embedding_client.embed_document(atom.text) for atom in atoms]
         current: list[Atom] = []
         current_vectors: list[list[float]] = []
         current_tokens = 0

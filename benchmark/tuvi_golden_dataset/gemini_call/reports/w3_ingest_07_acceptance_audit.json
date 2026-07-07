@@ -1,0 +1,468 @@
+{
+  "branch": "gemini_call",
+  "chunk_evidence": {
+    "chunk_fixed_512": {
+      "chunk_summary_output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_fixed_512_chunk_summary.json",
+      "chunk_type_counts": {
+        "chunk": 1158
+      },
+      "documents": {
+        "TVGM": {
+          "chunk_type_counts": {
+            "chunk": 258
+          },
+          "retrieval_unit_chunks": 258,
+          "total_chunks": 258
+        },
+        "TVHS": {
+          "chunk_type_counts": {
+            "chunk": 287
+          },
+          "retrieval_unit_chunks": 287,
+          "total_chunks": 287
+        },
+        "TVKL": {
+          "chunk_type_counts": {
+            "chunk": 347
+          },
+          "retrieval_unit_chunks": 347,
+          "total_chunks": 347
+        },
+        "TVNL": {
+          "chunk_type_counts": {
+            "chunk": 266
+          },
+          "retrieval_unit_chunks": 266,
+          "total_chunks": 266
+        }
+      },
+      "regeneration_comparison": {
+        "canonical_count": 1158,
+        "completed": true,
+        "extra_chunk_ids": [],
+        "mismatch_count": 0,
+        "mismatches": [],
+        "missing_chunk_ids": [],
+        "regenerated_count": 1158
+      },
+      "semantic_report_event_count": null,
+      "semantic_report_output": null,
+      "total_chunks": 1158
+    },
+    "chunk_semantic_embedding_bge_m3": {
+      "chunk_summary_output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_semantic_embedding_bge_m3_chunk_summary.json",
+      "chunk_type_counts": {
+        "chunk": 1690
+      },
+      "documents": {
+        "TVGM": {
+          "chunk_type_counts": {
+            "chunk": 377
+          },
+          "retrieval_unit_chunks": 377,
+          "total_chunks": 377
+        },
+        "TVHS": {
+          "chunk_type_counts": {
+            "chunk": 439
+          },
+          "retrieval_unit_chunks": 439,
+          "total_chunks": 439
+        },
+        "TVKL": {
+          "chunk_type_counts": {
+            "chunk": 511
+          },
+          "retrieval_unit_chunks": 511,
+          "total_chunks": 511
+        },
+        "TVNL": {
+          "chunk_type_counts": {
+            "chunk": 363
+          },
+          "retrieval_unit_chunks": 363,
+          "total_chunks": 363
+        }
+      },
+      "regeneration_comparison": null,
+      "semantic_report_event_count": 745,
+      "semantic_report_output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_semantic_embedding_bge_m3_semantic_similarity_report.json",
+      "total_chunks": 1690
+    },
+    "chunk_structure_parent_child": {
+      "chunk_summary_output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_structure_parent_child_chunk_summary.json",
+      "chunk_type_counts": {
+        "child": 3344,
+        "parent": 1160
+      },
+      "documents": {
+        "TVGM": {
+          "chunk_type_counts": {
+            "child": 666,
+            "parent": 258
+          },
+          "retrieval_unit_chunks": 666,
+          "total_chunks": 924
+        },
+        "TVHS": {
+          "chunk_type_counts": {
+            "child": 850,
+            "parent": 289
+          },
+          "retrieval_unit_chunks": 850,
+          "total_chunks": 1139
+        },
+        "TVKL": {
+          "chunk_type_counts": {
+            "child": 983,
+            "parent": 347
+          },
+          "retrieval_unit_chunks": 983,
+          "total_chunks": 1330
+        },
+        "TVNL": {
+          "chunk_type_counts": {
+            "child": 845,
+            "parent": 266
+          },
+          "retrieval_unit_chunks": 845,
+          "total_chunks": 1111
+        }
+      },
+      "regeneration_comparison": {
+        "canonical_count": 4504,
+        "completed": true,
+        "extra_chunk_ids": [],
+        "mismatch_count": 0,
+        "mismatches": [],
+        "missing_chunk_ids": [],
+        "regenerated_count": 4504
+      },
+      "semantic_report_event_count": null,
+      "semantic_report_output": null,
+      "total_chunks": 4504
+    }
+  },
+  "completed": true,
+  "embedding_slot": "bge_m3",
+  "embeddings_and_retrieval": {
+    "chunk_fixed_512": {
+      "TVGM": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_fixed_512\\TVGM_chunk_fixed_512_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 258
+          },
+          "line_count": 258
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVGM_chunk_fixed_512.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVGM_chunk_fixed_512.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVGM_chunk_fixed_512.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVGM_chunk_fixed_512.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVGM_chunk_fixed_512.json"
+      },
+      "TVHS": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_fixed_512\\TVHS_chunk_fixed_512_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 287
+          },
+          "line_count": 287
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVHS_chunk_fixed_512.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVHS_chunk_fixed_512.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVHS_chunk_fixed_512.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVHS_chunk_fixed_512.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVHS_chunk_fixed_512.json"
+      },
+      "TVKL": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_fixed_512\\TVKL_chunk_fixed_512_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 347
+          },
+          "line_count": 347
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVKL_chunk_fixed_512.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVKL_chunk_fixed_512.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVKL_chunk_fixed_512.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVKL_chunk_fixed_512.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVKL_chunk_fixed_512.json"
+      },
+      "TVNL": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_fixed_512\\TVNL_chunk_fixed_512_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 266
+          },
+          "line_count": 266
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVNL_chunk_fixed_512.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVNL_chunk_fixed_512.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVNL_chunk_fixed_512.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVNL_chunk_fixed_512.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVNL_chunk_fixed_512.json"
+      }
+    },
+    "chunk_semantic_embedding_bge_m3": {
+      "TVGM": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_semantic_embedding_bge_m3\\TVGM_chunk_semantic_embedding_bge_m3_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 377
+          },
+          "line_count": 377
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVGM_chunk_semantic_embedding_bge_m3.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVGM_chunk_semantic_embedding_bge_m3.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVGM_chunk_semantic_embedding_bge_m3.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVGM_chunk_semantic_embedding_bge_m3.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVGM_chunk_semantic_embedding_bge_m3.json"
+      },
+      "TVHS": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_semantic_embedding_bge_m3\\TVHS_chunk_semantic_embedding_bge_m3_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 439
+          },
+          "line_count": 439
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVHS_chunk_semantic_embedding_bge_m3.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVHS_chunk_semantic_embedding_bge_m3.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVHS_chunk_semantic_embedding_bge_m3.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVHS_chunk_semantic_embedding_bge_m3.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVHS_chunk_semantic_embedding_bge_m3.json"
+      },
+      "TVKL": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_semantic_embedding_bge_m3\\TVKL_chunk_semantic_embedding_bge_m3_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 511
+          },
+          "line_count": 511
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVKL_chunk_semantic_embedding_bge_m3.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVKL_chunk_semantic_embedding_bge_m3.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVKL_chunk_semantic_embedding_bge_m3.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVKL_chunk_semantic_embedding_bge_m3.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVKL_chunk_semantic_embedding_bge_m3.json"
+      },
+      "TVNL": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_semantic_embedding_bge_m3\\TVNL_chunk_semantic_embedding_bge_m3_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "chunk": 363
+          },
+          "line_count": 363
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVNL_chunk_semantic_embedding_bge_m3.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVNL_chunk_semantic_embedding_bge_m3.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVNL_chunk_semantic_embedding_bge_m3.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVNL_chunk_semantic_embedding_bge_m3.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVNL_chunk_semantic_embedding_bge_m3.json"
+      }
+    },
+    "chunk_structure_parent_child": {
+      "TVGM": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_structure_parent_child\\TVGM_chunk_structure_parent_child_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "child": 666
+          },
+          "line_count": 666
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVGM_chunk_structure_parent_child.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVGM_chunk_structure_parent_child.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVGM_chunk_structure_parent_child.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVGM_chunk_structure_parent_child.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVGM_chunk_structure_parent_child.json"
+      },
+      "TVHS": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_structure_parent_child\\TVHS_chunk_structure_parent_child_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "child": 849
+          },
+          "line_count": 849
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVHS_chunk_structure_parent_child.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVHS_chunk_structure_parent_child.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVHS_chunk_structure_parent_child.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVHS_chunk_structure_parent_child.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVHS_chunk_structure_parent_child.json"
+      },
+      "TVKL": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_structure_parent_child\\TVKL_chunk_structure_parent_child_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "child": 983
+          },
+          "line_count": 983
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVKL_chunk_structure_parent_child.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVKL_chunk_structure_parent_child.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVKL_chunk_structure_parent_child.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVKL_chunk_structure_parent_child.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVKL_chunk_structure_parent_child.json"
+      },
+      "TVNL": {
+        "artifact": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_structure_parent_child\\TVNL_chunk_structure_parent_child_embeddings.jsonl",
+        "artifact_stats": {
+          "chunk_type_counts": {
+            "child": 844
+          },
+          "line_count": 844
+        },
+        "import_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_embedding_TVNL_chunk_structure_parent_child.json",
+        "live_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\embed_TVNL_chunk_structure_parent_child.json",
+        "live_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\retrieval_TVNL_chunk_structure_parent_child.json",
+        "offline_embedding_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\embed_TVNL_chunk_structure_parent_child.json",
+        "offline_retrieval_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVNL_chunk_structure_parent_child.json"
+      }
+    }
+  },
+  "enforced_baseline_counts": true,
+  "entities_and_reviews": {
+    "chunk_fixed_512": {
+      "entity_count": 79978,
+      "entity_jsonl": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\entities\\chunk_fixed_512\\chunk_fixed_512_entities.jsonl",
+      "entity_review": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_fixed_512_entity_review.json",
+      "relation_review": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_fixed_512_relation_review.json"
+    },
+    "chunk_semantic_embedding_bge_m3": {
+      "entity_count": 86283,
+      "entity_jsonl": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\entities\\chunk_semantic_embedding_bge_m3\\chunk_semantic_embedding_bge_m3_entities.jsonl",
+      "entity_review": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_semantic_embedding_bge_m3_entity_review.json",
+      "relation_review": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_semantic_embedding_bge_m3_relation_review.json"
+    },
+    "chunk_structure_parent_child": {
+      "entity_count": 113229,
+      "entity_jsonl": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\entities\\chunk_structure_parent_child\\chunk_structure_parent_child_entities.jsonl",
+      "entity_review": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_structure_parent_child_entity_review.json",
+      "relation_review": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\chunk_structure_parent_child_relation_review.json"
+    }
+  },
+  "generated_at": "2026-07-07T13:32:06.811725Z",
+  "issues": [],
+  "payloads_and_graph": {
+    "_totals": {
+      "supabase_source_chunks": 7352
+    },
+    "chunk_fixed_512": {
+      "duplicate_chunk_hashes": [],
+      "import_graph_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_graph_chunk_fixed_512.json",
+      "line_counts": {
+        "canonical_relation_records": 493,
+        "chunk_records": 1158,
+        "entity_records": 6642,
+        "mention_records": 79978,
+        "relation_records": 853,
+        "source_records": 4
+      },
+      "payload_dir": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\payloads\\chunk_fixed_512",
+      "strategy_counts": {
+        "canonical_relations": 493,
+        "chunks": 1158,
+        "relations": 853,
+        "supabase_source_chunks": 1158
+      },
+      "unique_chunk_hash_count": 1158
+    },
+    "chunk_semantic_embedding_bge_m3": {
+      "duplicate_chunk_hashes": [],
+      "import_graph_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_graph_chunk_semantic_embedding_bge_m3.json",
+      "line_counts": {
+        "canonical_relation_records": 690,
+        "chunk_records": 1690,
+        "entity_records": 8074,
+        "mention_records": 86283,
+        "relation_records": 1217,
+        "source_records": 4
+      },
+      "payload_dir": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\payloads\\chunk_semantic_embedding_bge_m3",
+      "strategy_counts": {
+        "canonical_relations": 690,
+        "chunks": 1690,
+        "relations": 1217,
+        "supabase_source_chunks": 1690
+      },
+      "unique_chunk_hash_count": 1690
+    },
+    "chunk_structure_parent_child": {
+      "duplicate_chunk_hashes": [
+        {
+          "chunk_hash": "531302d0828a50c4d2e0608964760380f5daf4b58c2c14c2d285d8d20d68b9eb",
+          "chunk_ids": [
+            "TVNL_chunk_structure_parent_child_child_000784",
+            "TVNL_chunk_structure_parent_child_child_000785"
+          ]
+        },
+        {
+          "chunk_hash": "9c4bd8a003b26dfa54cd8d53d1ac631070ff645141b39f786b5d6c3ff6a4ab87",
+          "chunk_ids": [
+            "TVHS_chunk_structure_parent_child_child_000070",
+            "TVHS_chunk_structure_parent_child_child_000071"
+          ]
+        }
+      ],
+      "import_graph_summary": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\import_checks\\import_graph_chunk_structure_parent_child.json",
+      "line_counts": {
+        "canonical_relation_records": 1234,
+        "chunk_records": 4504,
+        "entity_records": 10791,
+        "mention_records": 113229,
+        "relation_records": 9410,
+        "source_records": 4
+      },
+      "payload_dir": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\payloads\\chunk_structure_parent_child",
+      "strategy_counts": {
+        "canonical_relations": 1234,
+        "chunks": 4504,
+        "relations": 9410,
+        "supabase_source_chunks": 4504
+      },
+      "unique_chunk_hash_count": 4502
+    }
+  },
+  "sources": [
+    "TVKL",
+    "TVNL",
+    "TVHS",
+    "TVGM"
+  ],
+  "strategies": [
+    "chunk_fixed_512",
+    "chunk_structure_parent_child",
+    "chunk_semantic_embedding_bge_m3"
+  ],
+  "warnings": [
+    {
+      "check": "chunk_regeneration",
+      "context": {
+        "strategy": "chunk_semantic_embedding_bge_m3"
+      },
+      "message": "regenerated chunks are not present for strategy; comparison skipped"
+    },
+    {
+      "check": "graph_summary",
+      "context": {
+        "strategy": "chunk_fixed_512"
+      },
+      "message": "relation_drop_counts is empty because graph write resumed from previous LLM state"
+    },
+    {
+      "check": "graph_summary",
+      "context": {
+        "strategy": "chunk_structure_parent_child"
+      },
+      "message": "relation_drop_counts is empty because graph write resumed from previous LLM state"
+    },
+    {
+      "check": "graph_summary",
+      "context": {
+        "strategy": "chunk_semantic_embedding_bge_m3"
+      },
+      "message": "relation_drop_counts is empty because graph write resumed from previous LLM state"
+    }
+  ]
+}

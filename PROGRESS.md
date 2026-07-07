@@ -797,3 +797,79 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
   - Windows returned access-denied when attempting cleanup, likely due to local file attribute/handle behavior.
 
 **Status**: COMPLETE - W3-INGEST-06 is accepted on the live DB for BGE-M3 embedding and retrieval indexing across all 3 strategies and 4 sources, with dense/sparse smoke retrieval and parent expansion diagnostics passing.
+
+---
+
+## W3-INGEST-07 Full Corpus Baseline Acceptance - 2026-07-07
+
+### Status
+- W3-INGEST-07 is accepted for the `gemini_call` live DB branch across all `12` source/strategy pairs.
+- Sources covered: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
+- Strategies covered:
+  - `chunk_fixed_512`
+  - `chunk_structure_parent_child`
+  - `chunk_semantic_embedding_bge_m3`
+- Acceptance audit:
+  - `benchmark/tuvi_golden_dataset/gemini_call/reports/w3_ingest_07_acceptance_audit.json`
+  - `completed = true`
+  - `issues = []`
+
+### Evidence Added
+- Added W3-07 audit/materialization/export tooling:
+  - `scripts/audit_w3_ingest_07.py`
+  - `scripts/materialize_w3_ingest_07_chunk_evidence.py`
+  - `scripts/export_embedding_artifacts.py`
+- Added audit unit coverage:
+  - `backend/tests/test_audit_w3_ingest_07.py`
+- Added chunk evidence reports:
+  - `<strategy>_chunk_summary.json` for all `3` strategies.
+  - `chunk_semantic_embedding_bge_m3_semantic_similarity_report.json`.
+- Fixed/parent-child regenerated chunk comparisons pass:
+  - `chunk_fixed_512`: `1158 / 1158`, no mismatches.
+  - `chunk_structure_parent_child`: `4504 / 4504`, no mismatches.
+- Semantic BGE-M3 report is derived from existing chunk metadata because full local BGE re-chunking on CPU was too slow; the report records `derived_from_existing_chunk_metadata = true` and has `745` semantic break-score events.
+
+### Payload And Graph Importability
+- Graph payload dry-runs passed for all `3` strategies:
+  - `reports/import_checks/import_graph_<strategy>.json`
+- Payload/DB acceptance counts:
+  - `chunk_fixed_512`: `1158` chunks, `853` relations, `493` canonical relations, `1158` Supabase `source_chunks`.
+  - `chunk_structure_parent_child`: `4504` chunks, `9410` relations, `1234` canonical relations, `4504` Supabase `source_chunks`.
+  - `chunk_semantic_embedding_bge_m3`: `1690` chunks, `1217` relations, `690` canonical relations, `1690` Supabase `source_chunks`.
+  - Total Supabase `source_chunks`: `7352`.
+
+### Offline Embedding Artifacts
+- Exported existing Neo4j `embedding_bge_m3` vectors into portable JSONL artifacts:
+  - `benchmark/tuvi_golden_dataset/gemini_call/embeddings/<strategy>/<source>_<strategy>_embeddings.jsonl`
+- Export route is read-only and does not call Gemini, Qwen, or local BGE inference.
+- Offline embedding summaries and smoke reports were written under:
+  - `benchmark/tuvi_golden_dataset/gemini_call/reports/offline_embedding/`
+- Embedding import dry-runs passed for all `12` artifacts:
+  - `reports/import_checks/import_embedding_<source>_<strategy>.json`
+- All offline embedding artifacts use:
+  - `embedding_slot = "bge_m3"`
+  - `embedding_property = "embedding_bge_m3"`
+  - `expected_dim = 1024`
+  - `vector_index_name = "chunkVectorBgeM3"`
+
+### Caveats
+- `relation_drop_counts` remains `{}` in final graph summaries because production graph writes resumed from existing LLM state.
+- `chunk_structure_parent_child` still has two duplicate child `chunk_hash` pairs, so payload rows are `4504` but unique Neo4j chunk hashes are `4502`:
+  - `TVHS_chunk_structure_parent_child_child_000070` and `TVHS_chunk_structure_parent_child_child_000071`
+  - `TVNL_chunk_structure_parent_child_child_000784` and `TVNL_chunk_structure_parent_child_child_000785`
+- Parent-child offline embedding artifacts export unique live Neo4j child nodes only:
+  - `TVKL`: `983`
+  - `TVNL`: `844`
+  - `TVHS`: `849`
+  - `TVGM`: `666`
+- `chunk_structure_parent_child` has `4` LLM relation records with `confidence = 0.0`; this does not break schema or W3-07 acceptance.
+
+### Verification
+- Acceptance audit:
+  - `.\.venv\Scripts\python.exe -X utf8 scripts\audit_w3_ingest_07.py --regen-chunks-dir benchmark\tuvi_golden_dataset\gemini_call\reports\chunk_regen --output benchmark\tuvi_golden_dataset\gemini_call\reports\w3_ingest_07_acceptance_audit.json`
+  - Result: `completed = true`, `issues = []`
+- Focused regression:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_chunk_text.py backend\tests\test_extract_entities.py backend\tests\test_write_graph_provenance.py backend\tests\test_embed_chunks.py backend\tests\test_smoke_retrieval.py backend\tests\test_run_w3_ingest_07.py backend\tests\test_import_artifacts.py backend\tests\test_audit_w3_ingest_07.py -q -p no:cacheprovider`
+  - Result: `158 passed`
+
+**Status**: COMPLETE - W3-INGEST-07 is accepted for the full corpus baseline on the `gemini_call` live DB branch, with importable graph payloads, portable BGE-M3 embedding artifacts, import dry-runs, live retrieval smoke, and acceptance audit passing.

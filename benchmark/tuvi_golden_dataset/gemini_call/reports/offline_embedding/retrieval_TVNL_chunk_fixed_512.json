@@ -1,0 +1,120 @@
+{
+  "chunk_strategy_id": "chunk_fixed_512",
+  "dense_hits": [
+    {
+      "chunk_hash": "854451b9160d7e05a14e06ad08096c60344016479d3123134a11607fb707b571",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000001",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 1.0,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "6deb5b31f49d5a6eb96877011cf81d49159130a67ccda951ab290cd1ac14f693",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000188",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.652661,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "889e864c72615d0b15afedf61ab24709de105e93fc70bcf66599cca45f74f905",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000003",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.651067,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "b216ebd767488c0a182c7499d43a103d81e42fa21022116c034eab1826e61052",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000173",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.640625,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "4b6eaa670e2a8f813cc80f70d5cfe764fa300a806070b9df48461d82d0aece86",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000266",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.634894,
+      "source_id": "TVNL"
+    }
+  ],
+  "diagnostics": {
+    "dense_hit_count": 5,
+    "embedding_property": "embedding_bge_m3",
+    "embedding_slot": "bge_m3",
+    "mode": "offline_artifact",
+    "sparse_hit_count": 5
+  },
+  "domain": "TUVI",
+  "embedding_model": "BAAI/bge-m3",
+  "embedding_slot": "bge_m3",
+  "generated_at": "2026-07-07T13:27:30.751932Z",
+  "query": "Thiên Mã tại Quan Lộc",
+  "source_id": "TVNL",
+  "sparse_hits": [
+    {
+      "chunk_hash": "0da12ab4e2f93c8de4bb06c8420b0ce81915ad914ab78073d283798fa6965e1b",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000038",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 1.0,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "772959981cbd599dd8b6b86ed8babb4c72c7d92a3468e186630ab99590068fcc",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000118",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 1.0,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "f8ef5e5373ca734564a116f500e1c60e85232801f9ed9642f92a6fa6cefd4250",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000208",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 1.0,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "93b83a0d6e7a716d29f5f934305627cbfaa588c7933531b7322c71b8a3a95ebf",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000007",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.8,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_hash": "51e8eb3e2d2699c59643b8b990cd4962fa1240366d7b4f8377800f1fa58d0971",
+      "chunk_id": "TVNL_chunk_fixed_512_chunk_000020",
+      "chunk_strategy_id": "chunk_fixed_512",
+      "chunk_type": "chunk",
+      "domain": "TUVI",
+      "parent_id": null,
+      "score": 0.8,
+      "source_id": "TVNL"
+    }
+  ]
+}

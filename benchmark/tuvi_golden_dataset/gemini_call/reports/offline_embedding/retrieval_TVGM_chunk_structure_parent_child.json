@@ -1,0 +1,120 @@
+{
+  "chunk_strategy_id": "chunk_structure_parent_child",
+  "dense_hits": [
+    {
+      "chunk_hash": "7d9dcdfc1c1c7a6d32e2897f280b14b5bd3d3baa21263c9932e603a7b86670b5",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000001",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000001",
+      "score": 1.0,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "4492ce7331bc4d3b9ed6afc54bc1cce70ba30cb2612dbebcf85e3cf38146de01",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000002",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000001",
+      "score": 0.768762,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "de52aa6930ead140913b1d30f7306cf8f6d18b462546da284116904684796741",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000079",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000033",
+      "score": 0.70979,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "3263bfc355e852823889d69ad8b9d07be1082a7a6eb1515d4302e655ae77d1ae",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000078",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000032",
+      "score": 0.633067,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "06e5a6a68f27493547635d2c559853340383f5ac818f1314bfd1bd2397b7667d",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000404",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000158",
+      "score": 0.631845,
+      "source_id": "TVGM"
+    }
+  ],
+  "diagnostics": {
+    "dense_hit_count": 5,
+    "embedding_property": "embedding_bge_m3",
+    "embedding_slot": "bge_m3",
+    "mode": "offline_artifact",
+    "sparse_hit_count": 5
+  },
+  "domain": "TUVI",
+  "embedding_model": "BAAI/bge-m3",
+  "embedding_slot": "bge_m3",
+  "generated_at": "2026-07-07T13:30:23.670022Z",
+  "query": "Thiên Mã tại Quan Lộc",
+  "source_id": "TVGM",
+  "sparse_hits": [
+    {
+      "chunk_hash": "6cf40931ddadd3ff54ff6da5ef312b22f5cfa4551b48f7eb356db223300b1640",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000222",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000090",
+      "score": 1.0,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "c4491c4d6d407e69ed2533682384b71913b9c4cf34387b362eb8da74807e8031",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000056",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000023",
+      "score": 0.8,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "eb27b6f7db5d91ab8100feee0cf0b6316c0736769ad1737eaff2748868d238ba",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000091",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000038",
+      "score": 0.8,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "e43591c908d2ddf4378c71d5aead9eb3fa1664fca9ad4808f95499ae1450142e",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000116",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000047",
+      "score": 0.8,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_hash": "b2c8629d8eb22f92ced09318d888b6e087c8d80f796fc28304ec1abfdc17017a",
+      "chunk_id": "TVGM_chunk_structure_parent_child_child_000125",
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "chunk_type": "child",
+      "domain": "TUVI",
+      "parent_id": "TVGM_chunk_structure_parent_child_parent_000051",
+      "score": 0.8,
+      "source_id": "TVGM"
+    }
+  ]
+}

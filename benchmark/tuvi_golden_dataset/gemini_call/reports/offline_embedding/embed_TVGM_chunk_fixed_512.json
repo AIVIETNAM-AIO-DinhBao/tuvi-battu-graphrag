@@ -1,0 +1,53 @@
+{
+  "batch_size": 500,
+  "chunk_strategy_id": "chunk_fixed_512",
+  "completed": true,
+  "db_write_counts": {
+    "exported_neo4j_embeddings": 258
+  },
+  "domain": "TUVI",
+  "dry_run": false,
+  "embedded_chunk_type_counts": {
+    "chunk": 258
+  },
+  "embedding_backend": "exported_neo4j",
+  "embedding_metadata_fields": {
+    "embedded_at": "embedding_bge_m3_embedded_at",
+    "embedding_dim": "embedding_bge_m3_dim",
+    "embedding_model": "embedding_bge_m3_model",
+    "embedding_text_hash": "embedding_bge_m3_text_hash"
+  },
+  "embedding_model": "BAAI/bge-m3",
+  "embedding_property": "embedding_bge_m3",
+  "embedding_slot": "bge_m3",
+  "expected_dim": 1024,
+  "force": false,
+  "generated_at": "2026-07-07T13:27:35.842369Z",
+  "include_parent_chunks": false,
+  "keyword_coverage": {
+    "chunk_count": 258,
+    "coverage": 0.596899,
+    "with_keywords": 154
+  },
+  "limit": null,
+  "mode": "offline_artifact",
+  "output": "benchmark\\tuvi_golden_dataset\\gemini_call\\embeddings\\chunk_fixed_512\\TVGM_chunk_fixed_512_embeddings.jsonl",
+  "parent_skipped_count": 0,
+  "requests_per_minute": 90.0,
+  "retrieval_smoke": {
+    "dense_hit_count": 5,
+    "embedding_property": "embedding_bge_m3",
+    "embedding_slot": "bge_m3",
+    "mode": "offline_artifact",
+    "sparse_hit_count": 5
+  },
+  "retrieval_smoke_output": "benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\offline_embedding\\retrieval_TVGM_chunk_fixed_512.json",
+  "selected_chunk_type_counts": {
+    "chunk": 258
+  },
+  "selected_chunks": 258,
+  "smoke_candidate_k": 500,
+  "source_id": "TVGM",
+  "update_count": 258,
+  "vector_index_name": "chunkVectorBgeM3"
+}
