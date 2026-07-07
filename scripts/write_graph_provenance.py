@@ -1457,8 +1457,71 @@ def postprocess_llm_relations(
             relation_subtype=normalize_text(raw.get("relation_subtype") or "llm_extracted").strip(),
             confidence=confidence,
         )
+        try:
+            validate_relation_type_pair(relation)
+        except ValueError:
+            if drop_counts is not None:
+                drop_counts["invalid_relation_type_pair"] += 1
+            continue
         records.append(relation)
     return deduplicate_relations(records)
+
+
+def sanitize_resumed_relation_records(
+    relation_records: list[Any],
+    chunk: dict[str, Any],
+    drop_counts: Counter[str] | None = None,
+    *,
+    allowed_relation_types: Iterable[str] | None = None,
+    include_khai_niem_candidates: bool = False,
+    include_luan_giai_relations: bool = False,
+) -> list[dict[str, Any]]:
+    allowed_types = set(allowed_relation_types or DEFAULT_LLM_RELATION_TYPES)
+    sanitized: list[dict[str, Any]] = []
+    for relation in relation_records:
+        if not isinstance(relation, dict):
+            if drop_counts is not None:
+                drop_counts["resumed_invalid_relation_record"] += 1
+            continue
+
+        relation_type = str(relation.get("relation_type") or "").strip()
+        if relation_type not in EXTRACTABLE_RELATION_TYPES:
+            if drop_counts is not None:
+                drop_counts["resumed_unsupported_relation_type"] += 1
+            continue
+        if relation_type not in allowed_types:
+            if drop_counts is not None:
+                drop_counts["resumed_relation_type_not_allowed"] += 1
+            continue
+
+        endpoint_types = {
+            str(relation.get("head_entity_type") or ""),
+            str(relation.get("tail_entity_type") or ""),
+        }
+        if "LuanGiai" in endpoint_types and not include_luan_giai_relations:
+            if drop_counts is not None:
+                drop_counts["resumed_endpoint_luan_giai_not_allowed"] += 1
+            continue
+        if "KhaiNiem" in endpoint_types and not include_khai_niem_candidates:
+            if drop_counts is not None:
+                drop_counts["resumed_endpoint_khai_niem_not_allowed"] += 1
+            continue
+
+        try:
+            validate_relation_type_pair(relation)
+        except (KeyError, ValueError):
+            if drop_counts is not None:
+                drop_counts["resumed_invalid_relation_type_pair"] += 1
+            continue
+        try:
+            validate_relation_evidence(relation, chunk)
+        except (KeyError, ValueError):
+            if drop_counts is not None:
+                drop_counts["resumed_invalid_relation_evidence"] += 1
+            continue
+
+        sanitized.append(relation)
+    return sanitized
 
 
 def extract_llm_relations(
@@ -1622,7 +1685,21 @@ def extract_llm_relations(
         )
         if resume and key in completed_chunks:
             resume_skipped_count += 1
-            relations.extend(completed_chunks[key].get("relation_records") or [])
+            raw_resumed_relations = completed_chunks[key].get("relation_records") or []
+            resumed_relations = sanitize_resumed_relation_records(
+                raw_resumed_relations,
+                chunk,
+                drop_counts,
+                allowed_relation_types=allowed_relation_types,
+                include_khai_niem_candidates=include_khai_niem_candidates,
+                include_luan_giai_relations=include_luan_giai_relations,
+            )
+            if len(resumed_relations) != len(raw_resumed_relations):
+                completed_chunks[key]["relation_count"] = len(resumed_relations)
+                completed_chunks[key]["relation_records"] = resumed_relations
+                completed_chunks[key]["sanitized_at"] = utc_now()
+                write_relation_state(state_output, state)
+            relations.extend(resumed_relations)
             continue
         if len(chunk_candidates) < 2:
             no_llm_needed_count += 1

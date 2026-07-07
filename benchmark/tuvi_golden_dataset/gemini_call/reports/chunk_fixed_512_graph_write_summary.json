@@ -1,0 +1,123 @@
+{
+  "api_key_count": 4,
+  "api_key_last_errors": {},
+  "api_key_usage_counts": {
+    "key_1": 0,
+    "key_2": 0,
+    "key_3": 0,
+    "key_4": 0
+  },
+  "canonical_relation_count": 493,
+  "chunk_count": 1158,
+  "completed": true,
+  "db_write_counts": {
+    "neo4j": {
+      "canonical_relations": 493,
+      "chunks": 1158,
+      "entities": 6642,
+      "mentions": 79978,
+      "relations": 853,
+      "source_chunk_edges": 2316,
+      "sources": 4
+    },
+    "supabase_source_chunks": 1158
+  },
+  "disabled_key_count": 0,
+  "dry_run": false,
+  "entity_count": 79978,
+  "generated_at": "2026-07-06T17:17:36.853805Z",
+  "graph_write_run_id": "graph_write_20260706T171734Z_fda0a243",
+  "llm_backend": "gemini",
+  "llm_batch_size": 4,
+  "llm_relation_completed_chunk_count": 0,
+  "llm_relation_count": 817,
+  "llm_relation_missing_chunk_response_count": 0,
+  "llm_relation_no_llm_needed_chunk_count": 0,
+  "llm_relation_request_count": 0,
+  "llm_relation_resume_skipped_chunk_count": 1158,
+  "max_llm_requests": null,
+  "max_relation_candidates_per_chunk": 96,
+  "mention_relation_count": 79978,
+  "ontology_relation_count": 36,
+  "parent_child_relation_count": 0,
+  "payload_output_dir": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\payloads\\chunk_fixed_512",
+  "payload_record_counts": {
+    "canonical_relation_records": 493,
+    "chunk_records": 1158,
+    "entity_records": 6642,
+    "mention_records": 79978,
+    "relation_records": 853,
+    "source_records": 4
+  },
+  "quota_failover_count": 0,
+  "relation_allowed_entity_types": [
+    "CucBanMenh",
+    "Cung",
+    "DaiHan",
+    "DiaChi",
+    "NguHanh",
+    "QuanHeCung",
+    "Sao",
+    "ThienCan",
+    "ToHop",
+    "TrangThaiSao",
+    "TuHoa",
+    "VanHan"
+  ],
+  "relation_allowed_relation_types": [
+    "DOI_CHIEU",
+    "LIEN_KE",
+    "LUU_Y",
+    "RELATED_TO",
+    "THUOC_CUNG"
+  ],
+  "relation_candidate_capped_chunk_count": 253,
+  "relation_candidate_capped_entity_count": 7512,
+  "relation_candidate_count": 64959,
+  "relation_candidate_dropped_count": 15019,
+  "relation_candidate_dropped_needs_review_count": 6295,
+  "relation_candidate_dropped_type_count": 1212,
+  "relation_candidate_dropped_type_counts": {
+    "CucBanMenh": 13,
+    "KhaiNiem": 1377,
+    "LuanGiai": 6029,
+    "ToHop": 88
+  },
+  "relation_candidate_raw_entity_count": 79978,
+  "relation_chunk_type_counts": {
+    "chunk": 817,
+    "ontology": 36
+  },
+  "relation_counts": {
+    "DOI_CHIEU": 32,
+    "LIEN_KE": 152,
+    "LUU_Y": 15,
+    "RELATED_TO": 264,
+    "THUOC_CUNG": 390
+  },
+  "relation_drop_counts": {},
+  "relation_extraction_completed": true,
+  "relation_include_khai_niem_candidates": false,
+  "relation_include_luan_giai_relations": false,
+  "relation_include_needs_review_entities": false,
+  "relation_mode": "llm",
+  "relation_model": "gemini-3.1-flash-lite-preview",
+  "relation_source_counts": {
+    "llm": 817,
+    "ontology": 36
+  },
+  "relation_source_id_counts": {
+    "TVGM": 131,
+    "TVHS": 238,
+    "TVKL": 299,
+    "TVNL": 149,
+    "tuvi_ontology_v1": 36
+  },
+  "relation_stop_reason": null,
+  "relation_strategy_counts": {
+    "chunk_fixed_512": 817,
+    "none": 36
+  },
+  "rule_relation_count": 0,
+  "total_relation_count": 81324
+}

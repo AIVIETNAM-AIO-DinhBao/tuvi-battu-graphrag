@@ -703,6 +703,26 @@ def test_llm_relation_postprocess_rejects_needs_review_endpoint() -> None:
     assert drop_counts["endpoint_needs_review_not_allowed"] == 1
 
 
+def test_llm_relation_postprocess_drops_invalid_type_pair() -> None:
+    chunk = make_chunk("Giap Ty.")
+    thien_can = make_entity(chunk, "Giap", "ThienCan")
+    dia_chi = make_entity(chunk, "Ty", "DiaChi")
+    drop_counts: writer.Counter[str] = writer.Counter()
+    raw_relations = [
+        {
+            "relation_type": "THUOC_CUNG",
+            "head_entity_id": thien_can["entity_id"],
+            "tail_entity_id": dia_chi["entity_id"],
+            "evidence_text": chunk["chunk_text"],
+        }
+    ]
+
+    records = writer.postprocess_llm_relations(raw_relations, chunk, [thien_can, dia_chi], drop_counts)
+
+    assert records == []
+    assert drop_counts["invalid_relation_type_pair"] == 1
+
+
 def test_canonical_relation_aggregation_groups_evidence_relations() -> None:
     first = make_chunk("Thiên Mã tại Quan Lộc.", chunk_id="first")
     second = make_chunk("Thiên Mã tại Quan Lộc.", chunk_id="second")
@@ -788,6 +808,66 @@ def test_llm_relation_resume_skips_completed_chunk_state(monkeypatch: pytest.Mon
 
     assert calls["count"] == 0
     assert records == [relation]
+
+
+def test_llm_relation_resume_sanitizes_invalid_relation_records(monkeypatch: pytest.MonkeyPatch) -> None:
+    chunk = make_chunk("Giap Ty.")
+    entities = [
+        make_entity(chunk, "Giap", "ThienCan"),
+        make_entity(chunk, "Ty", "DiaChi"),
+    ]
+    invalid_relation = writer.make_relation(
+        "THUOC_CUNG",
+        writer.relation_endpoint(entities[0]),
+        writer.relation_endpoint(entities[1]),
+        chunk=chunk,
+        evidence_text=chunk["chunk_text"],
+        relation_source="llm",
+    )
+    work_dir = smoke_dir("relation-resume-sanitize-invalid-v1")
+    state_path = work_dir / "graph_relation_state.json"
+    writer.write_relation_state(
+        state_path,
+        {
+            "completed_chunks": {
+                writer.relation_state_key(chunk): {
+                    "chunk_id": chunk["chunk_id"],
+                    "relation_count": 1,
+                    "relation_records": [invalid_relation],
+                }
+            }
+        },
+    )
+    calls = {"count": 0}
+    drop_counts: writer.Counter[str] = writer.Counter()
+
+    class CountingAdapter:
+        model_name = "counting"
+
+        def extract(self, *_: object) -> list[dict]:
+            calls["count"] += 1
+            return []
+
+    monkeypatch.setattr(writer, "MockRelationLLMAdapter", CountingAdapter)
+
+    records = writer.extract_llm_relations(
+        [chunk],
+        entities,
+        mock_llm=True,
+        model_name="mock",
+        state_output=state_path,
+        resume=True,
+        drop_counts=drop_counts,
+    )
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    entry = state["completed_chunks"][writer.relation_state_key(chunk)]
+    assert calls["count"] == 0
+    assert records == []
+    assert entry["relation_count"] == 0
+    assert entry["relation_records"] == []
+    assert "sanitized_at" in entry
+    assert drop_counts["resumed_invalid_relation_type_pair"] == 1
 
 
 def test_relation_state_key_distinguishes_duplicate_chunk_hashes(monkeypatch: pytest.MonkeyPatch) -> None:

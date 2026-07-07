@@ -35,6 +35,7 @@ DEFAULT_GEMINI_LLM_BATCH_SIZE = 4
 DEFAULT_GEMINI_REQUESTS_PER_MINUTE = 15.0
 DEFAULT_GEMINI_RELATION_MODEL = "gemini-3.1-flash-lite-preview"
 DEFAULT_MAX_RELATION_CANDIDATES_PER_CHUNK = 96
+BUDGET_STOP_REASONS = {"max_llm_requests", "max_runtime_seconds"}
 ALL_PHASES = ["chunking", "entity_extraction", "graph_relation", "embed_retrieval"]
 DEFAULT_SMOKE_QUERY = "Thiên Mã tại Quan Lộc"
 
@@ -546,6 +547,15 @@ def command_summary_completed(command: dict[str, Any]) -> bool:
     return summary.get("completed") is not False
 
 
+def command_summary_stopped_at_budget(summary: dict[str, Any]) -> bool:
+    if summary.get("completed") is not False:
+        return False
+    return any(
+        str(summary.get(key) or "") in BUDGET_STOP_REASONS
+        for key in ("stop_reason", "relation_stop_reason")
+    )
+
+
 def assert_command_summary_completed(command: dict[str, Any]) -> None:
     summary_output = command.get("summary_output")
     if not summary_output:
@@ -555,6 +565,8 @@ def assert_command_summary_completed(command: dict[str, Any]) -> None:
         raise RuntimeError(f"Command {command['command_id']} did not write expected summary {path}.")
     summary = read_json(path)
     if summary.get("completed") is False:
+        if command_summary_stopped_at_budget(summary):
+            return
         error_count = summary.get("error_count")
         disabled_key_count = summary.get("disabled_key_count")
         quota_failover_count = summary.get("quota_failover_count")

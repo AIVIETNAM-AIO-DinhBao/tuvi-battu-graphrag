@@ -576,3 +576,23 @@ def test_resume_does_not_skip_completed_state_when_summary_is_incomplete(
     assert "chunk_fixed_512:chunking" not in executed
     assert "chunk_fixed_512:entity" in executed
     assert "chunk_fixed_512:graph" not in executed
+
+
+def test_budget_limited_summary_is_allowed_but_not_resume_complete() -> None:
+    work_dir = smoke_dir("budget-limited-summary")
+    summary_path = work_dir / "graph_summary.json"
+    runner.write_json(
+        summary_path,
+        {
+            "completed": False,
+            "relation_stop_reason": "max_llm_requests",
+        },
+    )
+    command = {
+        "command_id": "chunk_structure_parent_child:graph",
+        "summary_output": str(summary_path),
+    }
+
+    runner.assert_command_summary_completed(command)
+
+    assert runner.command_summary_completed(command) is False

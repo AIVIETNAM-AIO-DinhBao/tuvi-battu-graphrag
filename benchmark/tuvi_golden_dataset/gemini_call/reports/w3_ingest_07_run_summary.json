@@ -4,11 +4,11 @@
   "error": null,
   "executed_command_count": 2,
   "gemini_api_key_count": 4,
-  "generated_at": "2026-07-05T16:41:51.751604Z",
+  "generated_at": "2026-07-06T17:19:12.217230Z",
   "manifest_output": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\gemini_call\\reports\\w3_ingest_07_command_manifest.json",
   "mode": "production",
   "phases": [
-    "entity_extraction"
+    "graph_relation"
   ],
   "profile": "gemini-call",
   "progress_interval": 25,
