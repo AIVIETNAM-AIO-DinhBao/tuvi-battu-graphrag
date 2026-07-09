@@ -1,6 +1,6 @@
 # Kaggle Notebooks for Tu Vi GraphRAG Ingestion
 
-These notebooks are the current operational path for completing `W3-INGEST` when Gemini quota is not stable enough for full-corpus batch runs.
+These notebooks are the `local-kaggle`/Qwen fallback, reproducibility, and comparison path for `W3-INGEST`. The accepted W3 full-corpus baseline as of 2026-07-07 is the `gemini_call` live DB branch; this notebook path remains useful when Gemini quota/runtime is not stable enough for a rerun.
 
 Kaggle is an **artifact producer only**:
 - chunk/entity/relation/embedding generation happens on Kaggle

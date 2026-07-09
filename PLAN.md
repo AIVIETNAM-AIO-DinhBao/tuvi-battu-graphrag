@@ -365,9 +365,9 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
 - Dùng toàn bộ 4 sách Tử Vi nền đã chuẩn hóa trong `benchmark/tuvi_golden_dataset/corpus`: `TVKL`, `TVNL`, `TVHS`, `TVGM`.
 - Không xóa hoặc rebuild corpus nền; chỉ tạo lại dữ liệu derived từ chunk/entity/relation/embedding/index.
 - Branch policy for W3-INGEST-04..07:
-  - `rule-only`: dictionary/rule entity extraction and rule relation extraction; no LLM calls for W3-INGEST-04/05.
-  - `gemini-call`: official Gemini API branch for both entity extraction and relation extraction.
-  - `local-kaggle`: keep Kaggle/Qwen notebook artifacts unchanged as a comparison branch.
+  - `rule-only`: dictionary/rule entity extraction and rule relation extraction; no LLM calls for W3-INGEST-04/05; used as a smoke/comparison path.
+  - `gemini-call`: accepted W3 full-corpus baseline branch; Gemini API is used for entity/relation extraction, while BGE-M3 uses the separate `bge_m3` embedding/retrieval slot.
+  - `local-kaggle`: Kaggle/Qwen artifact path kept as fallback, reproducibility, and comparison evidence; it is not the accepted W3 branch after the `gemini_call` live DB acceptance.
 - Gemini quota policy:
   - batch entity and relation calls with `--llm-batch-size 4`;
   - default per-key throttle is `--requests-per-minute 15`;
@@ -376,10 +376,11 @@ Mục tiêu: có pipeline extract, normalize, chunk, annotate và index corpus T
   - `benchmark/tuvi_golden_dataset/rule_only/{entities,payloads,reports}/`;
   - `benchmark/tuvi_golden_dataset/gemini_call/{entities,payloads,reports,state}/`;
   - `notebooks/w3_local_outputs/` remains the local-Kaggle comparison output.
-- Đường vận hành hiện tại để hoàn tất W3 là local-Kaggle artifact path:
-  - chunking/entity/relation/embedding chạy trên Kaggle
-  - graph payload và embedding artifacts được tải về local
-  - local import vào Neo4j/Supabase và chạy retrieval smoke
+- Đường vận hành đã accepted để hoàn tất W3 là `gemini-call` live DB branch:
+  - entity/relation extraction chạy bằng Gemini API cho cả 3 strategy đại diện
+  - graph/provenance đã ghi vào Neo4j/Supabase thật dưới `benchmark/tuvi_golden_dataset/gemini_call/`
+  - BGE-M3 embeddings/retrieval dùng slot `bge_m3` (`Chunk.embedding_bge_m3`, `chunkVectorBgeM3`) và không ghi đè Gemini baseline slot
+  - local-Kaggle/Qwen chỉ còn là fallback/repro/comparison artifact path nếu cần tái lập hoặc so sánh
 - Chạy pipeline từ chunk đến index cho 3 strategy vận hành hiện tại:
   - `chunk_fixed_512`
   - `chunk_structure_parent_child`

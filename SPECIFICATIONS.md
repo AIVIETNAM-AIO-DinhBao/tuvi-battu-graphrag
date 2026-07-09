@@ -1,7 +1,7 @@
 # System Specification: Hệ Thống Hỏi Đáp Tử Vi với Hybrid GraphRAG
 
-**Version:** 7.2
-**Date:** 2026-06-30
+**Version:** 7.3
+**Date:** 2026-07-09
 **Team size:** 4 người
 **Budget:** $0 (MVP / free-tier first)
 
@@ -9,15 +9,23 @@
 
 ## Changelog
 
+### v7.3
+
+- Đồng bộ trạng thái W3 acceptance: `gemini_call` live DB branch là accepted full-corpus W3 baseline cho W3-INGEST-04..07.
+- `gemini-call` dùng Gemini API cho entity/relation extraction và dùng slot `bge_m3` (`Chunk.embedding_bge_m3` + `chunkVectorBgeM3` + `1024`) cho embedding/retrieval acceptance.
+- `local-kaggle`/Qwen được giữ làm fallback, reproducibility và comparison artifact path; không còn là nhánh vận hành chính đã claim W3.
+- `rule-only` được giữ làm no-LLM smoke/comparison path.
+- `chunk_semantic_embedding_bge_m3` là concrete semantic chunking strategy đã accepted trong W3 baseline hiện tại; `chunk_semantic_embedding` vẫn là Gemini semantic reference/baseline name trong cấu hình cũ.
+
 ### v7.2
 
-- Chốt đường vận hành hiện tại của `W3-INGEST` là local-Kaggle artifact path để hoàn tất ingest khi Gemini quota không đủ ổn định cho full corpus.
+- Historical: chốt đường local-Kaggle artifact path để hoàn tất ingest khi Gemini quota không đủ ổn định cho full corpus.
 - Tách hoàn toàn Gemini và `BAAI/bge-m3` theo embedding slot trong cùng Neo4j:
   - Gemini dùng `Chunk.embedding` + `chunkVector` + `768`.
   - BGE-M3 dùng `Chunk.embedding_bge_m3` + `chunkVectorBgeM3` + `1024`.
 - Chuẩn hóa graph payload export/import để Kaggle chỉ sinh artifact, còn local/cloud mới import vào Neo4j/Supabase mà không chạy lại LLM.
 - Chốt query embedding runtime local dùng `BAAI/bge-m3` trên CPU qua `DENSE_QUERY_EMBEDDING_BACKEND`, `DENSE_QUERY_EMBEDDING_MODEL`, `DENSE_QUERY_EMBEDDING_DEVICE`, `DENSE_QUERY_EMBEDDING_SLOT`.
-- Giữ `chunk_semantic_embedding_bge_m3` là strategy phụ riêng cho local-Kaggle, không đổi tên hay ghi đè baseline `chunk_semantic_embedding`.
+- Giữ `chunk_semantic_embedding_bge_m3` là strategy BGE-M3 riêng, không đổi tên hay ghi đè baseline `chunk_semantic_embedding`.
 
 ### v7.1
 
@@ -411,11 +419,12 @@ Workflow:
 10. Tạo embeddings/fulltext metadata theo strategy-aware retrieval policy.
 11. Chạy retrieval smoke, sample QA review và ghi evidence artifacts cho từng `source_id + chunk_strategy_id`.
 
-Đường vận hành hiện tại để hoàn tất W3:
+Đường vận hành đã accepted để hoàn tất W3:
 
-- Kaggle chạy batch cho chunk/entity/relation/embedding và chỉ sinh artifact.
-- `write_graph_provenance.py --payload-output-dir ...` xuất payload importable trong cả `dry-run` lẫn production artifact mode.
-- Local/cloud import graph payload bằng `import_graph_payload.py` và import embeddings bằng `import_embedding_artifacts.py`.
+- `gemini_call` live DB branch là accepted full-corpus W3 baseline: Gemini API chạy entity/relation extraction, graph/provenance đã ghi Neo4j/Supabase thật.
+- Embedding/retrieval acceptance dùng BGE-M3 slot `bge_m3` (`Chunk.embedding_bge_m3`, `chunkVectorBgeM3`, `1024`) và không ghi đè Gemini baseline slot.
+- `write_graph_provenance.py --payload-output-dir ...`, `import_graph_payload.py` và `import_embedding_artifacts.py` vẫn là artifact/import contract để chứng minh importability không cần chạy lại LLM.
+- `local-kaggle`/Qwen chỉ là fallback/repro/comparison path khi cần tái lập hoặc so sánh với accepted branch.
 - Local runtime query embedding dùng `BAAI/bge-m3` trên CPU; laptop không cần GPU để phục vụ retrieval/chat runtime.
 
 ### 12.1 Chunking strategy policy
@@ -528,14 +537,14 @@ Embedding slot policy:
   - property: `Chunk.embedding`
   - vector index: `chunkVector`
   - dimension: `768`
-- Local-Kaggle BGE-M3 slot:
+- BGE-M3 slot:
   - property: `Chunk.embedding_bge_m3`
   - vector index: `chunkVectorBgeM3`
   - dimension: `1024`
 - Không trộn metadata, vector property hoặc index giữa hai slot.
-- `chunk_semantic_embedding_bge_m3` tiếp tục là strategy phụ riêng cho local-Kaggle path; không ghi đè `chunk_semantic_embedding`.
+- `chunk_semantic_embedding_bge_m3` là strategy BGE-M3 riêng đã accepted trong W3 baseline hiện tại; không ghi đè baseline `chunk_semantic_embedding`.
 
-Official import/retrieval flow sau Kaggle:
+Fallback/repro import/retrieval flow sau Kaggle:
 
 1. Chạy notebook Kaggle để sinh `chunks`, `entities`, `payloads`, `embeddings`, `reports`, `state`.
 2. Tải artifact về local.
@@ -653,10 +662,13 @@ Model routing default:
 
 Current W3 operational routing:
 
-- Full-corpus W3 ingest hiện hoàn tất theo local-Kaggle path:
+- Accepted full-corpus W3 ingest hiện là `gemini_call` live DB branch:
+  - entity/relation augmentation: Gemini API
+  - embedding/retrieval acceptance: `BAAI/bge-m3` qua slot `bge_m3`
+- `local-kaggle`/Qwen remains fallback/repro/comparison artifact path:
   - semantic chunking và dense embeddings: `BAAI/bge-m3`
   - entity/relation augmentation: `Qwen/Qwen2.5-7B-Instruct`
-- Gemini được giữ làm baseline/spec reference và production comparison path, không bị xóa khỏi kiến trúc.
+- `rule-only` remains no-LLM smoke/comparison path.
 
 Prompt generation phải:
 
@@ -713,7 +725,7 @@ MVP cần ít nhất 10 experiment đã chạy trước khi chốt production co
 
 | Rủi ro | Tác động | Mitigation |
 |-------|----------|------------|
-| Gemini quota bị vượt | Full-corpus ingest hoặc request runtime bị gián đoạn | Dùng local-Kaggle artifact path cho ingest batch lớn; giữ Gemini cho baseline/spec và các run nhỏ hơn |
+| Gemini quota bị vượt | Full-corpus rerun hoặc request runtime bị gián đoạn | Dùng local-Kaggle artifact path như fallback/repro/comparison cho rerun lớn; giữ `gemini_call` live DB acceptance làm baseline đã accepted |
 | Render cold start | Latency request đầu tăng mạnh | Loading state rõ, health ping nếu cần |
 | Neo4j schema quá phức tạp | Khó maintain/debug | Giữ schema tối giản |
 | OCR làm nhiễu dữ liệu | Retrieval quality giảm | Ưu tiên PDF text-based, sample review |
@@ -721,7 +733,7 @@ MVP cần ít nhất 10 experiment đã chạy trước khi chốt production co
 | Citation mapping không ổn định | Khó kiểm tra nguồn | Stable chunk hash + provenance |
 | Graph duplicate | Tốn capacity, retrieval nhiễu | Canonicalization + `MERGE` |
 | Trộn Gemini và BGE-M3 artifacts | Sai dimension/index, retrieval lỗi ngầm | Tách embedding slot/property/index/dim và giữ strategy phụ riêng cho BGE-M3 |
-| Ablation tốn quota | Chậm evaluation | Batch nhỏ, chia nhiều ngày hoặc chuyển sang local-Kaggle artifact path |
+| Ablation tốn quota | Chậm evaluation | Batch nhỏ, chia nhiều ngày hoặc chuyển sang local-Kaggle fallback/comparison artifact path |
 
 ***
 

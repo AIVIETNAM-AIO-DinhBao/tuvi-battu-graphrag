@@ -1,5 +1,7 @@
 ﻿# W3-INGEST-07 Kaggle Runbook
 
+> Current status: W3-INGEST-07 da duoc accepted tren `gemini_call` live DB branch. Runbook nay duoc giu cho `local-kaggle`/Qwen fallback, reproducibility va comparison artifact path; day khong phai accepted W3 branch tu 2026-07-07.
+
 Runbook nay chi mo ta cach chay W3-INGEST bang bo notebook Kaggle trong `notebooks/kaggle/`. Kaggle la noi sinh artifact offline; notebook khong ghi Neo4j hoac Supabase. Cac buoc local import sau Kaggle chi duoc giu ngan gon o cuoi tai lieu.
 
 Notebook da duoc cap nhat de ho tro hai kieu mount input pho bien:

@@ -633,11 +633,15 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
   - entity directories are empty placeholders.
 
 ### Decision Resolution
-- W3-INGEST operational path is now local-Kaggle artifact-first.
-- Gemini remains the baseline/spec reference and production comparison path.
+- Historical 2026-06-30 decision: W3-INGEST local-Kaggle artifact-first path was added to unblock full-corpus ingest when Gemini quota/runtime was unstable.
+- Superseded note: W3-INGEST-07 acceptance on 2026-07-07 made `gemini_call` live DB the accepted full-corpus W3 branch.
+- Local-Kaggle/Qwen remains the fallback/repro/comparison artifact path, not the accepted W3 branch.
+- `rule-only` remains the no-LLM smoke/comparison path.
 - BGE-M3/Qwen artifacts are kept separate from Gemini baseline via explicit strategy/slot/index metadata.
 
 ## W3 Local-Kaggle Backend Update - 2026-06-30
+
+Historical note: this section documents the local-Kaggle fallback/repro/comparison path. It was superseded for W3 acceptance by the 2026-07-07 `gemini_call` live DB branch acceptance recorded below.
 
 ### Implementation Status
 - Added a separate local/Kaggle ingestion path, leaving Gemini baseline behavior intact.
@@ -669,13 +673,14 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
 - Added backend runtime CPU query embedding service for `BAAI/bge-m3` via `DENSE_QUERY_EMBEDDING_*` settings.
 
 ### Operational Path
-- W3 is now documented and implemented as:
+- Historical 2026-06-30 local-Kaggle path was documented and implemented as:
   - Kaggle batch for chunk/entity/relation/embedding
   - download artifact
   - local import graph payload
   - local import BGE-M3 embeddings
   - local retrieval smoke
   - local runtime query embedding on CPU
+- Superseded note: W3-INGEST-07 acceptance on 2026-07-07 uses the `gemini_call` live DB branch as the accepted baseline; this local-Kaggle path remains fallback/repro/comparison.
 - `chunk_semantic_embedding_bge_m3` remains an auxiliary strategy and does not overwrite Gemini baseline naming or vectors.
 
 ### Verification
@@ -697,7 +702,7 @@ Implemented the strategy-aware embedding and retrieval smoke layer for chunks wr
 
 ### Status
 - Code path for local-Kaggle artifact import/retrieval is complete and regression-tested.
-- W3 is ready for manual acceptance on real Neo4j/Supabase by running Kaggle artifacts through the import scripts and `smoke_retrieval.py --embedding-slot bge_m3`.
+- Historical note: at this checkpoint, W3 was ready for manual acceptance through Kaggle artifacts. Current accepted W3 status is the `gemini_call` live DB branch recorded in the 2026-07-07 W3-INGEST-07 section.
 
 ---
 
