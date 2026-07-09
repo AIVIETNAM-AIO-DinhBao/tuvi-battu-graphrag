@@ -20,3 +20,8 @@ frontend/out/
 
 # TypeScript incremental build cache
 frontend/tsconfig.tsbuildinfo
+
+# Blob lớn
+benchmark/tuvi_golden_dataset/gemini_call/entities/
+benchmark/tuvi_golden_dataset/gemini_call/payloads/
+benchmark/tuvi_golden_dataset/gemini_call/embeddings/
