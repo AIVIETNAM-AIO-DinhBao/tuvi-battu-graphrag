@@ -57,6 +57,23 @@ CREATE TABLE source_chunks (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE experiment_runs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  experiment_id TEXT NOT NULL,
+  config_name TEXT NOT NULL,
+  config_hash TEXT NOT NULL,
+  config JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created', 'running', 'completed', 'failed')),
+  metrics JSONB NOT NULL DEFAULT '{}'::jsonb,
+  trace JSONB NOT NULL DEFAULT '{}'::jsonb,
+  notes TEXT,
+  error TEXT,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE FUNCTION update_updated_at() RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -79,6 +96,11 @@ BEFORE UPDATE ON chat_sessions
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
+CREATE TRIGGER experiment_runs_update_timestamp
+BEFORE UPDATE ON experiment_runs
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
 CREATE INDEX idx_la_so_user_id ON la_so(user_id);
 CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX idx_source_chunks_hash ON source_chunks(chunk_hash);
@@ -86,3 +108,6 @@ CREATE INDEX idx_source_chunks_domain ON source_chunks(domain);
 CREATE INDEX idx_source_chunks_source_id ON source_chunks(source_id);
 CREATE INDEX idx_source_chunks_chunk_id ON source_chunks(chunk_id);
 CREATE INDEX idx_source_chunks_strategy ON source_chunks(chunk_strategy_id);
+CREATE INDEX idx_experiment_runs_experiment_id ON experiment_runs(experiment_id);
+CREATE INDEX idx_experiment_runs_config_hash ON experiment_runs(config_hash);
+CREATE INDEX idx_experiment_runs_status ON experiment_runs(status);

@@ -1,0 +1,74 @@
+experiment_id: default_production_v1
+name: Default production candidate
+branch: gemini-call
+domain: TUVI
+source_ids:
+  - TVKL
+  - TVNL
+  - TVHS
+  - TVGM
+chunk_strategy_id: chunk_fixed_512
+accepted_chunk_strategy_ids:
+  - chunk_fixed_512
+  - chunk_structure_parent_child
+  - chunk_semantic_embedding_bge_m3
+embedding:
+  slot: bge_m3
+  model: BAAI/bge-m3
+  vector_index: chunkVectorBgeM3
+  dimension: 1024
+query_rewrite_enabled: true
+query_rewrite:
+  backend: gemini
+  model: gemini-3.1-flash-lite-preview
+  temperature: 0.0
+  max_output_tokens: 256
+  fallback_on_error: true
+entity_extraction_enabled: true
+runtime_entity_extraction:
+  backend: dictionary
+  model: dictionary-rule
+  entity_config_path: configs/entity_extraction.yaml
+  max_entities: 16
+  exclude_entity_types:
+    - LuanGiai
+graph_retrieval_enabled: true
+graph_retrieval:
+  top_k: 8
+  per_entity_limit: 5
+  allowed_relation_types:
+    - MENTIONS
+    - GIAI_THICH
+    - RELATED_TO
+    - THUOC_CUNG
+    - DOI_CHIEU
+    - LIEN_KE
+    - APPLIES_TO
+    - LUU_Y
+  timeout_seconds: 3.0
+  child_only: true
+dense_retrieval_enabled: true
+dense_retrieval:
+  top_k: 8
+  candidate_k: 500
+  vector_index: chunkVectorBgeM3
+  embedding_slot: bge_m3
+  timeout_seconds: 3.0
+  child_only: true
+sparse_retrieval_enabled: true
+sparse_retrieval:
+  top_k: 8
+  fulltext_index: chunkFulltext
+  sanitization_mode: or_terms
+  timeout_seconds: 3.0
+  child_only: true
+fusion_method: rrf
+reranker_config:
+  enabled: false
+  model: null
+  top_k: 10
+document_grading_enabled: false
+prompt_template_id: tuvi_generation_v1
+generation_model: gemini-3.1-flash-lite-preview
+context_assembly_strategy: balanced
+cache_disabled: true

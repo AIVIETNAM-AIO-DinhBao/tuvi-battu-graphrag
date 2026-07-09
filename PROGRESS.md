@@ -878,3 +878,176 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
   - Result: `158 passed`
 
 **Status**: COMPLETE - W3-INGEST-07 is accepted for the full corpus baseline on the `gemini_call` live DB branch, with importable graph payloads, portable BGE-M3 embedding artifacts, import dry-runs, live retrieval smoke, and acceptance audit passing.
+
+---
+
+## Week 4 Foundation Progress Update - 2026-07-09
+
+### Alignment Summary
+- Week 4 implementation is aligned with the current W3 accepted baseline:
+  - corpus branch: `gemini-call`
+  - sources: `TVKL`, `TVNL`, `TVHS`, `TVGM`
+  - chunk strategies: `chunk_fixed_512`, `chunk_structure_parent_child`, `chunk_semantic_embedding_bge_m3`
+  - runtime embedding slot: `bge_m3`
+  - vector property/index/dim: `Chunk.embedding_bge_m3`, `chunkVectorBgeM3`, `1024`
+- Scope intentionally stops at W4-RAG-03.
+- W4-RAG-04, W4-RAG-05, and W4-ABL-01 are not claimed here; fusion, rerank, document grading, context assembly, generation, citations, Langfuse production tracing, `/chat` replacement, and `AblationRunner` remain later tasks.
+
+### W4-EXP-01: Schema `experiment_runs` and `ExperimentConfig` - COMPLETE
+
+#### Implementation Summary
+- Added Supabase migration for `experiment_runs`:
+  - `infra/supabase/migrations/20260709_experiment_runs.sql`
+  - fields include `experiment_id`, `config_name`, `config_hash`, `config`, `status`, `metrics`, `trace`, `notes`, `error`, and timestamps.
+  - indexes include `experiment_id`, `config_hash`, and `status`.
+- Added the Week 4 experiment config layer:
+  - `backend/app/rag/config.py`
+  - `load_experiment_config(...)`
+  - `config_hash(...)`
+  - strict Pydantic models for embedding, rewrite, runtime entity extraction, graph retrieval, dense retrieval, sparse retrieval, reranker, and full `ExperimentConfig`.
+- Added production baseline config:
+  - `configs/default_production.yaml`
+  - defaults to `branch = gemini-call`
+  - defaults to `chunk_strategy_id = chunk_fixed_512`
+  - keeps accepted baseline strategies available for ablation.
+  - uses `bge_m3`, `BAAI/bge-m3`, `chunkVectorBgeM3`, `domain = TUVI`.
+- Added `DEFAULT_EXPERIMENT_CONFIG` setting and backend dependencies needed for the LangGraph/RAG foundation.
+
+#### Verification
+- Config loads successfully.
+- Config hash is stable.
+- Missing required fields fail validation.
+- Invalid branch, chunk strategy, embedding slot, relation type, top-k, candidate-k, vector index, and fulltext index fail clearly.
+
+**Status**: COMPLETE - W4-EXP-01 deliverable is implemented and verified.
+
+### W4-RAG-01: RAGState and LangGraph config-aware dry run - COMPLETE
+
+#### Implementation Summary
+- Added RAG foundation modules:
+  - `backend/app/rag/state.py`
+  - `backend/app/rag/graph.py`
+  - `backend/app/rag/nodes.py`
+- Implemented `RAGState` with query, chart, domain, config, candidate lists, output placeholders, and retrieval trace fields.
+- Implemented dry-run graph construction with LangGraph when available and a sequential compatibility graph fallback.
+- Implemented dry-run entrypoint:
+  - `run_rag_dry_run(initial_state, ..., chart_loader=None, config_path=None)`
+- Added nodes for:
+  - load chart context
+  - load config
+  - normalize query
+  - classify query complexity
+  - downstream placeholder pipeline shape
+- `chart_type` and `domain_filter` are forced to `TUVI`.
+- Existing `/chat` behavior is unchanged in this slice.
+
+#### Verification
+- Graph builds and is invokable.
+- Dry-run traverses the full node order and records `retrieval_trace.nodes`.
+- Tests use fake chart loading and do not require Supabase.
+
+**Status**: COMPLETE - W4-RAG-01 deliverable is implemented and verified.
+
+### W4-RAG-02: Query rewrite and entity extraction toggles - COMPLETE
+
+#### Implementation Summary
+- Added query rewrite support:
+  - `backend/app/rag/rewrite.py`
+  - `QueryRewriteConfig` in `ExperimentConfig`
+  - injectable `QueryRewriter` interface for tests.
+  - Gemini-backed default rewriter path for runtime use.
+  - passthrough/fallback behavior for dry-run and tests.
+- Added rewrite guardrails:
+  - keep query in `TUVI`
+  - preserve detected Tu Vi terms
+  - fallback on empty rewrite, out-of-domain rewrite, missing protected terms, or configured rewrite errors.
+- Added runtime entity extraction:
+  - `backend/app/rag/query_entities.py`
+  - dictionary/rule extraction from `configs/entity_extraction.yaml`
+  - `RuntimeEntityExtractionConfig` with backend/model/path/max entity/excluded type controls.
+- Added toggle-aware trace behavior:
+  - rewrite disabled -> normalized query is preserved and trace status is `skipped`
+  - entity extraction disabled -> empty entity outputs and trace status is `skipped`
+  - enabled paths record backend/model/count metadata.
+
+#### Verification
+- Same query runs with rewrite on/off and entity extraction on/off.
+- Out-of-domain rewrite falls back.
+- Rewrite that drops Tu Vi terms falls back.
+- Dictionary extraction finds canonical entities and records trace metadata.
+
+**Status**: COMPLETE - W4-RAG-02 deliverable is implemented and verified.
+
+### W4-RAG-03: Retrieval paths config-aware - COMPLETE
+
+#### Implementation Summary
+- Added unified retrieval service:
+  - `backend/app/rag/retrieval.py`
+- Added unified candidate normalization with:
+  - `retrieval_path`
+  - `rank`
+  - `score`
+  - `chunk_id`
+  - `chunk_hash`
+  - `chunk_type`
+  - `parent_id`
+  - `chunk_strategy_id`
+  - `domain`
+  - `source_id`
+  - `source_name`
+  - `source_page`
+  - `text`
+  - `text_preview`
+  - `title`
+  - `matched_entities`
+  - `relation_types`
+  - `provenance`
+- Implemented graph retrieval:
+  - uses runtime `query_entities`
+  - retrieves direct `MENTIONS` chunks
+  - retrieves related-entity chunks through allowed W3 relation edges
+  - filters by `domain`, `source_ids`, and `chunk_strategy_id`
+  - applies child-only policy for `chunk_structure_parent_child`
+- Implemented dense retrieval:
+  - embeds `rewritten_query` / normalized query through the runtime dense query embedding service.
+  - validates dimension `1024`
+  - queries Neo4j vector index `chunkVectorBgeM3`
+  - filters by `domain`, `source_ids`, and `chunk_strategy_id`
+  - preserves `parent_id` for later expansion.
+- Implemented sparse retrieval:
+  - uses Neo4j fulltext index `chunkFulltext`
+  - uses Lucene-safe query sanitization adapted from W3 smoke retrieval.
+  - filters by `domain`, `source_ids`, and `chunk_strategy_id`
+  - preserves `parent_id` for later expansion.
+- Replaced retrieval placeholders in the dry-run graph with real toggle-aware nodes:
+  - disabled path writes `[]` and trace status `skipped`
+  - enabled path writes normalized candidates and trace metadata
+  - retrieval failures are not silently swallowed.
+- Added dependency injection for tests:
+  - `run_rag_dry_run(..., neo4j_driver=None, dense_embedding_service=None)`
+
+#### Verification
+- Config validation covers retrieval path defaults and invalid retrieval settings.
+- Unit tests verify graph Cypher filters, dense vector index usage, BGE-M3 embedding dimension, sparse query sanitization, and common candidate shape.
+- Dry-run tests verify independent retrieval toggles and enabled candidate population with fake Neo4j/embedding dependencies.
+
+**Status**: COMPLETE - W4-RAG-03 deliverable is implemented and verified.
+
+### Verification Commands - 2026-07-09
+- Focused Week 4/RAG regression:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experiment_config.py backend\tests\test_rag_dry_run.py backend\tests\test_rag_query_processing.py backend\tests\test_rag_retrieval.py backend\tests\test_runtime_embedding_service.py -q -p no:cacheprovider`
+  - Result: `33 passed`
+- RAG module compile check:
+  - `python -m py_compile backend\app\rag\config.py backend\app\rag\graph.py backend\app\rag\nodes.py backend\app\rag\retrieval.py backend\app\rag\rewrite.py backend\app\rag\query_entities.py backend\app\rag\state.py`
+  - Result: passed
+
+### Current Week 4 Boundary
+- Completed deliverables:
+  - D-19: Migration `experiment_runs` and `ExperimentConfig` schema
+  - D-20: LangGraph/RAGState config-aware
+  - D-21: Query rewrite and entity extraction toggles
+  - D-22: Graph, dense, and sparse retrieval toggles
+- Not yet completed:
+  - D-23: Fusion dispatcher, reranker, and document grading toggle
+  - D-24: Context assembly, generation, and citation mapping
+  - D-25: `AblationRunner` skeleton

@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     DENSE_QUERY_EMBEDDING_IMPLEMENTATION: str = "auto"
     DENSE_QUERY_EMBEDDING_NORMALIZE: bool = True
 
+    DEFAULT_EXPERIMENT_CONFIG: str = "configs/default_production.yaml"
+
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     model_config = SettingsConfigDict(
