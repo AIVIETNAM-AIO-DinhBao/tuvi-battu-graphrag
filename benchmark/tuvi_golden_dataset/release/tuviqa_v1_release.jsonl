@@ -639,8 +639,6 @@
   "gold_answer": "Cung Mệnh của lá số này nằm tại vị trí Ngọ. Tại cung Mệnh, chính tinh tọa thủ là sao Thái Dương ở trạng thái Miếu địa. Đây là vị trí đắc địa, mang lại nhiều năng lượng tích cực cho bản mệnh Thành Đầu Thổ, thể hiện sự quang minh, chính trực và khả năng lãnh đạo của đương số.",
   "expected_answer_summary": "Cung Mệnh của lá số này nằm tại vị trí Ngọ.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -1342,8 +1340,6 @@
       "relevance_note": "Giải thích ảnh hưởng của trạng thái sao thủ Mệnh đối với cuộc đời đương số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -2054,8 +2050,6 @@
       "relevance_note": "Dẫn chứng về việc cung Thiên Di yêu cầu phải xa nơi sinh quán (xa quê hương) để phát triển."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -2748,8 +2742,6 @@
       "relevance_note": "Khẳng định tầm quan trọng của việc xem xét cục (tam hợp cục) và Mệnh để hiểu bản lĩnh và số mệnh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -3442,8 +3434,6 @@
       "relevance_note": "Sách chỉ ra việc Thiên Di có sao (trong ngữ cảnh hạn hoặc cung chiếu) yêu cầu đương số phải đi xa, điều này phù hợp với trạng thái Cung Thiên Di có Triệt và sao Thiên Lương."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -4172,8 +4162,6 @@
       "relevance_note": "Cung Quan Lộc có Cự Môn hãm địa, ảnh hưởng đến xu hướng công việc, cho thấy sự hỗ trợ từ chuyên môn."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -4884,8 +4872,6 @@
       "relevance_note": "Khẳng định mối quan hệ giữa Mệnh và Thiên Di là cuộc đấu tranh, phản ánh sự trở ngại từ cung Thiên Di khi ra ngoài làm ăn."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -5623,8 +5609,6 @@
       "relevance_note": "Giải thích vai trò của Mệnh trong việc điều khiển các mối quan hệ (Bào và Nô), yếu tố then chốt cho sự thành bại trong công việc và tài lộc."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -6344,8 +6328,6 @@
       "relevance_note": "Khẳng định cung Thiên Di là nơi tranh đấu, đòi hỏi sự chủ động của đương số thay vì chỉ dựa dẫm vào quý nhân."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "mobility_career",
     "question_family": "topic_house_plus_relations"
@@ -7065,8 +7047,6 @@
       "relevance_note": "Khẳng định công danh/môi trường bên ngoài (Di) là cuộc vật lộn đòi hỏi bản lĩnh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "mobility_career",
     "question_family": "synthesis_judgement"
@@ -7730,8 +7710,6 @@
   "gold_answer": "Cung Mệnh của lá số này nằm tại vị trí Dần. Dựa trên thông tin lá số đã cung cấp, tại cung Mệnh không có chính tinh tọa thủ (cung Mệnh vô chính diệu). Do không có các trích dẫn từ sách Tử Vi đi kèm để bổ sung chi tiết về các phụ tinh hay các sao khác hội chiếu, thông tin về các sao tại cung Mệnh hiện chỉ dừng lại ở việc xác định đây là cung vô chính diệu tại vị trí Dần.",
   "expected_answer_summary": "Cung Mệnh của lá số này nằm tại vị trí Dần.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -8459,8 +8437,6 @@
       "relevance_note": "Cung Mệnh giúp nhìn nhận bản lĩnh, thân thế và nhân sinh của người sở hữu lá số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -9206,8 +9182,6 @@
       "relevance_note": "Cung Phúc Đức chỉ huy các cung khác bao gồm Quan Lộc, ảnh hưởng đến định hướng sự nghiệp."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -9908,8 +9882,6 @@
       "relevance_note": "Khẳng định tầm quan trọng của Mệnh và Thân trong lá số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -10610,8 +10582,6 @@
       "relevance_note": "Span này giải thích tác động của Tuần Triệt trong lá số, khẳng định chúng thường không làm giảm uy thế của các sao tốt."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -11357,8 +11327,6 @@
       "relevance_note": "Phủ định quan điểm cung không có chính tinh là cung nhược, khẳng định mỗi cung đều có ảnh hưởng đến cuộc đời."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -12095,8 +12063,6 @@
       "relevance_note": "Span này liên hệ việc đương số (cung Mệnh) nếu gặp hạn Sát Phá Tham thì thiên di là việc phải xa nơi sinh quán, ám chỉ sự khó khăn khi đi xa."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -12833,8 +12799,6 @@
       "relevance_note": "Khẳng định tầm quan trọng của thiên thời (đại vận)."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -13580,8 +13544,6 @@
       "relevance_note": "Giải thích các yếu tố xung khắc, ảnh hưởng tiêu cực đến hôn nhân khi có các sát tinh hoặc cách cục xấu liên quan đến cung Phu Thê."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "marriage_relationship",
     "question_family": "topic_house_plus_relations"
@@ -14327,8 +14289,6 @@
       "relevance_note": "Cung Thê không nên có bộ sao mang tính sát phạt để tránh trắc trở."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "marriage_relationship",
     "question_family": "synthesis_judgement"
@@ -14987,8 +14947,6 @@
   "gold_answer": "Dựa trên thông tin lá số được cung cấp, cung Mệnh của bạn có hai sao chính tinh tọa thủ là Vũ Khúc và Thiên Phủ. Trong đó, sao Vũ Khúc ở trạng thái Vượng địa. Sự kết hợp giữa Vũ Khúc, một sao chủ về tài chính, sự quyết đoán và Thiên Phủ, một sao chủ về kho tàng, sự ổn định và quản lý, tạo nên một cách cục rất tốt cho người mệnh này. Cách cục Vũ Phủ đồng cung thường được coi là biểu tượng của sự giàu sang, phú quý và khả năng quản lý tài sản xuất sắc. Với vị trí tại cung Tý, sự hội tụ của hai chính tinh này mang lại tiềm năng lớn về mặt tài lộc và sự nghiệp vững chắc cho bản mệnh.",
   "expected_answer_summary": "Dựa trên thông tin lá số được cung cấp, cung Mệnh của bạn có hai sao chính tinh tọa thủ là Vũ Khúc và Thiên Phủ.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -15720,8 +15678,6 @@
       "relevance_note": "Cung Phúc Đức đóng vai trò chỉ huy và chi phối các cung khác, bao gồm cả Mệnh, tạo nên bản sắc riêng cho lá số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -16444,8 +16400,6 @@
       "relevance_note": "Khẳng định cung Tài Bạch là một trong những cung cường, củng cố tầm quan trọng của việc Thân cư Tài Bạch."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -17141,8 +17095,6 @@
       "relevance_note": "Span này giải thích về việc an Mệnh, Thân theo năm tháng giờ sinh, từ đó xác định các tương quan bản mệnh và cục, là nền tảng để xem mối quan hệ sinh khắc."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -17838,8 +17790,6 @@
       "relevance_note": "Đoạn này giải thích rằng Tuần Triệt (ở đây là cung có cách cục phúc đức) không làm mất đi uy lực của các phúc tinh, cho thấy phúc đức tổ tiên vẫn được bảo toàn."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -18580,8 +18530,6 @@
       "relevance_note": "Khẳng định tầm quan trọng của việc cung đó có đẹp hay không."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -19313,8 +19261,6 @@
       "relevance_note": "Đề cập đến việc Thiên Di chủ về phải đi xa nơi sinh quán, đây là yếu tố quan trọng để quyết định việc đi làm ăn xa."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -20064,8 +20010,6 @@
       "relevance_note": "Khuyên Mệnh cần đắc địa để điều khiển tình thế."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -20815,8 +20759,6 @@
       "relevance_note": "Nhấn mạnh vai trò của sao thủ mệnh (Vũ Khúc, Thiên Phủ) đắc địa sẽ giúp đương số kiểm soát cuộc sống và các mối quan hệ tốt hơn."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_foundation",
     "question_family": "topic_house_plus_relations"
@@ -21557,8 +21499,6 @@
       "relevance_note": "Giải thích trạng thái sao tại Mệnh ảnh hưởng đến khả năng vượt qua biến động."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_foundation",
     "question_family": "synthesis_judgement"
@@ -22219,8 +22159,6 @@
   "gold_answer": "Dựa trên thông tin lá số đã cung cấp, cung Thân của đương số được an tại vị trí cung Phu thê, tương ứng với địa chi Tuất. Trong hệ thống Tử Vi, việc an cung Thân tại cung Phu thê cho thấy đương số là người chịu ảnh hưởng lớn từ các mối quan hệ tình cảm, hôn nhân hoặc người phối ngẫu trong cuộc đời. Vị trí này đóng vai trò quan trọng trong việc định hướng hành động và các quyết định mang tính hệ quả sau tuổi 30, phản ánh sự gắn kết chặt chẽ giữa vận mệnh cá nhân với đời sống gia đạo và các mối quan hệ gắn bó lâu dài. Đây là điểm mấu chốt để xem xét các vấn đề về hạnh phúc và sự tác động của người bạn đời đối với sự nghiệp cũng như cuộc sống của đương số.",
   "expected_answer_summary": "Dựa trên thông tin lá số đã cung cấp, cung Thân của đương số được an tại vị trí cung Phu thê, tương ứng với địa chi Tuất.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -22954,8 +22892,6 @@
       "relevance_note": "Xác định bản chất quan hệ ngoại giao là cuộc vật lộn tranh đấu, đòi hỏi sự chuẩn bị kỹ lưỡng từ cung Mệnh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -23689,8 +23625,6 @@
       "relevance_note": "Giải thích vị trí Thân (Thân cư Phu Thê) liên quan mật thiết đến các liên hệ gia đình và xã hội."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -24406,8 +24340,6 @@
       "relevance_note": "Đoạn này giải thích về quan hệ cường/nhược của các cung và khẳng định giá trị của việc đạt được một cung tốt, bao gồm cả Mệnh và các cung khác."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -25132,8 +25064,6 @@
       "relevance_note": "Span này giải thích rằng ảnh hưởng của Tuần/Triệt không làm giảm bớt tính tốt đẹp của các sao cứu giải như Quan Phúc và Tứ Đức."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -25903,8 +25833,6 @@
       "relevance_note": "Chỉ ra vai trò của tam hợp Thái Tuế trong việc tạo dựng nền tảng sự nghiệp."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -26658,8 +26586,6 @@
       "relevance_note": "Giải thích tác động của Tuần/Triệt tại Mệnh có khả năng \"ngộ chế\" các sao xấu (như Phá Toái), giúp đương số tiết chế và thành công hơn là gặp trở ngại."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -27415,8 +27341,6 @@
       "relevance_note": "Nhấn mạnh rằng khả năng điều khiển các mối quan hệ (Bào/Nô) phụ thuộc vào sự đắc/hãm của cung Mệnh, liên quan trực tiếp đến các rủi ro trong đại vận."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -28177,8 +28101,6 @@
       "relevance_note": "Nhấn mạnh vai trò của sao thủ Mệnh trong việc kiểm soát các mối quan hệ và sự ổn định của cuộc đời."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_finance",
     "question_family": "topic_house_plus_relations"
@@ -28948,8 +28870,6 @@
       "relevance_note": "Khẳng định tầm quan trọng của việc sao thủ Mệnh đắc hay hãm địa đối với vận mệnh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_finance",
     "question_family": "synthesis_judgement"
@@ -29612,8 +29532,6 @@
   "gold_answer": "Dựa trên thông tin lá số đã cung cấp, vị trí Thân của lá số này được xác định cư tại cung Phu thê, tương ứng với vị trí cung Tý. Trong Tử Vi Đẩu Số, việc Thân cư Phu thê cho thấy đương số là người chịu ảnh hưởng lớn từ người phối ngẫu hoặc các mối quan hệ tình cảm trong cuộc đời. Tại vị trí này, cung Thân có chính tinh Tham Lang tọa thủ ở trạng thái hãm địa. Việc xác định chính xác vị trí Thân giúp làm rõ xu hướng vận mệnh và những ưu tiên trong cuộc sống của đương số, khi mà các quyết định và sự phát triển cá nhân thường gắn liền với các mối quan hệ hôn nhân hoặc đối tác.",
   "expected_answer_summary": "Dựa trên thông tin lá số đã cung cấp, vị trí Thân của lá số này được xác định cư tại cung Phu thê, tương ứng với vị trí cung Tý.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -30367,8 +30285,6 @@
       "relevance_note": "Tựa đề chương sách khẳng định yếu tố dẫn đến sự giàu có và địa vị trong Tử Vi có liên quan mật thiết đến các mối quan hệ (bạn bè và hôn nhân)."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -31095,8 +31011,6 @@
       "relevance_note": "Span này giải thích ý nghĩa của việc an Mệnh và Thân trong lá số, khẳng định chúng là cơ sở để tính toán các mối liên hệ của cá nhân với gia đình và xã hội."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -31832,8 +31746,6 @@
       "relevance_note": "Giải thích rằng cung Phúc Đức có vai trò quyết định và điều hướng sự phát triển của các cung khác, bao gồm cả Mệnh và Cục."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -32569,8 +32481,6 @@
       "relevance_note": "Nhấn mạnh rằng dù Thiên Di là cung nhược, nhưng sự xuất hiện của các sao tốt như Tràng Sinh vẫn mang lại ảnh hưởng tích cực."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -33333,8 +33243,6 @@
       "relevance_note": "Nhấn mạnh bản chất sao tại Mệnh quyết định việc điều phối các mối quan hệ (Bào, Nô) và sự thuận lợi trong sự nghiệp."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -34097,8 +34005,6 @@
       "relevance_note": "Nhấn mạnh vai trò của ngoại giao (Nô bộc) trong việc cân bằng các mối quan hệ xã hội."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -34861,8 +34767,6 @@
       "relevance_note": "Nhấn mạnh vai trò chủ đạo của đại vận so với tiểu hạn trong việc quyết định vận trình."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -35607,8 +35511,6 @@
       "relevance_note": "Cung Phu Thê có sự xuất hiện của các sao phức tạp dẫn đến điềm báo về hôn nhân."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "marriage_interaction",
     "question_family": "topic_house_plus_relations"
@@ -36371,8 +36273,6 @@
       "relevance_note": "Dẫn chứng về yếu tố gây mâu thuẫn hoặc lận đận trong hôn nhân khi cung Phu Thê có các sao sát, phá, tham, cự."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "marriage_interaction",
     "question_family": "synthesis_judgement"
@@ -37036,8 +36936,6 @@
   "gold_answer": "Dựa trên thông tin lá số, Bản Mệnh của đương số là Giản Hạ Thủy và Cục là Thổ ngũ cục. Theo quy luật ngũ hành tương khắc, Thổ khắc Thủy. Do đó, Mệnh và Cục ở lá số này có sự tương khắc với nhau. Trong lý thuyết Tử Vi, khi Mệnh khắc Cục hoặc Cục khắc Mệnh đều được coi là nghịch lý, gây ra những trở ngại nhất định trong cuộc đời. Cụ thể, việc Thổ khắc Thủy cho thấy đương số thường gặp nhiều thử thách, khó khăn trong quá trình phát triển sự nghiệp và cuộc sống, đòi hỏi sự nỗ lực và kiên trì lớn hơn người bình thường để đạt được thành công. Sự tương khắc này phản ánh môi trường sống hoặc hoàn cảnh xung quanh không hoàn toàn thuận lợi cho bản mệnh phát huy tiềm năng, khiến đương số phải trải qua nhiều biến động trước khi đạt được sự ổn định.",
   "expected_answer_summary": "Dựa trên thông tin lá số, Bản Mệnh của đương số là Giản Hạ Thủy và Cục là Thổ ngũ cục.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -37765,8 +37663,6 @@
       "relevance_note": "Giải thích cách nhìn nhận về các cung cường nhược và tầm quan trọng của Mệnh đối với cuộc đời cá nhân."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -38503,8 +38399,6 @@
       "relevance_note": "Giải thích tính chất của các cung cường/nhược và giá trị của việc có cung đẹp (như Tài Bạch) đối với hạnh phúc của đương số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -39214,8 +39108,6 @@
       "relevance_note": "Sách khẳng định việc đánh giá thế khó khăn hay thuận lợi không chỉ dựa vào ngũ hành Mệnh - Cục mà phải cân nhắc tổng thể ba phương diện Thiên thời, Nhân hòa, Địa lợi."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -39943,8 +39835,6 @@
       "relevance_note": "Vai trò của cung Mệnh trong việc điều khiển và ảnh hưởng đến mối quan hệ với anh chị em (Bào)."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -40699,8 +40589,6 @@
       "relevance_note": "Nhấn mạnh vai trò của Mệnh (ngay cả khi vô chính diệu thì vẫn chịu ảnh hưởng từ các cung tam hợp) trong việc điều khiển và tận dụng nguồn lực từ các cung khác."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -41455,8 +41343,6 @@
       "relevance_note": "Nhấn mạnh vai trò chủ đạo của cung Mệnh trong việc điều khiển các mối quan hệ xã hội."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -42211,8 +42097,6 @@
       "relevance_note": "Hướng dẫn phương pháp đánh giá giai đoạn cuộc đời thông qua 3 yếu tố."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -42958,8 +42842,6 @@
       "relevance_note": "Giải thích về vai trò của cung Điền (trong nhóm cung nhược) và cách xem cung tốt để mang lại hạnh phúc."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "property_life_pattern",
     "question_family": "topic_house_plus_relations"
@@ -43723,8 +43605,6 @@
       "relevance_note": "Cung Điền Trạch đòi hỏi sự cân nhắc kỹ lưỡng về sự tương khắc và vị trí của các bộ sao, hàm ý sự ổn định phụ thuộc vào các yếu tố này."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "property_life_pattern",
     "question_family": "synthesis_judgement"
@@ -44458,8 +44338,6 @@
       "relevance_note": "Phân tích tác động của sao Địa Không hãm địa tại cung Mệnh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -45184,8 +45062,6 @@
       "relevance_note": "Khẳng định lối sống của người có Thiên Tướng ở Mệnh thường hướng theo chính đạo."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -45919,8 +45795,6 @@
       "relevance_note": "Khẳng định Phúc Đức là cung quan trọng chỉ huy các cung còn lại, bao gồm cả Quan Lộc."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -46636,8 +46510,6 @@
       "relevance_note": "Đề cập đến nguyên lý tương sinh giữa Cục và Mệnh là yếu tố then chốt."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -47371,8 +47243,6 @@
       "relevance_note": "Giải thích vai trò của Tuần và Triệt trong việc tháo gỡ, cởi mở các chướng ngại vật trong các giai đoạn vận hạn."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -48133,8 +48003,6 @@
       "relevance_note": "Giải thích vai trò của Mệnh trong việc điều khiển các cung liên quan đến công việc và đối nhân xử thế (Bào, Nô), trực tiếp trả lời khả năng làm việc và tương tác xã hội của chủ mệnh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -48859,8 +48727,6 @@
       "relevance_note": "Sách nhắc đến việc đi xa nơi sinh quán liên quan đến cung Thiên Di, phù hợp để trả lời câu hỏi về việc đi xa hay ở gần."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -49558,8 +49424,6 @@
       "relevance_note": "Sách giải thích Tử Tức và Điền Trạch thuộc nhóm cung có tính chất khác với Bào Nô, liên quan đến các mối quan hệ gia đình và sản nghiệp."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -50284,8 +50148,6 @@
       "relevance_note": "Giải thích rằng chất lượng của cung Tử Tức (nếu tốt) sẽ mang lại hạnh phúc tương ứng cho đương số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "children_family",
     "question_family": "topic_house_plus_relations"
@@ -51028,8 +50890,6 @@
       "relevance_note": "Hướng dẫn cách nhận định cung Tử Tức dựa trên mối quan hệ với cung Điền Trạch."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "children_family",
     "question_family": "synthesis_judgement"
@@ -51692,8 +51552,6 @@
   "gold_answer": "Cung Mệnh của lá số này được đặt tại vị trí Mão. Tại cung Mệnh, có sự xuất hiện của hai chính tinh là Thái Dương và Thiên Lương, cả hai đều ở trạng thái Vượng địa. Sự kết hợp giữa Thái Dương và Thiên Lương tại Mão tạo nên cách cục tốt đẹp, chủ về sự thông tuệ, chính trực và có khả năng lãnh đạo. Vì không có các trích dẫn đi kèm, thông tin này được xác định hoàn toàn dựa trên dữ liệu lá số đã cung cấp.",
   "expected_answer_summary": "Cung Mệnh của lá số này được đặt tại vị trí Mão.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -52402,8 +52260,6 @@
       "relevance_note": "Mô tả đặc tính của sao Thái Dương (một trong hai sao của Mệnh đương số)."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -53130,8 +52986,6 @@
       "relevance_note": "Giải thích rằng ý nghĩa của cung Thân cư Tài Bạch nằm ở chỗ cung Tài Bạch đẹp hay xấu sẽ mang lại hạnh phúc hoặc bất ổn cho đương số trên phương diện tiền bạc."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -53822,8 +53676,6 @@
       "relevance_note": "Span này giải thích nguyên tắc tương quan giữa Mệnh và Cục trong Tử Vi, là cơ sở để trả lời câu hỏi về việc Mệnh và Cục có tương sinh, hỗ trợ nhau không."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -54523,8 +54375,6 @@
       "relevance_note": "Giải thích vai trò của Thiên Không trong việc tạo ra các tình huống khó khăn, tai ương, giúp trả lời về tính chất ảnh hưởng của sao này khi xuất hiện."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -55287,8 +55137,6 @@
       "relevance_note": "Giải thích ảnh hưởng của tính cách (thể hiện qua sự quản lý các mối quan hệ Bào, Nô) đến sự thành bại trong công việc và xã hội."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -56051,8 +55899,6 @@
       "relevance_note": "Khẳng định Mệnh và Thân đóng vai trò then chốt trong việc đối đáp với xã hội, liên quan đến tính cách và khả năng ứng xử khi ra ngoài."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -56788,8 +56634,6 @@
       "relevance_note": "Nhấn mạnh vai trò của cung Quan (bạn) và sự phối hợp giữa các cung trong sự nghiệp."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -57516,8 +57360,6 @@
       "relevance_note": "Sách chỉ ra vai trò điều khiển của Mệnh đối với các cung khác, bao gồm cả Tử Tức (gián tiếp qua hệ thống cung cường/nhược), giải thích nguyên nhân gây ra các vấn đề bất lợi."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "children_risk_pattern",
     "question_family": "topic_house_plus_relations"
@@ -58253,8 +58095,6 @@
       "relevance_note": "Cung Tử Tức có sao Thiên Không, span này giải thích ý nghĩa của sao này tại cung Tử Tức."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "children_risk_pattern",
     "question_family": "synthesis_judgement"
@@ -58915,8 +58755,6 @@
   "gold_answer": "Cung Mệnh của bạn tọa lạc tại Thìn, sở hữu hai chính tinh quan trọng là Thiên Cơ và Thiên Lương. Cả hai sao này đều ở trạng thái Miếu địa, tạo nên một cách cục tốt đẹp. Thiên Cơ chủ về trí tuệ, sự linh hoạt và mưu lược, trong khi Thiên Lương chủ về sự che chở, thiện tâm và tính cách điềm đạm. Sự kết hợp của bộ đôi Thiên Cơ - Thiên Lương tại vị trí Miếu địa thường biểu thị cho một người có tư duy sắc bén, có khả năng hoạch định chiến lược, đồng thời có tấm lòng nhân hậu, hay giúp đỡ người khác và có xu hướng quan tâm đến các giá trị tinh thần hoặc triết lý nhân sinh. Đây là những sao nổi bật nhất định hình nên tính cách và xu hướng phát triển chính trong cuộc đời bạn.",
   "expected_answer_summary": "Cung Mệnh của bạn tọa lạc tại Thìn, sở hữu hai chính tinh quan trọng là Thiên Cơ và Thiên Lương.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -59650,8 +59488,6 @@
       "relevance_note": "Xác định nhóm tính cách Mệnh Cơ Nguyệt Đồng Lương của đương số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -60376,8 +60212,6 @@
       "relevance_note": "Giải thích vị trí Thân (Thân cư Phúc Đức) có tác động đến việc thiết lập định hướng hành động và liên hệ của cuộc đời."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -61075,8 +60909,6 @@
       "relevance_note": "Khẳng định Mệnh luôn làm chủ tình thế, giảm nhẹ quan điểm cho rằng mối quan hệ Mệnh-Cục luôn gây cản trở."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -61800,8 +61632,6 @@
       "relevance_note": "Span này giải thích tác động của Triệt (và Tuần) khi án ngữ cung Mệnh/Thân hoặc khi đại vận gặp phải, gây khó khăn, trắc trở nhưng cũng là cơ hội để cởi mở, tháo gỡ chướng ngại vật nếu biết cách vận dụng."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -62553,8 +62383,6 @@
       "relevance_note": "Mô tả tính cách và khả năng điều khiển các mối quan hệ (Bào, Nô) của nhóm Cơ Nguyệt Đồng Lương khi ở vị trí đắc địa."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -63297,8 +63125,6 @@
       "relevance_note": "Xác định sự thuận lợi hay trở ngại dựa trên vị thế đắc/hãm của sao tại Mệnh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -64023,8 +63849,6 @@
       "relevance_note": "Giải thích vai trò của đại vận đối với sự nghiệp và tài lộc (thiên thời)."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -64731,8 +64555,6 @@
       "relevance_note": "Xác định cung Tài Bạch là cung cường, có ảnh hưởng quan trọng đến cuộc sống."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "finance_career",
     "question_family": "topic_house_plus_relations"
@@ -65494,8 +65316,6 @@
       "relevance_note": "Câu tục ngữ nhấn mạnh vai trò của bạn bè (Quan Lộc) đối với sự giàu có, ám chỉ làm kinh doanh có thể tốt."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "finance_career",
     "question_family": "synthesis_judgement"
@@ -66146,8 +65966,6 @@
   "gold_answer": "Với lá số có Mệnh tại Dần, cung Phu Thê sẽ nằm tại cung Tý. Tại vị trí này, cung Phu Thê có sự xuất hiện của Thiên Đồng và Thiên Lương. Đây là bộ sao chủ về sự hòa hợp, nhân hậu và có xu hướng tìm kiếm người bạn đời có tính cách bao dung, hiền lành. Tuy nhiên, do Mệnh là Nghịch Lý Nữ và bản mệnh Đại Lâm Mộc, người này cần chú ý đến sự thấu hiểu trong hôn nhân. Vì không có trích dẫn cụ thể về các sao phụ tinh đi kèm, việc đánh giá chi tiết về độ bền vững hay các biến cố trong đời sống vợ chồng chưa thể xác định rõ ràng. Nhìn chung, cung Phu Thê có Thiên Đồng, Thiên Lương thường mang lại cảm giác an yên, ổn định, nhưng cần tránh sự thiếu quyết đoán trong các quyết định quan trọng liên quan đến gia đình để duy trì hạnh phúc bền lâu.",
   "expected_answer_summary": "Với lá số có Mệnh tại Dần, cung Phu Thê sẽ nằm tại cung Tý.",
   "gold_context_spans": [],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "identity",
     "question_family": "core_identity"
@@ -66880,8 +66698,6 @@
       "relevance_note": "Trạng thái đắc hãm của các sao tại cung Mệnh quyết định khả năng kiểm soát và chất lượng cuộc sống của đương số."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self",
     "question_family": "menh_house_interpretation"
@@ -67596,8 +67412,6 @@
       "relevance_note": "Nhấn mạnh vai trò chủ đạo của Mệnh trong việc kiểm soát các cung khác, đặc biệt khi Thân cư Mệnh thì ảnh hưởng này càng tập trung."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_path",
     "question_family": "than_cu_interpretation"
@@ -68285,8 +68099,6 @@
       "relevance_note": "Giải thích vai trò của Mệnh và cục trong việc định hình bản lãnh và nhân sinh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "elemental_structure",
     "question_family": "menh_cuc_relation"
@@ -69001,8 +68813,6 @@
       "relevance_note": "Span này giải thích về các yếu tố ảnh hưởng không tốt đến tình duyên/hôn nhân khi có sự xuất hiện của các sao xấu."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "state_flag",
     "question_family": "special_state_interpretation"
@@ -69735,8 +69545,6 @@
       "relevance_note": "Giải thích về tính cách trong các mối quan hệ xã hội của người có cách cục này, dễ gặp sự thay đổi lòng dạ của người khác."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_network",
     "question_family": "menh_tam_hop"
@@ -70469,8 +70277,6 @@
       "relevance_note": "Phân tích tác động của cung Thiên Di đối với Mệnh khi đi xa và mối quan hệ thúc đẩy sự nghiệp phát triển."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "self_opposition",
     "question_family": "menh_xung_chieu"
@@ -71167,8 +70973,6 @@
       "relevance_note": "Giải thích tác động của sao Triệt Không tại cung Phu Thê, khớp với lá số đương sự."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "life_period",
     "question_family": "dai_van_interpretation"
@@ -71892,8 +71696,6 @@
       "relevance_note": "So sánh vị trí đắc cách của các sao chủ về Phu Thê với trường hợp Thái Dương hãm địa của đương số để kết luận về độ tốt/xấu."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "marriage_public_life",
     "question_family": "topic_house_plus_relations"
@@ -72626,8 +72428,6 @@
       "relevance_note": "Giải thích tác động của Tuần/Triệt đối với các sao cát tinh."
     }
   ],
-  "gold_chunk_ids": [],
-  "required_entities": [],
   "labels": {
     "topic": "marriage_public_life",
     "question_family": "synthesis_judgement"
