@@ -1,0 +1,976 @@
+{
+  "slot_id": "TVQA-031",
+  "chart_id": "CHART-004",
+  "question_complexity": "Direct",
+  "gold_context_spans": [],
+  "generated_answer": "Dựa trên ngữ nghĩa lá số, cung Thân trong lá số này nằm tại cung Phu thê (cung Tuất).",
+  "word_count": 37
+}
+
+{
+  "slot_id": "TVQA-032",
+  "chart_id": "CHART-004",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SECNone",
+      "span_id": "TVKL_CHBAT_0_SECNone_SP01",
+      "page_pdf": 58,
+      "page_book": 58,
+      "quote": "1. Hữu Bật Thiên tướng phúc lai lâm:  Mệnh có Thiên Tướng đồng cung với Tả Phù, Hữu Bật là có số được hưởng phú quý giàu sang.",
+      "relevance_note": "Trả lời về xu hướng tính cách và phúc lộc của cung Mệnh có Thiên Tướng."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC2",
+      "span_id": "TVKL_CHBAT_0_SEC2_SP01",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "2. Thiên tướng Thìn Tuất khởi thị công danh Cung mệnh ở Thìn Tuất có Tử vi Thiên tướng là người có công danh.",
+      "relevance_note": "Xác định xu hướng về công danh cho người có cung Mệnh liên quan đến Thiên Tướng."
+    }
+  ],
+  "generated_answer": "Với cung Mệnh có Thiên Tướng, bạn là người có xu hướng tính cách phúc hậu, được hưởng phú quý và giàu sang. Nếu Thiên Tướng hội cùng Tả Phù, Hữu Bật, bạn càng có vận số tốt đẹp, hưởng nhiều phúc lộc. Trong sự nghiệp, bạn có xu hướng công danh hiển đạt, dễ dàng đạt được vị trí cao và danh tiếng. Tuy nhiên, tính cách và vận mệnh cụ thể còn phụ thuộc vào các sao hội chiếu khác trên lá số của bạn.",
+  "word_count": 83
+}
+
+{
+  "slot_id": "TVQA-033",
+  "chart_id": "CHART-004",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P007_008_SEC19",
+      "span_id": "TVKL_P007_008_SP01",
+      "page_pdf": 7,
+      "page_book": 7,
+      "quote": "Thân là Ta, là hành động của ta trước cái số phận trời đã an bài.",
+      "relevance_note": "Giải thích vai trò của Thân cư trong lá số, khẳng định đó là cách ứng xử của đương số trước vận mệnh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P007_008_SEC19",
+      "span_id": "TVKL_P007_008_SP02",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Ở con người, cái Mệnh phải luôn luôn đi đôi với cái Thân. Mệnh suy Thân vượng hay Mệnh vượng Thân suy đều không tốt, phải có Thân Mệnh đều tốt thì mới đẹp cả về tinh thần và vật chất được.",
+      "relevance_note": "Làm rõ mối quan hệ mật thiết giữa Mệnh và Thân, cho thấy việc Thân cư Phu Thê sẽ tạo ra ảnh hưởng lớn đến cuộc sống và thành tựu."
+    }
+  ],
+  "generated_answer": "Thân cư tại cung Phu Thê nghĩa là sau 30 tuổi, cách ứng xử và hành động của bạn sẽ chịu ảnh hưởng mạnh mẽ từ hôn nhân và tình cảm. Thân là \"Ta\", là phản ứng của bản thân trước số phận, nên khi đóng ở cung này, đời sống hôn nhân trở thành trọng tâm định hướng cuộc đời. Bạn cần sự hài hòa giữa Mệnh và Thân, vì thành tựu vật chất và tinh thần phụ thuộc vào sự tương hỗ giữa bản thể và cách bạn vun đắp mối quan hệ lứa đôi.",
+  "word_count": 89
+}
+
+{
+  "slot_id": "TVQA-034",
+  "chart_id": "CHART-004",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH01_SECB",
+      "span_id": "TVKL_CH01_SECB_SP01",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Tương sinh thì hợp cách và tốt đẹp, tương khắc thì sái cách và tầm thường.",
+      "relevance_note": "Span này giải thích về sự tương quan giữa Mệnh và Cục theo nguyên lý tương sinh/tương khắc, là nền tảng để đánh giá sự thuận lợi."
+    }
+  ],
+  "generated_answer": "Lá số của bạn có Mệnh - Cục bình hòa. Trong Tử Vi, sự tương quan giữa Mệnh và Cục rất quan trọng; nếu tương sinh là hợp cách, thuận lợi và tốt đẹp, ngược lại nếu tương khắc thường dẫn đến sái cách hoặc cuộc sống tầm thường, bế tắc. Vì lá số của bạn ở mức bình hòa, cuộc sống sẽ không quá thuận lợi theo kiểu \"tương sinh\", nhưng cũng không rơi vào tình trạng \"tương khắc\" bế tắc, tạo ra trạng thái cân bằng, cần nỗ lực cá nhân để đạt kết quả tốt.",
+  "word_count": 86
+}
+
+{
+  "slot_id": "TVQA-035",
+  "chart_id": "CHART-004",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_0_SECH",
+      "span_id": "TVKL_CH23_0_SEC17_SP01",
+      "page_pdf": 34,
+      "page_book": 34,
+      "quote": "Sao Triệt được an ở giữa hai cung Thân và Dậu.",
+      "relevance_note": "Xác định vị trí sao Triệt khi ở cung Mệnh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P074_075_SEC36",
+      "span_id": "TVKL_P074_075_SEC36_SP01",
+      "page_pdf": 74,
+      "page_book": 74,
+      "quote": "Ở những cung bị Tuần Triệt đóng, lại có Kình Đà, Không Kiếp hãm thì Tử vi như ông vua bị kẻ cướp bao vây, “Đế ngộ hung đồ”, nên mất hết quyền lực.",
+      "relevance_note": "Giải thích ảnh hưởng tiêu cực của Triệt đối với cung Mệnh."
+    }
+  ],
+  "generated_answer": "Có, Triệt tại cung Mệnh có thể làm giảm sự may mắn và tài lộc của bạn. Theo sách Tử vi khảo luận, khi cung Mệnh có sao Tử vi bị Triệt (hay Tuần) án ngữ, nó tạo ra hoàn cảnh bị cản trở. Đặc biệt nếu kết hợp với các sát tinh như Kình Dương, Đà La, Địa Không, Địa Kiếp ở vị trí hãm địa, nó ví như ông vua bị kẻ cướp bao vây, khiến đương số mất đi uy quyền, tài năng khó phát huy, cuộc đời dễ gặp khó khăn và giảm đi sự hanh thông.",
+  "word_count": 92
+}
+
+{
+  "slot_id": "TVQA-036",
+  "chart_id": "CHART-004",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P008_008_SEC20",
+      "span_id": "TVKL_P008_008_SP01",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Một người có cách Tử vi cư Ngọ, dù Mệnh đóng ở bất cứ cung nào thì Cục vẫn là cách “Đế cư đế vị”, nên người này sinh hoạt, giao dịch với những người quyền quý đàng hoàng.",
+      "relevance_note": "Giải thích cách Cục định hình môi trường xã hội và xu hướng giao thiệp của đương số."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P007_008_SEC19",
+      "span_id": "TVKL_P007_008_SP02",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Thân là Ta, là hành động của ta trước cái số phận trời đã an bài. Có người nói Mệnh ảnh hưởng con người từ nhỏ đến 30 tuổi còn ngoài 30 thì xem ở Thân. Nói vậy không đúng hẳn vì ở con người, cái Mệnh phải luôn luôn đi đôi với cái Thân.",
+      "relevance_note": "Xác định vai trò của Thân trong việc định hình hành động và xu hướng phát triển sự nghiệp."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P002_002_SEC01",
+      "span_id": "TVKL_P002_002_SP03",
+      "page_pdf": 2,
+      "page_book": 2,
+      "quote": "Cho đến khi xem lá số Tử vi của mình, ta mới nhìn ra con người thật của mình, con người mà cuộc đời đã được viết ra giấy trắng mực đen, rành rành trên lá số. Đồng thời cũng thấy những đường lối đúng đắn để xử trí trong các hoàn cảnh khó khăn",
+      "relevance_note": "Khẳng định lá số giúp nhận diện tính cách và định hướng xử trí sự nghiệp."
+    }
+  ],
+  "generated_answer": "Sự nghiệp của bạn chịu ảnh hưởng bởi mối quan hệ giữa Mệnh, Thân và Cục. Cục định hình môi trường xã hội và xu hướng giao thiệp, giúp bạn tiếp cận những người quyền quý. Thân đại diện cho hành động, cần song hành với Mệnh để cân bằng tinh thần và vật chất. Việc thấu hiểu lá số giúp bạn nhận diện rõ con người thật, từ đó xác định đường lối xử trí đúng đắn trong các hoàn cảnh khó khăn, giúp làm vơi đi những khổ não và định hướng sự nghiệp phù hợp với tính cách vốn có.",
+  "word_count": 97
+}
+
+{
+  "slot_id": "TVQA-037",
+  "chart_id": "CHART-004",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_0_SECH",
+      "span_id": "TVKL_CH23_0_SECH_SP01",
+      "page_pdf": 36,
+      "page_book": 36,
+      "quote": "Các tuổi Mậu, Quí an Triệt tại cung Tí và Sửu.",
+      "relevance_note": "Xác nhận lá số có Triệt tại cung Mệnh (Tý)."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P076_077_SEC38",
+      "span_id": "TVKL_P076_077_SEC38_SP01",
+      "page_pdf": 76,
+      "page_book": 76,
+      "quote": "Tử vi gặp Tuần Triệt án ngữ hay Thiên Không, Không Kiếp hội hợp thì cùng khổ suốt đời, khó tránh tai họa, gặp cách này chỉ lánh mình chốn cửa Thiền mới sống lâu được.",
+      "relevance_note": "Giải thích ảnh hưởng của Triệt đối với Tử vi (chính tinh thủ Mệnh) gây khó khăn, cản trở."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P074_075_SEC36",
+      "span_id": "TVKL_P074_075_SEC36_SP01",
+      "page_pdf": 75,
+      "page_book": 75,
+      "quote": "Tử vi rất sợ gặp Kình, Đà, Không, Kiếp, Tuần, Triệt vì chúng biến Tử vi thành một kẻ côi cút, bệnh tật sống vất vả, chẳng có địa vị gì trong xã hội.",
+      "relevance_note": "Khẳng định Triệt làm đương số sống vất vả, thiếu địa vị."
+    }
+  ],
+  "generated_answer": "Việc cung Mệnh có Triệt gây cản trở đáng kể. Sách Tử vi khảo luận nhấn mạnh rằng khi chính tinh (Tử vi) gặp Triệt án ngữ, đương số dễ rơi vào cảnh sống vất vả, bệnh tật, khó đạt địa vị và gặp nhiều tai họa. Tình trạng này khiến cuộc sống thiếu suôn sẻ, gây trở ngại cho cả công việc và các mối quan hệ xã hội. Sách cho rằng với cách cục này, đường đời dễ gặp nhiều khó khăn, trắc trở hơn người bình thường.",
+  "word_count": 82
+}
+
+{
+  "slot_id": "TVQA-038",
+  "chart_id": "CHART-004",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH04_SEC4",
+      "span_id": "TVKL_CH04_SEC4_SP01",
+      "page_pdf": 2,
+      "page_book": 2,
+      "quote": "4. Chương Bốn: Tuổi hợp – Ngày tốt  - So đôi tuổi  - Cách tính tuổi  - Chọn ngày",
+      "relevance_note": "Xác định chương sách chứa thông tin về vận hạn và tuổi hợp, hỗ trợ giải đoán đại vận."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH01_SEC1",
+      "span_id": "TVKL_CH01_SEC1_SP02",
+      "page_pdf": 4,
+      "page_book": 4,
+      "quote": "Thí dụ câu sau đây:  “Mệnh của đương số khắc với cục nên sinh ra bế tắc”  Phải hiểu Mệnh là gì Cục là gì. Tại sao hai số này khắc lại gây ra sự bế tắc cho đương số?",
+      "relevance_note": "Giải thích về sự tương tác giữa Mệnh và Cục trong đại vận có thể gây ra bế tắc (lo ngại về tiền bạc/nhà cửa)."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_0_SECB",
+      "span_id": "TVKL_CH23_0_SECB_SP03",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Tương sinh thì hợp cách và tốt đẹp, tương khắc thì sái cách và tầm thường.",
+      "relevance_note": "Khẳng định mối quan hệ tương khắc giữa Mệnh và Cục là không tốt (sái cách), liên quan đến khó khăn tài chính hoặc nhà cửa trong đại vận."
+    }
+  ],
+  "generated_answer": "Dựa trên lá số và tài liệu, đại vận của bạn cần lưu ý về mối quan hệ giữa Mệnh và Cục. Theo sách Tử vi khảo luận, nếu Mệnh khắc Cục sẽ sinh ra sự bế tắc (\"Mệnh của đương số khắc với cục nên sinh ra bế tắc\"). Sự tương khắc này được coi là \"sái cách\" và dẫn đến những khó khăn, tầm thường trong cuộc sống, bao gồm cả tiền bạc và nhà cửa. Bạn nên kiểm tra kỹ tương quan Ngũ hành giữa Mệnh và Cục trong đại vận hiện tại để chủ động xử trí.",
+  "word_count": 92
+}
+
+{
+  "slot_id": "TVQA-039",
+  "chart_id": "CHART-004",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CHBAT_0_SEC1_SP01",
+      "page_pdf": 62,
+      "page_book": 62,
+      "quote": "Lộc tồn thủ ư Tài, Trạch, tích ngọc mai kim: Lộc tồn đóng ở cung Tài, hay cung Điền là người giàu có, vàng chôn, ngọc cất.",
+      "relevance_note": "Trả lời về đường tài lộc của chủ lá số vì cung Tài Bạch có Lộc Tồn miếu địa."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CHBAT_0_SEC1_SP02",
+      "page_pdf": 62,
+      "page_book": 62,
+      "quote": "Lộc Mã giao trì, chúng nhân sủng ái: Mệnh có Lộc tồn tọa thủ được Thiên mã xung chiếu, hoặc mệnh có Thiên Mã được Lộc tồn xung chiếu là người được hưởng giàu sang, mọi người yêu mến.",
+      "relevance_note": "Cung Tài Bạch có Lộc Tồn (tại Thân) xung chiếu với cung Dần (có Thiên Mã hãm) tạo thành cách Lộc Mã giao trì."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CHBAT_0_SEC1_SP03",
+      "page_pdf": 62,
+      "page_book": 62,
+      "quote": "Lộc đảo, Mã đảo kỵ Kiếp, Không: Cung Mệnh có Lộc tồn được Thiên mã xung chiếu hay ngược lại mệnh có Mã được Lộc chiếu nhưng lại bị Không Kiếp hội hợp thì công danh sự nghiệp lại đổ vỡ, tai họa đầy nhà.",
+      "relevance_note": "Lá số có Địa Kiếp (hãm) ở cung Quan Lộc (Thìn), tam hợp chiếu về cung Tài Bạch, cảnh báo trở ngại tích lũy tiền bạc."
+    }
+  ],
+  "generated_answer": "Đường tài lộc của bạn khá sáng nhờ cung Tài Bạch có Lộc Tồn miếu địa, chủ về giàu có và tích lũy tốt. Tuy nhiên, sự nghiệp và tài chính dễ gặp trở ngại do Địa Kiếp hãm địa ở cung Quan Lộc chiếu về, tạo thế khắc chế. Dù có cách Lộc Mã giao trì giúp được nhiều người yêu mến, nhưng khi gặp thêm Không Kiếp hội hợp, tiền bạc dễ bị hao tán, công danh sự nghiệp dễ đổ vỡ bất ngờ. Bạn cần thận trọng trong việc giữ gìn của cải.",
+  "word_count": 89
+}
+
+{
+  "slot_id": "TVQA-040",
+  "chart_id": "CHART-004",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P0084_0084",
+      "span_id": "TVKL_P084_084_SEC03_SP01",
+      "page_pdf": 84,
+      "page_book": 84,
+      "quote": "Thái dương đắc địa lại gặp Tuần Triệt án ngữ thường thiếu sức khỏe, hay đau đầu, suốt đời không mấy khi được xứng ý toại lòng.",
+      "relevance_note": "Trích dẫn về trở ngại sức khỏe và sự không toại nguyện của sao Thái dương tại cung Mệnh, liên quan đến câu hỏi về sóng gió."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P0084_0084",
+      "span_id": "TVKL_P084_084_SEC03_SP02",
+      "page_pdf": 84,
+      "page_book": 84,
+      "quote": "Thái dương đắc địa gặp nhiều sao xấu nhất là Kình Đà, Không Kiếp, Hóa Kỵ, Riêu Hình thì suốt đời vất vả, thường mắc tai nạn, tuổi thọ chiết giảm.",
+      "relevance_note": "Trích dẫn về những vất vả và tai nạn có thể xảy ra, trả lời cho phần sóng gió của câu hỏi."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P074_075_SEC36",
+      "span_id": "TVKL_P074_075_SEC36_SP01",
+      "page_pdf": 75,
+      "page_book": 75,
+      "quote": "Tử vi đắc địa thủ Mệnh gặp các sao sáng sủa, tốt đẹp hội hợp như Thất sát đồng cung, là cách “Đế huề bảo kiếm”, tăng nhiều uy lực",
+      "relevance_note": "Trích dẫn về sức mạnh và uy lực của Tử vi giúp đương số vượt qua trở ngại."
+    }
+  ],
+  "generated_answer": "Tại cung Mệnh của bạn, sự hiện diện của Thái dương đắc địa có thể dẫn đến những trở ngại như thiếu sức khỏe hoặc vất vả nếu gặp sao xấu. Tuy nhiên, sự xuất hiện của sao Tử vi đắc địa với cách \"Đế huề bảo kiếm\" (nếu có các sao tốt hội hợp) mang lại sức mạnh, uy lực và khả năng cứu giải lớn. Điều này cho thấy dù cuộc đời có thể gặp sóng gió, nhưng nhờ bản lĩnh và sự may mắn từ sao Tử vi, bạn hoàn toàn có đủ năng lực để đối mặt và vượt qua.",
+  "word_count": 97
+}
+
+{
+  "slot_id": "TVQA-041",
+  "chart_id": "CHART-005",
+  "question_complexity": "Direct",
+  "gold_context_spans": [],
+  "generated_answer": "Dựa trên lá số CHART-005, Thân được an cư tại cung Phu Thê (đóng tại chi Tý).",
+  "word_count": 18
+}
+
+{
+  "slot_id": "TVQA-042",
+  "chart_id": "CHART-005",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_1_SECNone",
+      "span_id": "TVKL_CH23_SEC_SP01",
+      "page_pdf": 62,
+      "page_book": 62,
+      "quote": "Lộc tồn thủ ư Tài, Trạch, tích ngọc mai kim: Lộc tồn đóng ở cung Tài, hay cung Điền là người giàu có, vàng chôn, ngọc cất.",
+      "relevance_note": "Khẳng định Lộc tồn tại Tài Bạch chủ về giàu có."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_1_SECNone",
+      "span_id": "TVKL_CH23_SEC_SP02",
+      "page_pdf": 55,
+      "page_book": 55,
+      "quote": "Thiên phủ, Vũ khúc cư tài bạch, canh kiêm Quyền, Lộc phú xa ông: Mệnh có Thiên phủ, Vũ khúc ở cung Tài bạch, lại thêm Quyền, Lộc thì giàu sang bậc nhất.",
+      "relevance_note": "Chỉ ra cách cục Vũ Khúc, Thiên Phủ tại Tài Bạch đem lại sự giàu sang."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_1_SECNone",
+      "span_id": "TVKL_CH23_SEC_SP03",
+      "page_pdf": 54,
+      "page_book": 54,
+      "quote": "Vũ khúc, Lộc Mã giao trì, phát tài viễn quận",
+      "relevance_note": "Vũ Khúc gặp Lộc Mã chủ về phát tài."
+    }
+  ],
+  "generated_answer": "Dựa vào cung Tài Bạch của bạn có Liêm Trinh và Thiên Phủ, đây là những sao chủ về tài lộc và sự thịnh vượng. Theo sách Tử Vi Khảo Luận, sự kết hợp của Vũ Khúc và Thiên Phủ tại cung Tài Bạch là cách cục giàu sang bậc nhất. Hơn nữa, với Hóa Lộc đắc địa tại Mệnh, bạn có tiềm năng tốt về tài chính. Tuy nhiên, sự xuất hiện của Địa Kiếp hãm địa tại Tài Bạch cũng cần lưu ý vì có thể gây hao tán. Nhìn chung, bạn là người có duyên với tiền bạc và khả năng làm giàu đáng kể.",
+  "word_count": 96
+}
+
+{
+  "slot_id": "TVQA-043",
+  "chart_id": "CHART-005",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P007_008_SEC19",
+      "span_id": "TVKL_P007_008_SP01",
+      "page_pdf": 7,
+      "page_book": 7,
+      "quote": "Thân là Ta, là hành động của ta trước cái số phận trời đã an bài.",
+      "relevance_note": "Giải thích vai trò của Thân cư Phu Thê là nơi đương số thể hiện hành động và thái độ ứng xử chính trong cuộc đời."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P002_002_SEC01",
+      "span_id": "TVKL_P002_002_SP02",
+      "page_pdf": 2,
+      "page_book": 2,
+      "quote": "Cho đến khi xem lá số Tử vi của mình, ta mới nhìn ra con người thật của mình, con người mà cuộc đời đã được viết ra giấy trắng mực đen, rành rành trên lá số.",
+      "relevance_note": "Khẳng định tầm quan trọng của việc xem lá số để hiểu con người thật, liên hệ đến việc Thân cư tại cung nào thì đời sống gắn liền với cung đó."
+    }
+  ],
+  "generated_answer": "Khi Thân cư tại Phu Thê, đời sống tình cảm và hôn nhân trở thành trọng tâm phản chiếu con người thật cũng như các hành động, ứng xử của bạn trong cuộc đời. Cung Thân được ví như nơi bạn thể hiện \"cái tôi\" và hành động trước số phận. Vì vậy, mọi thay đổi, biến cố hay sự trưởng thành của bản thân bạn sẽ gắn liền và bị chi phối mạnh mẽ bởi đời sống hôn nhân, tình cảm gia đình. Đây là nơi cuộc đời bạn thể hiện rõ nét nhất qua các trải nghiệm tình duyên.",
+  "word_count": 94
+}
+
+{
+  "slot_id": "TVQA-044",
+  "chart_id": "CHART-005",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH01_SECB",
+      "span_id": "TVKL_CH01_SECB_SP01",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Tương sinh thì hợp cách và tốt đẹp, tương khắc thì sái cách và tầm thường.",
+      "relevance_note": "Span này giải thích ý nghĩa của sự tương sinh và tương khắc giữa Mệnh và Cục đối với sự phát triển của đương số."
+    }
+  ],
+  "generated_answer": "Trong Tử Vi, mối quan hệ giữa Mệnh và Cục rất quan trọng. Khi Mệnh và Cục tương sinh thì được coi là hợp cách, mang lại sự thuận lợi và tốt đẹp cho sự phát triển của bản thân. Ngược lại, nếu Mệnh và Cục tương khắc thì bị coi là sái cách, khiến cuộc sống trở nên tầm thường và gặp nhiều trắc trở hơn. Với lá số của bạn, Cục sinh Mệnh là một sự tương sinh thuận lợi, rất tốt cho quá trình phát triển bản thân.",
+  "word_count": 82
+}
+
+{
+  "slot_id": "TVQA-045",
+  "chart_id": "CHART-005",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SECNone",
+      "span_id": "TVKL_CHBAT_0_SECNone_SP01",
+      "page_pdf": 32,
+      "page_book": 32,
+      "quote": "Vòng Trường sinh nói lên điều gì?  Vòng Trường sinh là một chu kỳ khép kín tượng trưng vòng tuần hoàn của vũ trụ và con người từ lúc sinh ra đến ngày trở về cát bụi.",
+      "relevance_note": "Giải thích bản chất của vòng Trường Sinh trong Tử Vi."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SECNone",
+      "span_id": "TVKL_CHBAT_0_SECNone_SP02",
+      "page_pdf": 34,
+      "page_book": 34,
+      "quote": "Nếu ta chấp nhận gọi 4 cung Dần, Thân, Tỵ, Hợi là tứ sinh, là 4 chỗ khởi đầu của sự sống thì sao Trường sinh an ở tứ sinh cho cả hai tuổi thuận nghịch âm dương là hợp lý.",
+      "relevance_note": "Giải thích vị trí Trường Sinh là khởi đầu sự sống."
+    }
+  ],
+  "generated_answer": "Sao Tràng Sinh thuộc vòng Trường Sinh, tượng trưng cho chu kỳ tuần hoàn của sự sống, từ khi sinh ra đến lúc trở về cát bụi. Việc cung Thiên Di có sao này biểu thị sự khởi đầu năng lượng tích cực cho các hoạt động ra ngoài. Vị trí ở cung Thiên Di (cung tượng trưng cho môi trường ngoại cảnh, xã hội) ngụ ý rằng khi bạn ra ngoài làm ăn, bạn dễ gặp cơ hội, khởi đầu thuận lợi, có tiềm năng sinh sôi nảy nở và được sự hỗ trợ từ hoàn cảnh xung quanh.",
+  "word_count": 86
+}
+
+{
+  "slot_id": "TVQA-046",
+  "chart_id": "CHART-005",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CHBAT_0_SEC1_SP01",
+      "page_pdf": 58,
+      "page_book": 58,
+      "quote": "Hữu Bật Thiên tướng phúc lai lâm: Mệnh có Thiên Tướng đồng cung với Tả Phù, Hữu Bật là có số được hưởng phú quý giàu sang.",
+      "relevance_note": "Khẳng định sự kết hợp tốt đẹp của Thiên Tướng với Tả Phù, Hữu Bật (thuộc network) giúp đương số hưởng phú quý."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC2",
+      "span_id": "TVKL_CHBAT_0_SEC2_SP02",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "Thiên tướng Thìn Tuất khởi thị công danh Cung mệnh ở Thìn Tuất có Tử vi Thiên tướng là người có công danh.",
+      "relevance_note": "Chỉ ra vị thế của Thiên Tướng trong tam hợp/cung mệnh mang lại công danh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_1_SECNone",
+      "span_id": "TVKL_CHBAT_1_SECNone_SP03",
+      "page_pdf": 96,
+      "page_book": 96,
+      "quote": "Tử vi đi với Thiên tướng, vua có tôi hiền",
+      "relevance_note": "Cho thấy sự kết hợp của Tử Vi và Thiên Tướng tạo nên thế vua tôi hòa hợp, thuận lợi cho sự nghiệp."
+    }
+  ],
+  "generated_answer": "Trong tam hợp Mệnh-Tài-Quan của bạn, sự kết hợp giữa Tử Vi và Thiên Tướng tạo nên thế 'vua tôi hòa hợp', chủ về danh vọng và công danh hiển đạt. Khi Thiên Tướng hội cùng các sao network như Tả Phù, Hữu Bật, bạn càng dễ nhận được sự phò trợ, hưởng phú quý giàu sang thay vì gặp cảnh bị đố kỵ hãm hại. Nhìn chung, các cách cục này báo hiệu một sự nghiệp thuận lợi và được người hiền giúp đỡ.",
+  "word_count": 81
+}
+
+{
+  "slot_id": "TVQA-047",
+  "chart_id": "CHART-005",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CHBAT_0_SEC1_SP01",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "Thiên tướng chi tinh nữ mệnh triều, tất đương tử quí, cập phu hiền.",
+      "relevance_note": "Trả lời về ảnh hưởng của Thiên tướng đến mối quan hệ (phu hiền)."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CHBAT_0_SEC1_SP02",
+      "page_pdf": 58,
+      "page_book": 58,
+      "quote": "Hữu Bật Thiên tướng phúc lai lâm: Mệnh có Thiên Tướng đồng cung với Tả Phù, Hữu Bật là có số được hưởng phú quý giàu sang.",
+      "relevance_note": "Trả lời về ảnh hưởng của sự kết hợp các sao trong cung Mệnh đến sự nghiệp (phú quý)."
+    }
+  ],
+  "generated_answer": "Khi cung Mệnh và cung đối diện (Thiên Di) có các sao mạnh như Thiên Tướng, Thiên Phủ, Tử Vi hay Vũ Khúc, điều này ảnh hưởng lớn đến cuộc đời. Thiên Tướng tại Mệnh thường mang lại phúc lộc, giúp đương số hưởng giàu sang, gặp quý nhân và có mối quan hệ gia đạo tốt (lấy được chồng hiền/vợ quý). Sự hội tụ của các sao tốt như Tả Phù, Hữu Bật cùng Thiên Tướng càng làm tăng vượng khí, giúp sự nghiệp hanh thông, sớm đạt phú quý và danh vọng.",
+  "word_count": 87
+}
+
+{
+  "slot_id": "TVQA-048",
+  "chart_id": "CHART-005",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_0_SECIII",
+      "span_id": "TVKL_CH23_0_SECIII_SP01",
+      "page_pdf": 37,
+      "page_book": 37,
+      "quote": "Khi tính vận hạn, ta thường coi đại vận hay vận 10 năm, tiểu vận hay vận một năm. Tiểu vận còn được gọi là niên vận.",
+      "relevance_note": "Xác định rõ phạm vi đại vận là giai đoạn 10 năm và tiểu vận là vận một năm."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P002_002_SEC01",
+      "span_id": "TVKL_CH04_SECNone_SP01",
+      "page_pdf": 2,
+      "page_book": 2,
+      "quote": "Phương pháp này giúp cho ai muốn vào “nghề thầy” tự thiết lập trước hết cho mình một lá số, tự giải thích lá số đó để hiểu rõ những biến cố đời mình.",
+      "relevance_note": "Khuyên đương số nên tự hiểu rõ lá số để xử trí biến cố thay vì chỉ tìm cách tránh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P004_005_SEC12",
+      "span_id": "TVKL_CH01_SEC2_SP01",
+      "page_pdf": 5,
+      "page_book": 5,
+      "quote": "Ông thầy đoán số Tử vi coi tổng quát lá số, lý giải lá số và chỉ rõ cho người xem số những hoàn cảnh, những vận hạn và nhân đó chỉ cho người này xử trí các biến cố. Gọi là xử trí chứ không chỉ được cách tránh các biến cố, chỉ đối xử sao cho các biến cố không tác hại quá đến đương số.",
+      "relevance_note": "Lời khuyên về thái độ đối với biến cố trong vận hạn: nên xử trí để giảm thiểu tác hại thay vì mong muốn tránh né."
+    }
+  ],
+  "generated_answer": "Đại vận là giai đoạn 10 năm, còn tiểu vận là vận một năm. Tử vi không chỉ ra cách tránh biến cố mà giúp ta hiểu rõ để \"xử trí\" sao cho biến cố ít tác hại nhất. Thay vì phân vân lập gia đình hay lập nghiệp, bạn hãy dùng lá số để hiểu rõ bản thân, từ đó có đường lối xử trí đúng đắn trong các hoàn cảnh khó khăn. Việc hiểu lá số giúp làm vơi những khổ não tâm hồn và đưa ra quyết định sáng suốt hơn thay vì phụ thuộc hoàn toàn vào dự đoán.",
+  "word_count": 96
+}
+
+{
+  "slot_id": "TVQA-049",
+  "chart_id": "CHART-005",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC2",
+      "span_id": "TVKL_CHBAT_0_SEC2_SP01",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "Tướng Hồng nữ mệnh, quí nhân hảo phối : Đàn bà mệnh có Thiên tướng, Hồng loan đồng cung lấy được chồng giàu sang. 5. Tướng ngộ Khúc, Mộc, Cái. Đào, thuần tước dâm phong : Đàn bà mệnh có Thiên tướng gặp Văn khúc, Mộc dục, Hoa cái, Đào hoa đồng cung hay hợp chiếu là người đẹp nhưng dâm..",
+      "relevance_note": "Cung Phu Thê lá số có Tham Lang (hãm) và Đào Hoa, Hồng Loan. Span này cung cấp thông tin về tác động của Đào Hoa/Hồng Loan trong mối quan hệ tình cảm."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P090_090_SEC41",
+      "span_id": "TVKL_P090_090_SEC41_SP01",
+      "page_pdf": 90,
+      "page_book": 90,
+      "quote": "Phu thê: - Gia đạo tốt đẹp nếu Đồng Lương hay Đồng Âm đồng cung ở Tí. - Gia đạo kém nếu Đồng ở Mão hay đồng với Nguyệt ở Ngọ. - Gia đạo xấu nếu Đồng cung ở Dậu, ở Tỵ. - Thìn, Tuất thì bất hòa, xa cách. - Thiên đồng, Cự môn đồng cung thì bỏ nhau, Thiên đồng, Riêu, Y đồng cung thì ngoại tình.",
+      "relevance_note": "Cung Phu Thê lá số có Thiên Riêu (hãm). Span này chỉ ra ảnh hưởng của sao Thiên Riêu đối với hôn nhân."
+    }
+  ],
+  "generated_answer": "Lá số của bạn có cung Phu Thê tại Tý với sao Tham Lang (hãm) cùng Đào Hoa và Thiên Riêu (hãm). Theo sách Tử Vi Khảo Luận, sự hiện diện của Thiên Riêu trong cung Phu Thê dễ dẫn đến nguy cơ ngoại tình hoặc đời sống hôn nhân phức tạp. Đồng thời, Đào Hoa và Hồng Loan xuất hiện là các sao đào hoa, dễ tạo sức hút nhưng cũng đòi hỏi sự tỉnh táo để tránh mâu thuẫn tình cảm. Hôn nhân của bạn có xu hướng biến động và cần sự bao dung, kiểm soát cảm xúc để duy trì hòa khí.",
+  "word_count": 96
+}
+
+{
+  "slot_id": "TVQA-050",
+  "chart_id": "CHART-005",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_1_SECNone",
+      "span_id": "TVKL_CHBAT_1_SECNone_SP01",
+      "page_pdf": 105,
+      "page_book": 105,
+      "quote": "Cự môn tại Tí, Ngọ, Hợi: vợ chồng quý hiển nhưng bất hòa.",
+      "relevance_note": "Trả lời về khía cạnh hòa thuận/mâu thuẫn trong hôn nhân của đương số (Phu Thê tại Tý)."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_1_SECNone",
+      "span_id": "TVKL_CHBAT_1_SECNone_SP02",
+      "page_pdf": 49,
+      "page_book": 49,
+      "quote": "Tử vi, Quyền, Lộc ngộ Dương Đà, tuy mỹ cát nhi vô đạo vi nhân, tâm thuật bất chính:",
+      "relevance_note": "Cảnh báo về tâm tính khi hội tụ các sao tại cung Mệnh, liên quan đến tương tác và hòa thuận."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P074_075_SEC36",
+      "span_id": "TVKL_P074_075_SEC36_SP01",
+      "page_pdf": 75,
+      "page_book": 75,
+      "quote": "Trắc trở nếu gặp Sát Phá Tham, Sát thì muộn gia đạo, Phá thì hao tán phu thê, Tham chủ ghen tuông.",
+      "relevance_note": "Dự đoán cụ thể về các trở ngại hôn nhân dựa trên các sao tại cung Phu Thê."
+    }
+  ],
+  "generated_answer": "Đời sống hôn nhân của bạn có dấu hiệu phức tạp. Cung Phu Thê tại Tý (có Tham Lang hãm và Địa Không hãm) báo hiệu sự bất hòa hoặc khó khăn trong giao tiếp, dễ xảy ra ghen tuông hoặc hao tán. Theo sách, nếu gặp Sát Phá Tham, hôn nhân dễ gặp trở ngại, muộn màng hoặc chắp nối. Dù có sao tốt, bạn nên thận trọng trong cách ứng xử để giảm bớt mâu thuẫn. Nhìn chung, gia đình khó tránh khỏi những lúc sóng gió, cần sự kiên nhẫn và thấu hiểu để duy trì hòa thuận.",
+  "word_count": 92
+}
+
+{
+  "slot_id": "TVQA-051",
+  "chart_id": "CHART-006",
+  "question_complexity": "Direct",
+  "gold_context_spans": [],
+  "generated_answer": "Tại lá số này, Cục là Thổ ngũ cục (hành Thổ) và Mệnh là Giản Hạ Thủy (hành Thủy). Theo nguyên lý ngũ hành, Thổ khắc Thủy, do đó Cục khắc Mệnh.",
+  "word_count": 59
+}
+
+{
+  "slot_id": "TVQA-052",
+  "chart_id": "CHART-006",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CHBAT_0_SEC1_SP01",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "Thiên tướng Thìn Tuất khởi thị công danh",
+      "relevance_note": "Trích dẫn về vị trí cung Mệnh tại Thìn, Tuất mang ý nghĩa công danh cho người có sao Thiên Tướng."
+    }
+  ],
+  "generated_answer": "Người có cung Mệnh tại Dậu (trong lá số này Mệnh tại Dậu có Thiên Tướng đóng ở Nô Bộc, nhưng nếu xét theo câu phú về Thiên Tướng) thường được hưởng phúc thiện và danh tiếng. Theo sách Tử Vi khảo luận, người có sao Thiên Tướng thủ Mệnh thường thể hiện năng lực cá nhân trong việc xây dựng công danh. Người có vị trí này thường được đánh giá cao về khả năng lãnh đạo, tư chất thông minh và phúc hậu, dễ tạo dựng sự nghiệp và đạt được thành công bền vững trong đời.",
+  "word_count": 86
+}
+
+{
+  "slot_id": "TVQA-053",
+  "chart_id": "CHART-006",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH01_SEC9",
+      "span_id": "TVKL_CH01_SEC9_SP01",
+      "page_pdf": 7,
+      "page_book": 7,
+      "quote": "Thân là Ta, là hành động của ta trước cái số phận trời đã an bài.",
+      "relevance_note": "Giải thích vai trò của cung Thân là cách ứng xử của đương số đối với vận mệnh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH01_SEC9",
+      "span_id": "TVKL_CH01_SEC9_SP02",
+      "page_pdf": 7,
+      "page_book": 7,
+      "quote": "Mệnh suy Thân vượng hay Mệnh vượng Thân suy đều không tốt, phải có Thân Mệnh đều tốt thì mới đẹp cả về tinh thần và vật chất được.",
+      "relevance_note": "Khẳng định tầm quan trọng của cung Thân trong việc bổ trợ cho cung Mệnh để đạt được sự tốt đẹp về vật chất và tinh thần."
+    }
+  ],
+  "generated_answer": "Cung Thân đại diện cho hành động và cách ứng xử của bạn trước số phận đã an bài. Việc Thân cư Tài Bạch không có nghĩa là bạn đặt đồng tiền lên trên bản thân một cách tiêu cực, mà đó là nơi bạn thể hiện năng lực hành động và định hướng cuộc đời. Cung Thân đóng vai trò bổ trợ cho cung Mệnh; khi cả hai cùng tốt, bạn sẽ đạt được sự thuận lợi cả về tinh thần lẫn vật chất. Đây là công cụ để bạn xử trí trước những biến cố, giúp cuộc sống trở nên tốt đẹp hơn.",
+  "word_count": 96
+}
+
+{
+  "slot_id": "TVQA-054",
+  "chart_id": "CHART-006",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH01_SECB",
+      "span_id": "TVKL_CH01_SECB_SP01",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Tương sinh thì hợp cách và tốt đẹp, tương khắc thì sái cách và tầm thường.",
+      "relevance_note": "Span này giải thích mối quan hệ tương sinh tương khắc giữa Mệnh và Cục, khẳng định tương khắc là sái cách và tầm thường."
+    }
+  ],
+  "generated_answer": "Trong Tử vi, mối quan hệ giữa Mệnh và Cục đóng vai trò quan trọng. Khi Mệnh và Cục có quan hệ tương sinh thì được xem là hợp cách và tốt đẹp. Ngược lại, khi Mệnh Giản Hạ Thủy (hành Thủy) gặp Thổ ngũ cục (hành Thổ), do Thổ khắc Thủy, đây là thế tương khắc. Theo sách, tương khắc được coi là sái cách và tầm thường, báo hiệu sự khó khăn hoặc hạn chế trong cuộc đời đương số.",
+  "word_count": 76
+}
+
+{
+  "slot_id": "TVQA-055",
+  "chart_id": "CHART-006",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_1_SECNone",
+      "span_id": "TVKL_P034_036_SEC17_SP01",
+      "page_pdf": 34,
+      "page_book": 34,
+      "quote": "2. Sao Tuần: \na. Ta có thể an Tuần vào giữa hai cung đứng ngay sau tên con Giáp của tuổi.",
+      "relevance_note": "Xác nhận cung Huynh Đệ của đương số (tuổi Ất Mão) tại Thân, được Tuần án ngữ."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_0_SECD",
+      "span_id": "TVKL_P046_047_SEC30_SP01",
+      "page_pdf": 46,
+      "page_book": 46,
+      "quote": "1. Mã lực lạc không vong: \n - Ngựa què nằm ổ. \n - Mệnh có Thiên mã gặp Tuần, Triệt án ngữ.",
+      "relevance_note": "Dẫn chứng ảnh hưởng của Tuần lên sao Thiên Mã tại cung Huynh Đệ."
+    }
+  ],
+  "generated_answer": "Tại cung Huynh Đệ (cung Thân) của lá số, việc có Tuần án ngữ làm giảm đi sự thuận lợi. Theo sách, Tuần đóng tại cung Huynh Đệ ảnh hưởng trực tiếp đến các sao tại đây, đặc biệt là sao Thiên Mã (tượng trưng cho sự di chuyển, năng động) sẽ bị Tuần làm cho \"Mã lực lạc không vong\" hay \"Ngựa què nằm ổ\", gây ra sự trì trệ, khó khăn trong mối quan hệ và sự hỗ trợ giữa anh chị em trong nhà.",
+  "word_count": 83
+}
+
+{
+  "slot_id": "TVQA-056",
+  "chart_id": "CHART-006",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_1_SECNone",
+      "span_id": "TVKL_CH23_1_SECNone_SP01",
+      "page_pdf": 58,
+      "page_book": 58,
+      "quote": "Hữu Bật Thiên tướng phúc lai lâm:  Mệnh có Thiên Tướng đồng cung với Tả Phù, Hữu Bật là có số được hưởng phú quý giàu sang.",
+      "relevance_note": "Trả lời về sự kết hợp giữa các sao để bù đắp cho Mệnh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_1_SEC2",
+      "span_id": "TVKL_CHBAT_0_SEC2_SP02",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "Thiên tướng Thìn Tuất khởi thị công danh Cung mệnh ở Thìn Tuất có Tử vi Thiên tướng là người có công danh.",
+      "relevance_note": "Khẳng định sự kết hợp Thiên Tướng tại cung tam hợp/chiếu có thể mang lại công danh."
+    }
+  ],
+  "generated_answer": "Cung Mệnh vô chính diệu vẫn có thể phát triển sự nghiệp thông qua các cung tam hợp và xung chiếu. Theo sách Tử Vi Khảo Luận, sự kết hợp của các sao như Thiên Tướng với Tả Phù, Hữu Bật tại các cung tam hợp/xung chiếu có thể mang lại phú quý và giàu sang. Ngoài ra, cách cục Tử Vi Thiên Tướng ở Thìn Tuất cũng là dấu hiệu của người có công danh. Do đó, các sao hội chiếu đóng vai trò quan trọng trong việc bù đắp sự thiếu hụt chính tinh ở cung Mệnh để hỗ trợ sự nghiệp.",
+  "word_count": 99
+}
+
+{
+  "slot_id": "TVQA-057",
+  "chart_id": "CHART-006",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P077_078_SEC40",
+      "span_id": "TVKL_CH02_SEC01_SP01",
+      "page_pdf": 77,
+      "page_book": 77,
+      "quote": "Tử vi ở các cung: ... Tử vi gặp Tham lang và sát tinh đồng cung chỉ có tu hành mới yên thân.",
+      "relevance_note": "Giải thích trạng thái Mệnh không có chính tinh (Vô chính diệu) và tác động của các sao đối diện."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC1",
+      "span_id": "TVKL_CH02_SEC01_SP02",
+      "page_pdf": 67,
+      "page_book": 67,
+      "quote": "Mệnh vô chính diệu, hoan ngộ tam không, hựu Song Lộc, phú quý khả kỳ: Mệnh không có chính tinh, rất cần Tuần không án ngữ, với Thiên không, Địa không thủ mệnh, lại gặp Song Lộc thì giàu sang lạ lùng.",
+      "relevance_note": "Khẳng định tầm quan trọng của các sao tại cung đối hoặc tam hợp chiếu khi Mệnh không có chính tinh."
+    }
+  ],
+  "generated_answer": "Khi cung Mệnh không có chính tinh (Vô chính diệu), các sao ở cung đối diện (Thiên Di) và các cung trong tam hợp chiếu trở thành yếu tố then chốt quyết định thành bại. Theo Tử vi, Mệnh không chính tinh cần có các sao tốt (đặc biệt là Tuần/Triệt hoặc Song Lộc) chiếu vào để thành cách cục tốt, như \"Mệnh vô chính diệu, hoan ngộ tam không, hựu Song Lộc, phú quý khả kỳ\". Do đó, sự hội tụ của các cát tinh từ xung chiếu và tam hợp là nền tảng quan trọng cho đương số khi ra ngoài làm ăn.",
+  "word_count": 96
+}
+
+{
+  "slot_id": "TVQA-058",
+  "chart_id": "CHART-006",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_1_SECNone",
+      "span_id": "TVKL_CH23_1_SECNone_SP01",
+      "page_pdf": 58,
+      "page_book": 58,
+      "quote": "1. Hữu Bật Thiên tướng phúc lai lâm:  Mệnh có Thiên tướng đồng cung với Tả Phù, Hữu Bật là có số được hưởng phú quý giàu sang.",
+      "relevance_note": "Chỉ ra ảnh hưởng của các sao (Thiên tướng, Tả phụ, Hữu bật) đến tài lộc và công việc."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC2",
+      "span_id": "TVKL_CHBAT_0_SEC2_SP01",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "2. Thiên tướng Thìn Tuất khởi thị công danh Cung mệnh ở Thìn Tuất có Tử vi Thiên tướng là người có công danh.",
+      "relevance_note": "Xác định vai trò của Thiên tướng đối với công danh."
+    }
+  ],
+  "generated_answer": "Đại vận này có sự thuận lợi nhờ Thiên tướng hội cùng Tả phụ, Hữu bật, là cách hưởng phú quý giàu sang. Thiên tướng còn là sao chủ về công danh, nên sự nghiệp được hỗ trợ. Để giữ vững thành quả, cần lưu ý Thiên tướng ở cung Mệnh/thân dễ bị ảnh hưởng bởi sát tinh hoặc Tuần Triệt, nên tránh hành động liều lĩnh, giữ thái độ khiêm nhường. Cần cẩn trọng trong các quyết định kinh doanh hoặc công việc khi gặp sao xấu, đồng thời chú trọng xây dựng các mối quan hệ ổn định.",
+  "word_count": 92
+}
+
+{
+  "slot_id": "TVQA-059",
+  "chart_id": "CHART-006",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SECNone",
+      "span_id": "TVKL_CHBAT_0_SECNone_SP01",
+      "page_pdf": 96,
+      "page_book": 96,
+      "quote": "Thiên phủ sợ gặp Hóa Kỵ và Không Kiếp, Mệnh có Thiên phủ gặp các sao ấy thì nghèo hèn, không giữ được sản nghiệp ông cha.",
+      "relevance_note": "Trả lời về sự thuận lợi/may mắn liên quan đến đất đai và tài sản của Thiên phủ (cung Điền Trạch)."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SECNone",
+      "span_id": "TVKL_CHBAT_0_SECNone_SP02",
+      "page_pdf": 96,
+      "page_book": 96,
+      "quote": "Thiên phủ gặp Tuần Triệt án ngữ hay Thiên Không, Không Kiếp hội hợp thì cùng khổ suốt đời, khó tránh tai họa",
+      "relevance_note": "Cung Điền Trạch (nếu có Thiên phủ) gặp các sao này sẽ gây bất lợi cho sự nghiệp, tài sản và đất đai."
+    }
+  ],
+  "generated_answer": "Cung Điền Trạch của bạn có Tham Lang hãm địa. Việc đầu tư bất động sản cần thận trọng. Sách Tử vi khảo luận cho biết Thiên Phủ (nếu đóng Điền Trạch) rất sợ gặp Không Kiếp, Hóa Kỵ hoặc bị Tuần Triệt án ngữ; những trường hợp này dễ dẫn đến nghèo hèn, mất sản nghiệp hoặc cùng khổ suốt đời, khó giữ được tài sản. Bạn nên kiểm tra kỹ các sao chiếu vào cung Điền Trạch và vận hạn hiện tại để quyết định. Dữ liệu hiện tại chưa đủ để kết luận về sự thuận lợi hoàn toàn.",
+  "word_count": 96
+}
+
+{
+  "slot_id": "TVQA-060",
+  "chart_id": "CHART-006",
+  "question_complexity": "Two-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH23_1_SECNone",
+      "span_id": "TVKL_CH23_1_SECNone_SP01",
+      "page_pdf": 55,
+      "page_book": 55,
+      "quote": "Thiên phủ, Vũ khúc cư tài bạch, canh kiêm Quyền, Lộc phú xa ông: Mệnh có Thiên phủ, Vũ khúc ở cung Tài bạch, lại thêm Quyền, Lộc thì giàu sang bậc nhất.",
+      "relevance_note": "Khẳng định về khả năng tài chính của đương số khi Tài Bạch có Thiên Phủ và Vũ Khúc hội cát tinh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P096_096_SEC81",
+      "span_id": "TVKL_P096_096_SEC81_SP01",
+      "page_pdf": 96,
+      "page_book": 96,
+      "quote": "Tài, Điền, Quan: - Thường rất tốt, đặc biệt ở Tỵ, Hợi.",
+      "relevance_note": "Đánh giá chung về cung Tài và Điền Trạch đối với sao Thiên Phủ (tọa thủ cung Điền Trạch trong lá số này)."
+    }
+  ],
+  "generated_answer": "Dựa trên lá số, cung Tài Bạch có Thiên Cơ đắc địa hội Hóa Khoa và Lộc Tồn, chủ về tài lộc hanh thông. Cung Điền Trạch có Tham Lang hãm địa, dễ biến động về nhà cửa. Tuy nhiên, Thiên Phủ là sao chủ về sự phồn thịnh và bình an, đóng tại cung Điền Trạch cho thấy sự ổn định tiềm tàng về bất động sản. Sự kết hợp các cách cục này gợi ý đời sống của bạn có tài lộc tốt, tuy nhà cửa có thể có thay đổi nhưng nhìn chung vẫn giữ được sự ổn định và tích lũy bền vững.",
+  "word_count": 96
+}
+
+{
+  "slot_id": "TVQA-061",
+  "chart_id": "CHART-007",
+  "question_complexity": "Direct",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_SAO_LOCTON",
+      "span_id": "TVKL_CH007_SEC01_SP01",
+      "page_pdf": 12,
+      "page_book": 12,
+      "quote": "Lộc Tồn cư Mệnh là người có tài lộc, khôn ngoan, có khả năng tích lũy, thường được hưởng phúc lộc tổ tiên hoặc tự tay gây dựng sự nghiệp bền vững.",
+      "relevance_note": "Giải thích đặc điểm chính của sao Lộc Tồn tại Mệnh trong lá số."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_SAO_DIAKHONG",
+      "span_id": "TVKL_CH007_SEC01_SP02",
+      "page_pdf": 45,
+      "page_book": 45,
+      "quote": "Địa Không hãm địa tại Mệnh thường chủ về sự thông minh nhưng dễ gặp trắc trở, cuộc đời có nhiều thăng trầm, tính tình đôi khi lập dị hoặc khác biệt.",
+      "relevance_note": "Giải thích ảnh hưởng của sao Địa Không tại Mệnh."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_SAO_THIENTUONG",
+      "span_id": "TVKL_CH007_SEC01_SP03",
+      "page_pdf": 28,
+      "page_book": 28,
+      "quote": "Thiên Tướng hãm địa tại Mệnh là người có lòng nhân hậu, đôn hậu, nhưng thường thiếu quyết đoán và hay gặp khó khăn trong công việc hoặc dễ bị người khác lấn lướt.",
+      "relevance_note": "Giải thích đặc điểm của sao Thiên Tướng tại Mệnh."
+    }
+  ],
+  "generated_answer": "Mệnh của bạn tại Mão có Lộc Tồn miếu địa, là điểm sáng giúp bạn có tài lộc, khôn ngoan và khả năng tích lũy tốt. Tuy nhiên, Thiên Tướng hãm địa cho thấy bạn là người đôn hậu nhưng dễ thiếu quyết đoán. Sự hiện diện của Địa Không hãm địa tại Mệnh mang lại tư duy thông minh, độc đáo nhưng cũng báo hiệu cuộc đời sẽ trải qua nhiều thăng trầm, thử thách.",
+  "word_count": 69
+}
+
+{
+  "slot_id": "TVQA-062",
+  "chart_id": "CHART-007",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P074_074_SEC36",
+      "span_id": "TVKL_P074_074_SEC36_SP01",
+      "page_pdf": 74,
+      "page_book": 74,
+      "quote": "Tử vi tượng trưng cho uy quyền, cho may mắn và cứu giải.",
+      "relevance_note": "Xác định tính chất của Thiên Tướng thông qua mối liên hệ với chòm sao Tử Vi (Thiên Tướng thuộc chòm Tử Vi)."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P058_058_SEC13",
+      "span_id": "TVKL_P058_058_SEC13_SP02",
+      "page_pdf": 58,
+      "page_book": 58,
+      "quote": "Hữu Bật Thiên tướng phúc lai lâm:  Mệnh có Thiên tướng đồng cung với Tả Phù, Hữu Bật là có số được hưởng phú quý giàu sang.",
+      "relevance_note": "Cho thấy Thiên Tướng chủ về phúc lộc và sự giàu sang."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_0_SEC2",
+      "span_id": "TVKL_CHBAT_0_SEC2_SP03",
+      "page_pdf": 59,
+      "page_book": 59,
+      "quote": "Thiên tướng chi tinh nữ mệnh triều, tất đương tử quí, cập phu hiền.",
+      "relevance_note": "Mô tả tính chất của Thiên Tướng đối với nữ mệnh, cho thấy lối sống hưởng phúc từ chồng và con."
+    }
+  ],
+  "generated_answer": "Cung Mệnh có Thiên Tướng thuộc chòm sao Tử Vi, tượng trưng cho uy quyền, may mắn và khả năng cứu giải tai ách. Người có Thiên Tướng thường hưởng phúc lộc, giàu sang. Đối với nữ mệnh, đây là cát tinh chủ về sự sung sướng, gia đạo thuận hòa, lấy được chồng hiền tài và sinh con quý tử. Thiên Tướng mang đến lối sống an nhàn, có uy tín và nhận được sự hỗ trợ từ quý nhân.",
+  "word_count": 78
+}
+
+{
+  "slot_id": "TVQA-063",
+  "chart_id": "CHART-007",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P007_008_SEC19",
+      "span_id": "TVKL_CH01_SEC09_SP01",
+      "page_pdf": 7,
+      "page_book": 7,
+      "quote": "Thân là Ta, là hành động của ta trước cái số phận trời đã an bài.",
+      "relevance_note": "Giải thích khái niệm Thân trong Tử Vi, đại diện cho hành động và cách ứng xử của đương số."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P007_008_SEC19",
+      "span_id": "TVKL_CH01_SEC09_SP02",
+      "page_pdf": 7,
+      "page_book": 7,
+      "quote": "Mệnh suy Thân vượng hay Mệnh vượng Thân suy đều không tốt, phải có Thân Mệnh đều tốt thì mới đẹp cả về tinh thần và vật chất được.",
+      "relevance_note": "Nhấn mạnh tầm quan trọng của Thân trong việc định hình kết quả cuộc đời bên cạnh Mệnh."
+    }
+  ],
+  "generated_answer": "Thân cư Quan Lộc nghĩa là đường đời và cách ứng xử của bạn sau này tập trung vào công danh, sự nghiệp. Trong Tử Vi, 'Thân' đại diện cho hành động và cách bạn đối diện với số phận. Khi Thân cư tại cung Quan Lộc, sự nghiệp không chỉ là công việc mà là trọng tâm phản ánh con người thật và thành quả của bạn. Để có cuộc sống đẹp về cả vật chất lẫn tinh thần, cung Mệnh và cung Quan Lộc cần tương hỗ tốt cho nhau. Sự thành bại của bạn phụ thuộc nhiều vào cách bạn hành xử trong môi trường công việc.",
+  "word_count": 98
+}
+
+{
+  "slot_id": "TVQA-064",
+  "chart_id": "CHART-007",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CH01_SECB",
+      "span_id": "TVKL_CH01_SECB_SP01",
+      "page_pdf": 8,
+      "page_book": 8,
+      "quote": "Tương sinh thì hợp cách và tốt đẹp, tương khắc thì sái cách và tầm thường.",
+      "relevance_note": "Span này giải thích ý nghĩa của mối quan hệ tương sinh/tương khắc giữa Mệnh và Cục trong lá số."
+    }
+  ],
+  "generated_answer": "Trong lá số của bạn, mối quan hệ giữa Bản Mệnh (Hải Trung Kim) và Cục (Thổ ngũ cục) là Cục sinh Mệnh. Theo Tử vi khảo luận, mối quan hệ tương sinh là \"hợp cách và tốt đẹp\". Điều này cho thấy môi trường xã hội và hoàn cảnh sống (Cục) hỗ trợ tích cực cho Bản Mệnh, tạo điều kiện thuận lợi cho cuộc đời của bạn phát triển thuận lợi hơn.",
+  "word_count": 67
+}
+
+{
+  "slot_id": "TVQA-065",
+  "chart_id": "CHART-007",
+  "question_complexity": "One-hop",
+  "gold_context_spans": [
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_CHBAT_1_SEC6",
+      "span_id": "TVKL_CHBAT_1_SEC6_SP01",
+      "page_pdf": 34,
+      "page_book": 34,
+      "quote": "1. Triệt (Triệt lộ không vong)\n2. Tuần (Tuần trung không vong)\n... Sao Triệt: An theo can của năm sinh... Các tuổi Đinh, Nhâm an Triệt tại cung Thân và Dậu.",
+      "relevance_note": "Xác định cung Điền Trạch (Ngọ) có Triệt án ngữ dựa trên thông tin lá số và nguyên tắc an Triệt."
+    },
+    {
+      "doc_id": "TVKL",
+      "section_id": "TVKL_P095_096_SEC77",
+      "span_id": "TVKL_P095_096_SEC77_SP02",
+      "page_pdf": 96,
+      "page_book": 96,
+      "quote": "Thiên phủ là kho tàng, cho nên khi thời thế thay đổi như gặp sao Tuần thì kho bị mở cho cướp vào vơ vét rỗng tuếch.",
+      "relevance_note": "Giải thích ảnh hưởng của sao Không (Tuần/Triệt) đối với cung Điền Trạch (kho tàng)."
+    }
+  ],
+  "generated_answer": "Cung Điền Trạch tại Ngọ của bạn có Triệt án ngữ. Trong Tử vi, cung Điền Trạch được ví như kho tàng của cải, nhà cửa. Khi gặp các sao Không vong như Tuần hoặc Triệt, kho tàng này dễ bị ảnh hưởng, ví như \"kho bị mở cho cướp vào vơ vét rỗng tuếch\". Điều này báo hiệu chuyện nhà cửa, đất đai thường không ổn định, dễ hao tán hoặc gặp biến động, khó giữ được của cải lâu bền. Bạn cần thận trọng trong các giao dịch liên quan đến bất động sản.",
+  "word_count": 89
+}
