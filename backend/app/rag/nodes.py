@@ -7,11 +7,23 @@ from typing import Any
 from app.clients import get_dense_query_embedding_service, get_neo4j_driver, get_supabase_client
 from app.config import settings
 from app.rag.config import RuntimeEntityExtractionConfig, config_hash, load_experiment_config
+from app.rag.citations import map_citations
+from app.rag.context import assemble_context
+from app.rag.generation import GenerationClient, generate_answer
 from app.rag.query_entities import canonical_entity_names, extract_query_entities, surface_terms
 from app.rag.retrieval import (
     retrieve_dense_candidates,
     retrieve_graph_candidates,
     retrieve_sparse_candidates,
+)
+from app.rag.ranking import (
+    CandidateReranker,
+    apply_document_grading,
+    apply_reranking,
+    count_candidates_by_path,
+    fuse_retrieval_candidates,
+    fusion_trace_summary,
+    ranking_trace_summary,
 )
 from app.rag.rewrite import QueryRewriter, RewriteResult, guard_rewrite_result, make_default_query_rewriter
 from app.rag.state import RAGState
@@ -30,12 +42,12 @@ DRY_RUN_NODE_ORDER = [
     "graph_retrieval",
     "dense_retrieval",
     "sparse_retrieval",
-    "fusion_placeholder",
-    "rerank_placeholder",
-    "document_grading_placeholder",
-    "context_assembly_placeholder",
-    "generation_placeholder",
-    "citation_map_placeholder",
+    "fusion",
+    "rerank",
+    "document_grading",
+    "context_assembly",
+    "generation",
+    "citation_map",
 ]
 
 
@@ -395,63 +407,99 @@ def make_sparse_retrieval_node(neo4j_driver: Any | None = None) -> Callable[[RAG
     return sparse_retrieval
 
 
-def fusion_placeholder(state: RAGState) -> RAGState:
+def fusion_node(state: RAGState) -> RAGState:
     config = state["experiment_config"]
-    state["fused_candidates"] = []
+    fused_candidates = fuse_retrieval_candidates(state, config)
+    state["fused_candidates"] = fused_candidates
     return append_trace_node(
         state,
-        "fusion_placeholder",
-        status="placeholder",
-        detail={"fusion_method": config.fusion_method},
+        "fusion",
+        detail={
+            "fusion_method": config.fusion_method,
+            "input_counts": count_candidates_by_path(state),
+            "output_count": len(fused_candidates),
+            "score_breakdown": fusion_trace_summary(fused_candidates),
+        },
     )
 
 
-def rerank_placeholder(state: RAGState) -> RAGState:
+def make_rerank_node(candidate_reranker: CandidateReranker | None = None) -> Callable[[RAGState], RAGState]:
+    def rerank(state: RAGState) -> RAGState:
+        config = state["experiment_config"]
+        reranked_candidates = apply_reranking(state, config, candidate_reranker=candidate_reranker)
+        state["reranked_candidates"] = reranked_candidates
+        return append_trace_node(
+            state,
+            "rerank",
+            status="completed" if config.reranker_enabled else "skipped",
+            detail={
+                "enabled": config.reranker_enabled,
+                "input_count": len(state.get("fused_candidates") or []),
+                "model": config.reranker_config.model,
+                "output_count": len(reranked_candidates),
+                "rankings": ranking_trace_summary(reranked_candidates),
+                "top_k": config.reranker_config.top_k,
+            },
+        )
+
+    return rerank
+
+
+def document_grading_node(state: RAGState) -> RAGState:
     config = state["experiment_config"]
-    state["reranked_candidates"] = []
+    graded_candidates = apply_document_grading(state, config)
+    state["graded_candidates"] = graded_candidates
+    state["ranked_candidates"] = graded_candidates
     return append_trace_node(
         state,
-        "rerank_placeholder",
-        status="placeholder" if config.reranker_enabled else "skipped",
-        detail={"enabled": config.reranker_enabled},
+        "document_grading",
+        status="completed" if config.document_grading_enabled else "skipped",
+        detail={
+            "dropped_count": len(state.get("reranked_candidates") or []) - len(graded_candidates),
+            "enabled": config.document_grading_enabled,
+            "input_count": len(state.get("reranked_candidates") or []),
+            "output_count": len(graded_candidates),
+            "rankings": ranking_trace_summary(graded_candidates),
+        },
     )
 
 
-def document_grading_placeholder(state: RAGState) -> RAGState:
+def context_assembly_node(state: RAGState) -> RAGState:
     config = state["experiment_config"]
+    final_context, context_chunks, context_summary = assemble_context(state, config)
+    state["final_context"] = final_context
+    state["context_chunks"] = context_chunks
+    state["context_summary"] = context_summary
     return append_trace_node(
         state,
-        "document_grading_placeholder",
-        status="placeholder" if config.document_grading_enabled else "skipped",
-        detail={"enabled": config.document_grading_enabled},
+        "context_assembly",
+        detail=context_summary,
     )
 
 
-def context_assembly_placeholder(state: RAGState) -> RAGState:
+def make_generation_node(generation_client: GenerationClient | None = None) -> Callable[[RAGState], RAGState]:
+    def generation(state: RAGState) -> RAGState:
+        config = state["experiment_config"]
+        answer, metadata = generate_answer(state, config, generation_client=generation_client)
+        state["answer"] = answer
+        state["generation_metadata"] = metadata
+        status = "fallback" if metadata.get("fallback_reason") else "completed"
+        return append_trace_node(
+            state,
+            "generation",
+            status=status,
+            detail=metadata,
+        )
+
+    return generation
+
+
+def citation_map_node(state: RAGState) -> RAGState:
     config = state["experiment_config"]
-    state["final_context"] = ""
-    return append_trace_node(
-        state,
-        "context_assembly_placeholder",
-        status="placeholder",
-        detail={"context_assembly_strategy": config.context_assembly_strategy},
-    )
-
-
-def generation_placeholder(state: RAGState) -> RAGState:
-    config = state["experiment_config"]
-    state["answer"] = ""
-    return append_trace_node(
-        state,
-        "generation_placeholder",
-        status="placeholder",
-        detail={"generation_model": config.generation_model},
-    )
-
-
-def citation_map_placeholder(state: RAGState) -> RAGState:
-    state["sources"] = []
-    return append_trace_node(state, "citation_map_placeholder", status="placeholder")
+    sources, metadata = map_citations(state, config)
+    state["sources"] = sources
+    state["citation_metadata"] = metadata
+    return append_trace_node(state, "citation_map", detail=metadata)
 
 
 def build_node_map(
@@ -462,6 +510,8 @@ def build_node_map(
     query_entity_extractor: QueryEntityExtractor | None = None,
     neo4j_driver: Any | None = None,
     dense_embedding_service: Any | None = None,
+    candidate_reranker: CandidateReranker | None = None,
+    generation_client: GenerationClient | None = None,
 ) -> dict[str, Callable[[RAGState], RAGState]]:
     return {
         "load_chart_context": make_load_chart_context_node(chart_loader),
@@ -473,10 +523,10 @@ def build_node_map(
         "graph_retrieval": make_graph_retrieval_node(neo4j_driver),
         "dense_retrieval": make_dense_retrieval_node(neo4j_driver, dense_embedding_service),
         "sparse_retrieval": make_sparse_retrieval_node(neo4j_driver),
-        "fusion_placeholder": fusion_placeholder,
-        "rerank_placeholder": rerank_placeholder,
-        "document_grading_placeholder": document_grading_placeholder,
-        "context_assembly_placeholder": context_assembly_placeholder,
-        "generation_placeholder": generation_placeholder,
-        "citation_map_placeholder": citation_map_placeholder,
+        "fusion": fusion_node,
+        "rerank": make_rerank_node(candidate_reranker),
+        "document_grading": document_grading_node,
+        "context_assembly": context_assembly_node,
+        "generation": make_generation_node(generation_client),
+        "citation_map": citation_map_node,
     }

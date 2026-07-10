@@ -92,9 +92,15 @@ def test_rag_dry_run_traverses_expected_nodes_and_preserves_query() -> None:
     assert state["sparse_candidates"] == []
     assert state["fused_candidates"] == []
     assert state["reranked_candidates"] == []
-    assert state["final_context"] == ""
-    assert state["answer"] == ""
+    assert state["graded_candidates"] == []
+    assert state["ranked_candidates"] == []
+    assert state["context_chunks"] == []
+    assert state["context_summary"]["selected_count"] == 0
+    assert "[CHART]" in state["final_context"]
+    assert state["answer"]
+    assert state["generation_metadata"]["fallback_reason"] == "no_context"
     assert state["sources"] == []
+    assert state["citation_metadata"]["source_count"] == 0
 
     trace_nodes = [entry["node"] for entry in state["retrieval_trace"]["nodes"]]
     assert trace_nodes == DRY_RUN_NODE_ORDER

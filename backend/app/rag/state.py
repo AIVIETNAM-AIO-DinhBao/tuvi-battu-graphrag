@@ -23,10 +23,16 @@ class RAGState(TypedDict, total=False):
     sparse_candidates: list[dict[str, Any]]
     fused_candidates: list[dict[str, Any]]
     reranked_candidates: list[dict[str, Any]]
+    graded_candidates: list[dict[str, Any]]
+    ranked_candidates: list[dict[str, Any]]
+    context_chunks: list[dict[str, Any]]
+    context_summary: dict[str, Any]
     final_context: str
 
     answer: str
     sources: list[dict[str, Any]]
+    generation_metadata: dict[str, Any]
+    citation_metadata: dict[str, Any]
     cache_key: str
 
     experiment_config: "ExperimentConfig"

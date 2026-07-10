@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from app.rag.nodes import ChartLoader, DRY_RUN_NODE_ORDER, QueryEntityExtractor, build_node_map
+from app.rag.generation import GenerationClient
+from app.rag.ranking import CandidateReranker
 from app.rag.rewrite import QueryRewriter
 from app.rag.state import RAGState
 
@@ -39,6 +41,8 @@ def build_rag_graph(
     query_entity_extractor: QueryEntityExtractor | None = None,
     neo4j_driver: Any | None = None,
     dense_embedding_service: Any | None = None,
+    candidate_reranker: CandidateReranker | None = None,
+    generation_client: GenerationClient | None = None,
 ) -> Any:
     node_map = build_node_map(
         chart_loader=chart_loader,
@@ -47,6 +51,8 @@ def build_rag_graph(
         query_entity_extractor=query_entity_extractor,
         neo4j_driver=neo4j_driver,
         dense_embedding_service=dense_embedding_service,
+        candidate_reranker=candidate_reranker,
+        generation_client=generation_client,
     )
 
     if not LANGGRAPH_AVAILABLE or StateGraph is None:
@@ -72,6 +78,8 @@ def run_rag_dry_run(
     query_entity_extractor: QueryEntityExtractor | None = None,
     neo4j_driver: Any | None = None,
     dense_embedding_service: Any | None = None,
+    candidate_reranker: CandidateReranker | None = None,
+    generation_client: GenerationClient | None = None,
 ) -> RAGState:
     graph = build_rag_graph(
         chart_loader=chart_loader,
@@ -80,5 +88,7 @@ def run_rag_dry_run(
         query_entity_extractor=query_entity_extractor,
         neo4j_driver=neo4j_driver,
         dense_embedding_service=dense_embedding_service,
+        candidate_reranker=candidate_reranker,
+        generation_client=generation_client,
     )
     return graph.invoke(dict(initial_state))

@@ -1,0 +1,166 @@
+from __future__ import annotations
+
+from typing import Any
+
+from app.rag.config import ExperimentConfig
+from app.rag.state import RAGState
+
+
+DEFAULT_MAX_CONTEXT_CHARS = 8_000
+DEFAULT_MAX_CHUNKS = 8
+EXCERPT_CHARS = 700
+
+
+def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
+    candidates = select_candidate_pool(state)
+    ordered = order_candidates(candidates, strategy=config.context_assembly_strategy)
+    selected = select_with_budget(ordered, max_chars=DEFAULT_MAX_CONTEXT_CHARS, max_chunks=DEFAULT_MAX_CHUNKS)
+
+    context_chunks: list[dict[str, Any]] = []
+    blocks: list[str] = []
+    for index, candidate in enumerate(selected, start=1):
+        chunk = make_context_chunk(candidate, index=index, config=config)
+        context_chunks.append(chunk)
+        blocks.append(format_context_block(chunk))
+
+    chart_summary = summarize_chart_context(state.get("chart_data") or {})
+    final_context = "\n\n".join([part for part in [chart_summary, *blocks] if part.strip()])
+    summary = {
+        "candidate_pool_count": len(candidates),
+        "context_assembly_strategy": config.context_assembly_strategy,
+        "has_chart_summary": bool(chart_summary.strip()),
+        "max_chunks": DEFAULT_MAX_CHUNKS,
+        "max_context_chars": DEFAULT_MAX_CONTEXT_CHARS,
+        "selected_count": len(context_chunks),
+        "selected_chunk_ids": [chunk.get("chunk_id") for chunk in context_chunks],
+        "total_context_chars": len(final_context),
+    }
+    return final_context, context_chunks, summary
+
+
+def select_candidate_pool(state: RAGState) -> list[dict[str, Any]]:
+    for key in ("ranked_candidates", "graded_candidates", "reranked_candidates", "fused_candidates"):
+        candidates = [dict(candidate) for candidate in state.get(key) or []]
+        if candidates:
+            return candidates
+    return []
+
+
+def order_candidates(candidates: list[dict[str, Any]], *, strategy: str) -> list[dict[str, Any]]:
+    if strategy == "graph_first":
+        return sorted(candidates, key=lambda item: (path_priority(item, "graph"), score_value(item), -rank_value(item)), reverse=True)
+    if strategy == "dense_first":
+        return sorted(candidates, key=lambda item: (path_priority(item, "dense"), score_value(item), -rank_value(item)), reverse=True)
+    if strategy == "compact":
+        return sorted(candidates, key=lambda item: (score_value(item), -len(str(item.get("text") or "")), -rank_value(item)), reverse=True)
+    # balanced keeps ranking stable but rewards candidates found by multiple paths.
+    return sorted(candidates, key=lambda item: (len(item.get("retrieval_paths") or []), score_value(item), -rank_value(item)), reverse=True)
+
+
+def select_with_budget(candidates: list[dict[str, Any]], *, max_chars: int, max_chunks: int) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    used_chars = 0
+    for candidate in candidates:
+        text = candidate_text(candidate)
+        if not text:
+            continue
+        projected = used_chars + min(len(text), EXCERPT_CHARS)
+        if selected and projected > max_chars:
+            continue
+        selected.append(candidate)
+        used_chars = projected
+        if len(selected) >= max_chunks:
+            break
+    return selected
+
+
+def make_context_chunk(candidate: dict[str, Any], *, index: int, config: ExperimentConfig) -> dict[str, Any]:
+    excerpt = candidate_text(candidate)[:EXCERPT_CHARS].strip()
+    marker = f"S{index}"
+    return {
+        "citation_marker": marker,
+        "chunk_id": candidate.get("chunk_id"),
+        "chunk_hash": candidate.get("chunk_hash"),
+        "chunk_strategy_id": candidate.get("chunk_strategy_id") or config.chunk_strategy_id,
+        "chunk_type": candidate.get("chunk_type"),
+        "domain": candidate.get("domain") or config.domain,
+        "excerpt": excerpt,
+        "fusion_score": candidate.get("fusion_score"),
+        "grade_score": candidate.get("grade_score"),
+        "matched_entities": list(candidate.get("matched_entities") or []),
+        "parent_id": candidate.get("parent_id"),
+        "provenance": dict(candidate.get("provenance") or {}),
+        "rank": candidate.get("rank"),
+        "rerank_score": candidate.get("rerank_score"),
+        "retrieval_paths": candidate_retrieval_paths(candidate),
+        "score": candidate.get("score"),
+        "source_id": candidate.get("source_id"),
+        "source_name": candidate.get("source_name"),
+        "source_page": candidate.get("source_page"),
+        "title": candidate.get("title"),
+    }
+
+
+def format_context_block(chunk: dict[str, Any]) -> str:
+    source_label = chunk.get("source_name") or chunk.get("source_id") or "Không rõ nguồn"
+    page = chunk.get("source_page")
+    page_label = f", trang {page}" if page not in (None, "") else ""
+    title = f" - {chunk.get('title')}" if chunk.get("title") else ""
+    return (
+        f"[{chunk['citation_marker']}] {source_label}{page_label}{title}\n"
+        f"chunk_id: {chunk.get('chunk_id')} | strategy: {chunk.get('chunk_strategy_id')}\n"
+        f"{chunk.get('excerpt') or ''}"
+    )
+
+
+def summarize_chart_context(chart_data: dict[str, Any]) -> str:
+    if not isinstance(chart_data, dict) or not chart_data:
+        return ""
+    metadata = chart_data.get("metadata") if isinstance(chart_data.get("metadata"), dict) else {}
+    fields = {
+        "chart_type": chart_data.get("chart_type") or chart_data.get("chart_system") or "TUVI",
+        "label": metadata.get("label") or chart_data.get("label"),
+        "gender": metadata.get("gender") or chart_data.get("gender"),
+        "birth_date": metadata.get("birth_date") or chart_data.get("birth_date"),
+        "birth_time": metadata.get("birth_time") or chart_data.get("birth_time"),
+    }
+    compact = {key: value for key, value in fields.items() if value not in (None, "", [])}
+    if not compact:
+        return ""
+    lines = ["[CHART] Thông tin lá số Tử Vi", *[f"{key}: {value}" for key, value in compact.items()]]
+    return "\n".join(lines)
+
+
+def candidate_text(candidate: dict[str, Any]) -> str:
+    return str(candidate.get("text") or candidate.get("excerpt") or candidate.get("text_preview") or "").strip()
+
+
+def score_value(candidate: dict[str, Any]) -> float:
+    for field in ("grade_score", "rerank_score", "fusion_score", "score"):
+        value = candidate.get(field)
+        if value is not None:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                continue
+    return 0.0
+
+
+def rank_value(candidate: dict[str, Any]) -> int:
+    try:
+        return int(candidate.get("rank") or 10_000)
+    except (TypeError, ValueError):
+        return 10_000
+
+
+def path_priority(candidate: dict[str, Any], path: str) -> int:
+    paths = candidate_retrieval_paths(candidate)
+    return 1 if path in paths else 0
+
+
+def candidate_retrieval_paths(candidate: dict[str, Any]) -> list[str]:
+    paths = [str(path) for path in candidate.get("retrieval_paths") or [] if str(path).strip()]
+    retrieval_path = candidate.get("retrieval_path")
+    if retrieval_path and str(retrieval_path) not in paths:
+        paths.append(str(retrieval_path))
+    return paths

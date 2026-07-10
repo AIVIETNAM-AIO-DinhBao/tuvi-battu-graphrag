@@ -7,6 +7,7 @@ import pytest
 import app.rag.nodes as rag_nodes
 from app.rag.config import ExperimentConfig, load_experiment_config
 from app.rag.graph import run_rag_dry_run
+from app.rag.generation import DeterministicGenerationClient
 from app.rag.retrieval import (
     build_fulltext_query,
     normalize_candidate,
@@ -264,6 +265,7 @@ def test_dry_run_populates_enabled_retrieval_paths_and_keeps_downstream_placehol
         query_entity_extractor=fake_query_entity_extractor,
         neo4j_driver=driver,
         dense_embedding_service=FakeEmbeddingService(),
+        generation_client=DeterministicGenerationClient(),
     )
 
     assert [candidate["chunk_id"] for candidate in state["graph_candidates"]] == ["graph"]
@@ -272,7 +274,11 @@ def test_dry_run_populates_enabled_retrieval_paths_and_keeps_downstream_placehol
     assert trace_entry(state, "graph_retrieval")["candidate_count"] == 1
     assert trace_entry(state, "dense_retrieval")["candidate_count"] == 1
     assert trace_entry(state, "sparse_retrieval")["candidate_count"] == 1
-    assert trace_entry(state, "generation_placeholder")["status"] == "placeholder"
+    assert trace_entry(state, "context_assembly")["selected_count"] == 3
+    assert trace_entry(state, "generation")["status"] == "completed"
+    assert trace_entry(state, "citation_map")["source_count"] >= 1
+    assert state["answer"]
+    assert state["sources"]
 
 
 def test_dry_run_retrieval_toggles_skip_independently(monkeypatch: pytest.MonkeyPatch) -> None:

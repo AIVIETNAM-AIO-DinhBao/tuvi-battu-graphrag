@@ -890,8 +890,8 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
   - chunk strategies: `chunk_fixed_512`, `chunk_structure_parent_child`, `chunk_semantic_embedding_bge_m3`
   - runtime embedding slot: `bge_m3`
   - vector property/index/dim: `Chunk.embedding_bge_m3`, `chunkVectorBgeM3`, `1024`
-- Scope intentionally stops at W4-RAG-03.
-- W4-RAG-04, W4-RAG-05, and W4-ABL-01 are not claimed here; fusion, rerank, document grading, context assembly, generation, citations, Langfuse production tracing, `/chat` replacement, and `AblationRunner` remain later tasks.
+- Current implementation is complete through W4-RAG-05.
+- W4-ABL-01 is not claimed here; `AblationRunner` remains the next Week 4 task.
 
 ### W4-EXP-01: Schema `experiment_runs` and `ExperimentConfig` - COMPLETE
 
@@ -1033,6 +1033,105 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
 
 **Status**: COMPLETE - W4-RAG-03 deliverable is implemented and verified.
 
+### W4-RAG-04: Fusion, rerank and document grading toggle - COMPLETE
+
+#### Implementation Summary
+- Added candidate ranking module:
+  - `backend/app/rag/ranking.py`
+- Implemented config-aware fusion dispatcher for:
+  - `rrf`
+  - `weighted_sum`
+  - `graph_first`
+- Fusion deduplicates candidates by `chunk_hash` / `chunk_id`, preserves provenance, merges retrieval path metadata, and records per-path score breakdowns.
+- Added reranker wrapper:
+  - production default remains disabled through `configs/default_production.yaml`
+  - disabled reranker passes fused candidates through and records trace status `skipped`
+  - enabled reranker supports dependency injection for tests and future model-backed rerankers
+  - added deterministic `LexicalOverlapReranker` fallback for local/test-safe behavior
+- Added document grading toggle:
+  - production default remains disabled
+  - disabled grading passes reranked candidates through and records trace status `skipped`
+  - enabled grading uses a deterministic overlap/text-presence stub and writes `document_grade` / `grade_score`
+- Replaced Week 4 ranking placeholders in `backend/app/rag/nodes.py` with real nodes:
+  - `fusion`
+  - `rerank`
+  - `document_grading`
+- Extended `RAGState` with:
+  - `graded_candidates`
+  - `ranked_candidates`
+- Extended `run_rag_dry_run(...)` / graph construction with injectable `candidate_reranker`.
+- Exported `CandidateReranker` from `backend/app/rag/__init__.py`.
+
+#### Verification
+- Added `backend/tests/test_rag_ranking.py` covering:
+  - RRF dedupe and score breakdown
+  - weighted-sum normalized score behavior
+  - graph-first priority behavior
+  - fusion dispatcher by config
+  - reranker disabled pass-through
+  - injected reranker reorder/top-k behavior
+  - deterministic lexical reranker
+  - document grading enabled/disabled behavior
+  - dry-run trace for ranking nodes
+- Updated dry-run tests to expect `graded_candidates` and `ranked_candidates`.
+
+**Status**: COMPLETE - W4-RAG-04 deliverable is implemented and verified.
+
+### W4-RAG-05: Context assembly, generation and citations - COMPLETE
+
+#### Implementation Summary
+- Added context assembly module:
+  - `backend/app/rag/context.py`
+  - selects from `ranked_candidates` / `graded_candidates` / `reranked_candidates` / `fused_candidates`
+  - supports configured context strategies: `balanced`, `dense_first`, `graph_first`, `compact`
+  - formats citation-ready context blocks with markers such as `[S1]`
+  - preserves chunk/source provenance, strategy ID, retrieval paths and scores
+- Added generation module:
+  - `backend/app/rag/generation.py`
+  - builds a Tử Vi-only Vietnamese prompt using chart summary, query and assembled context
+  - provides `GeminiGenerationClient` for runtime
+  - provides `DeterministicGenerationClient` for tests
+  - returns a safe Vietnamese no-context fallback when retrieved context is missing
+- Added citation mapping module:
+  - `backend/app/rag/citations.py`
+  - maps answer markers like `[S1]` back to selected context chunks
+  - returns API-ready `sources` with `source_id`, `source_name`, `source_page`, `chunk_id`, `chunk_hash`, `chunk_strategy_id`, excerpt, score/confidence, retrieval paths and provenance
+  - falls back to returning selected context sources if the answer lacks explicit markers
+- Replaced W4-RAG-05 placeholders in `backend/app/rag/nodes.py` with real nodes:
+  - `context_assembly`
+  - `generation`
+  - `citation_map`
+- Extended `RAGState` with:
+  - `context_chunks`
+  - `context_summary`
+  - `generation_metadata`
+  - `citation_metadata`
+- Extended `run_rag_dry_run(...)` / graph construction with injectable `generation_client` for test-safe generation.
+- Updated `/chat` in `backend/app/main.py` to return:
+  - `answer`
+  - `sources`
+  - `trace`
+  - `experiment_id`
+  - `config_hash`
+  - `chunk_strategy_id`
+  - `generation_metadata`
+  - `citation_metadata`
+- `/chat` now logs request/response/error events through the existing Langfuse stub while avoiding raw stack trace exposure.
+- Made backend app import resilient when optional chart engine service modules are unavailable in a lightweight test environment.
+
+#### Verification
+- Added `backend/tests/test_rag_context_generation_citations.py` covering:
+  - context assembly from ranked candidates
+  - context strategy ordering differences
+  - no-context generation fallback
+  - deterministic cited generation
+  - explicit citation marker mapping
+  - fallback source mapping when answer has no markers
+- Added `backend/tests/test_chat_route.py` covering `/chat` response shape with `answer + sources + trace`.
+- Updated dry-run and retrieval tests to expect real W4-RAG-05 nodes and non-empty generation fallback behavior.
+
+**Status**: COMPLETE - W4-RAG-05 deliverable is implemented and verified.
+
 ### Verification Commands - 2026-07-09
 - Focused Week 4/RAG regression:
   - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experiment_config.py backend\tests\test_rag_dry_run.py backend\tests\test_rag_query_processing.py backend\tests\test_rag_retrieval.py backend\tests\test_runtime_embedding_service.py -q -p no:cacheprovider`
@@ -1041,13 +1140,24 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
   - `python -m py_compile backend\app\rag\config.py backend\app\rag\graph.py backend\app\rag\nodes.py backend\app\rag\retrieval.py backend\app\rag\rewrite.py backend\app\rag\query_entities.py backend\app\rag\state.py`
   - Result: passed
 
+### Verification Commands - 2026-07-10
+- Focused Week 4/RAG regression including W4-RAG-04:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experiment_config.py backend\tests\test_rag_dry_run.py backend\tests\test_rag_query_processing.py backend\tests\test_rag_retrieval.py backend\tests\test_rag_ranking.py backend\tests\test_runtime_embedding_service.py -q -p no:cacheprovider`
+  - Result: `45 passed`
+- Focused Week 4/RAG regression including W4-RAG-05:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experiment_config.py backend\tests\test_rag_dry_run.py backend\tests\test_rag_query_processing.py backend\tests\test_rag_retrieval.py backend\tests\test_rag_ranking.py backend\tests\test_rag_context_generation_citations.py backend\tests\test_chat_route.py backend\tests\test_runtime_embedding_service.py -q -p no:cacheprovider`
+  - Result: `52 passed, 10 warnings`
+- RAG/backend compile check including W4-RAG-05 modules:
+  - `.\.venv\Scripts\python.exe -m py_compile backend\app\main.py backend\app\rag\config.py backend\app\rag\graph.py backend\app\rag\nodes.py backend\app\rag\context.py backend\app\rag\generation.py backend\app\rag\citations.py backend\app\rag\ranking.py backend\app\rag\retrieval.py backend\app\rag\rewrite.py backend\app\rag\query_entities.py backend\app\rag\state.py`
+  - Result: passed
+
 ### Current Week 4 Boundary
 - Completed deliverables:
   - D-19: Migration `experiment_runs` and `ExperimentConfig` schema
   - D-20: LangGraph/RAGState config-aware
   - D-21: Query rewrite and entity extraction toggles
   - D-22: Graph, dense, and sparse retrieval toggles
-- Not yet completed:
   - D-23: Fusion dispatcher, reranker, and document grading toggle
   - D-24: Context assembly, generation, and citation mapping
+- Not yet completed:
   - D-25: `AblationRunner` skeleton

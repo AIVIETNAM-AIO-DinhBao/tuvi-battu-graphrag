@@ -1,18 +1,36 @@
+from typing import Any
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from fastapi.responses import JSONResponse
 
 from app.clients import get_neo4j_driver, get_langfuse_client, get_supabase_client
 from app.config import settings
-from app.routers import chart
-from app.routers import lasotuvi_routes
+from app.rag.graph import run_rag_dry_run
+
+
+logger = logging.getLogger(__name__)
+
+try:
+    from app.routers import chart
+except ModuleNotFoundError as exc:
+    chart = None
+    logger.warning("Chart router is unavailable: %s", exc)
+
+try:
+    from app.routers import lasotuvi_routes
+except ModuleNotFoundError as exc:
+    lasotuvi_routes = None
+    logger.warning("Lasotuvi router is unavailable: %s", exc)
 
 app = FastAPI(title="TuVi GraphRAG - FastAPI Backend")
 
 # Include routers
-app.include_router(chart.router)
-app.include_router(lasotuvi_routes.router)
+if chart is not None:
+    app.include_router(chart.router)
+if lasotuvi_routes is not None:
+    app.include_router(lasotuvi_routes.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,6 +54,7 @@ class ChatRequest(BaseModel):
     chart_id: str
     query: str
     user_id: str | None = None
+    experiment_config_path: str | None = None
 
 
 @app.post("/chat")
@@ -49,14 +68,54 @@ async def chat(req: ChatRequest):
     except Exception:
         pass
 
-    return JSONResponse(
-        {
-            "status": "not_implemented",
-            "message": "Chat orchestration is pending implementation.",
+    try:
+        initial_state: dict[str, Any] = {
+            "chart_id": req.chart_id,
             "query": req.query,
-        },
-        status_code=501,
-    )
+        }
+        if req.user_id:
+            initial_state["user_id"] = req.user_id
+        if req.experiment_config_path:
+            initial_state["experiment_config_path"] = req.experiment_config_path
+
+        state = run_rag_dry_run(initial_state)
+        config = state.get("experiment_config")
+        chunk_strategy_id = getattr(config, "chunk_strategy_id", None)
+        response = {
+            "status": "ok",
+            "answer": state.get("answer") or "",
+            "sources": state.get("sources") or [],
+            "trace": state.get("retrieval_trace") or {},
+            "experiment_id": state.get("experiment_id"),
+            "config_hash": state.get("config_hash"),
+            "chunk_strategy_id": chunk_strategy_id,
+            "generation_metadata": state.get("generation_metadata") or {},
+            "citation_metadata": state.get("citation_metadata") or {},
+        }
+        try:
+            langfuse.log_event("chat_response", {
+                "chart_id": req.chart_id,
+                "user_id": req.user_id,
+                "experiment_id": response["experiment_id"],
+                "config_hash": response["config_hash"],
+                "chunk_strategy_id": response["chunk_strategy_id"],
+                "source_count": len(response["sources"]),
+            })
+        except Exception:
+            pass
+        return response
+    except HTTPException:
+        raise
+    except Exception as exc:
+        try:
+            langfuse.log_event("chat_error", {
+                "chart_id": req.chart_id,
+                "user_id": req.user_id,
+                "error_type": type(exc).__name__,
+            })
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail="Không thể xử lý câu hỏi lúc này.") from exc
 
 
 if __name__ == "__main__":
