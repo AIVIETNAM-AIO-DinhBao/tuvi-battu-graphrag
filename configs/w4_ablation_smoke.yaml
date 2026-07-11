@@ -1,0 +1,27 @@
+name: w4_abl_01_smoke
+notes: "W4-ABL-01 golden smoke run: release TuViQA dataset, use --limit 2 for local smoke checks"
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports/w4_abl_01
+configs:
+  - name: golden_smoke_rrf_balanced
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w4_abl_01_golden_smoke_rrf_balanced
+      name: W4 ABL golden smoke - RRF balanced
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      cache_disabled: true
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: false
+  - name: golden_smoke_graph_first
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w4_abl_01_golden_smoke_graph_first
+      name: W4 ABL golden smoke - graph first
+      fusion_method: graph_first
+      context_assembly_strategy: graph_first
+      cache_disabled: true
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: false

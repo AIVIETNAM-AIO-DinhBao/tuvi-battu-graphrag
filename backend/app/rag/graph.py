@@ -6,6 +6,7 @@ from typing import Any
 
 from app.rag.nodes import ChartLoader, DRY_RUN_NODE_ORDER, QueryEntityExtractor, build_node_map
 from app.rag.generation import GenerationClient
+from app.rag.config import ExperimentConfig
 from app.rag.ranking import CandidateReranker
 from app.rag.rewrite import QueryRewriter
 from app.rag.state import RAGState
@@ -37,6 +38,7 @@ def build_rag_graph(
     *,
     chart_loader: ChartLoader | None = None,
     config_path: Path | str | None = None,
+    experiment_config: ExperimentConfig | None = None,
     query_rewriter: QueryRewriter | None = None,
     query_entity_extractor: QueryEntityExtractor | None = None,
     neo4j_driver: Any | None = None,
@@ -47,6 +49,7 @@ def build_rag_graph(
     node_map = build_node_map(
         chart_loader=chart_loader,
         config_path=config_path,
+        experiment_config=experiment_config,
         query_rewriter=query_rewriter,
         query_entity_extractor=query_entity_extractor,
         neo4j_driver=neo4j_driver,
@@ -74,6 +77,7 @@ def run_rag_dry_run(
     *,
     chart_loader: ChartLoader | None = None,
     config_path: Path | str | None = None,
+    experiment_config: ExperimentConfig | None = None,
     query_rewriter: QueryRewriter | None = None,
     query_entity_extractor: QueryEntityExtractor | None = None,
     neo4j_driver: Any | None = None,
@@ -84,6 +88,7 @@ def run_rag_dry_run(
     graph = build_rag_graph(
         chart_loader=chart_loader,
         config_path=config_path,
+        experiment_config=experiment_config,
         query_rewriter=query_rewriter,
         query_entity_extractor=query_entity_extractor,
         neo4j_driver=neo4j_driver,

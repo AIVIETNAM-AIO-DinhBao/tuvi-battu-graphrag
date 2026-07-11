@@ -890,8 +890,8 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
   - chunk strategies: `chunk_fixed_512`, `chunk_structure_parent_child`, `chunk_semantic_embedding_bge_m3`
   - runtime embedding slot: `bge_m3`
   - vector property/index/dim: `Chunk.embedding_bge_m3`, `chunkVectorBgeM3`, `1024`
-- Current implementation is complete through W4-RAG-05.
-- W4-ABL-01 is not claimed here; `AblationRunner` remains the next Week 4 task.
+- Current implementation is complete through W5-FE-01.
+- Week 5 frontend integration has started with D-26 (`Next.js chat proxy`) complete; W5-FE-02 full chat history/persistence is the next planned boundary.
 
 ### W4-EXP-01: Schema `experiment_runs` and `ExperimentConfig` - COMPLETE
 
@@ -1132,6 +1132,66 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
 
 **Status**: COMPLETE - W4-RAG-05 deliverable is implemented and verified.
 
+### W4-ABL-01: `AblationRunner` skeleton - COMPLETE
+
+#### Implementation Summary
+- Added config-aware ablation runner module:
+  - `backend/app/rag/ablation.py`
+  - loads ablation manifests from YAML
+  - loads smoke/golden datasets from compact JSONL or pretty multiline JSON object streams
+  - maps TuViQA release fields (`question`, `chart_repr`, `gold_answer`, `expected_answer_summary`, `gold_context_spans`, `labels`, `question_complexity`, `birth_info`) into ablation dataset items
+  - builds `ExperimentConfig` variants from base config + overrides
+  - forces `cache_disabled = true` and preserves `domain = TUVI`
+  - runs a dataset x config matrix through an injectable RAG callable
+  - computes W4 smoke metrics: item count, completion/failure counts, answer-present rate, source coverage, average sources, latency, citation fallback count, and selected-context average
+  - computes rule-based/semantic-lite golden metrics using `gold_answer`, `expected_answer_summary`, `gold_context_spans`, generated answers, and returned sources:
+    - answer token recall vs gold/summary
+    - summary coverage rate
+    - answer length
+    - char n-gram similarity and ROUGE-L-like recall vs summary
+    - gold doc/page/quote coverage
+    - citation marker presence and source alignment
+- Added experiment-run persistence abstraction:
+  - `ExperimentRunStore` protocol
+  - `NullExperimentRunStore` for no-write local/report-only runs
+  - `InMemoryExperimentRunStore` for tests
+  - `SupabaseExperimentRunStore` for runtime `experiment_runs` inserts/updates
+- Added report export:
+  - JSON report: `ablation_report.json`
+  - Markdown report: `ablation_report.md`
+  - Markdown report now includes golden answer, gold context, and citation metric tables.
+- Added ablation CLI:
+  - `scripts/run_ablation.py`
+  - supports `--manifest`, `--offline-smoke`, `--skip-persistence`, `--persist-supabase`, `--limit`, `--output-dir`, and `--fail-fast`
+- Updated W4 smoke manifest to use the real TuViQA golden release dataset:
+  - `configs/w4_ablation_smoke.yaml`
+  - `benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl`
+  - local smoke matrix is 2 configs x `--limit 2` release records
+  - removed temporary dataset `benchmark/tuvi_golden_dataset/w4_ablation_smoke.jsonl`
+- Extended RAG graph/config loading with in-memory `ExperimentConfig` injection:
+  - `run_rag_dry_run(..., experiment_config=config)`
+  - preserves existing `config_path` behavior for production/backward compatibility
+- Exported `AblationRunner` from `backend/app/rag/__init__.py`.
+
+#### Verification
+- Added `backend/tests/test_rag_ablation.py` covering:
+  - smoke manifest and TuViQA release dataset loading with `limit=2`
+  - field mapping from `question/chart_repr` to `query/chart_data`
+  - `gold_answer`, `expected_answer_summary`, `gold_context_spans`, and `question_complexity` loading
+  - 2 questions x 2 configs matrix execution
+  - `cache_disabled = true` enforcement on config variants
+  - fake/in-memory experiment-run row creation and completion
+  - item failure capture without fail-fast
+  - experiment-run payload fields for `experiment_runs`
+  - rule-based/semantic-lite metric keys in aggregate reports
+  - report file generation
+  - in-memory `ExperimentConfig` injection through `run_rag_dry_run(...)`
+- Offline smoke command generated report files under:
+  - `benchmark/tuvi_golden_dataset/reports/w4_abl_01/`
+- Supabase persistence is implemented via `--persist-supabase`; the local verification used `--skip-persistence` to avoid unintended DB writes.
+
+**Status**: COMPLETE - W4-ABL-01 deliverable is implemented against the real TuViQA release golden dataset and verified with offline smoke reporting plus test-covered experiment-run persistence behavior.
+
 ### Verification Commands - 2026-07-09
 - Focused Week 4/RAG regression:
   - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experiment_config.py backend\tests\test_rag_dry_run.py backend\tests\test_rag_query_processing.py backend\tests\test_rag_retrieval.py backend\tests\test_runtime_embedding_service.py -q -p no:cacheprovider`
@@ -1150,6 +1210,32 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
 - RAG/backend compile check including W4-RAG-05 modules:
   - `.\.venv\Scripts\python.exe -m py_compile backend\app\main.py backend\app\rag\config.py backend\app\rag\graph.py backend\app\rag\nodes.py backend\app\rag\context.py backend\app\rag\generation.py backend\app\rag\citations.py backend\app\rag\ranking.py backend\app\rag\retrieval.py backend\app\rag\rewrite.py backend\app\rag\query_entities.py backend\app\rag\state.py`
   - Result: passed
+- Focused W4-ABL-01 tests:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_rag_ablation.py -q -p no:cacheprovider`
+  - Result: `5 passed`
+- Focused Week 4/RAG regression including W4-ABL-01:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experiment_config.py backend\tests\test_rag_dry_run.py backend\tests\test_rag_query_processing.py backend\tests\test_rag_retrieval.py backend\tests\test_rag_ranking.py backend\tests\test_rag_context_generation_citations.py backend\tests\test_chat_route.py backend\tests\test_runtime_embedding_service.py backend\tests\test_rag_ablation.py -q -p no:cacheprovider`
+  - Result: `57 passed, 10 warnings`
+- RAG/backend compile check including W4-ABL-01 modules:
+  - `.\.venv\Scripts\python.exe -m py_compile backend\app\rag\config.py backend\app\rag\graph.py backend\app\rag\nodes.py backend\app\rag\ablation.py backend\app\rag\__init__.py scripts\run_ablation.py`
+  - Result: passed
+- Offline W4-ABL-01 smoke run:
+  - `.\.venv\Scripts\python.exe scripts\run_ablation.py --manifest configs\w4_ablation_smoke.yaml --offline-smoke --skip-persistence --limit 2`
+  - Result: completed `2` configs x `2` dataset items and wrote JSON/Markdown reports.
+
+### Verification Commands - 2026-07-11
+- Focused W4-ABL-01 tests after switching to the real TuViQA release dataset:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_rag_ablation.py -q -p no:cacheprovider`
+  - Result: `5 passed`
+- RAG/backend compile check for ablation modules:
+  - `.\.venv\Scripts\python.exe -m py_compile backend\app\rag\ablation.py scripts\run_ablation.py`
+  - Result: passed
+- Offline W4-ABL-01 golden smoke run:
+  - `.\.venv\Scripts\python.exe scripts\run_ablation.py --manifest configs\w4_ablation_smoke.yaml --offline-smoke --skip-persistence --limit 2`
+  - Result: completed `2` configs x `2` TuViQA release records with both configs completed and report files regenerated.
+- Focused Week 4/RAG regression including W4-ABL-01:
+  - `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experiment_config.py backend\tests\test_rag_dry_run.py backend\tests\test_rag_query_processing.py backend\tests\test_rag_retrieval.py backend\tests\test_rag_ranking.py backend\tests\test_rag_context_generation_citations.py backend\tests\test_chat_route.py backend\tests\test_runtime_embedding_service.py backend\tests\test_rag_ablation.py -q -p no:cacheprovider`
+  - Result: `57 passed, 10 warnings`
 
 ### Current Week 4 Boundary
 - Completed deliverables:
@@ -1159,5 +1245,61 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
   - D-22: Graph, dense, and sparse retrieval toggles
   - D-23: Fusion dispatcher, reranker, and document grading toggle
   - D-24: Context assembly, generation, and citation mapping
-- Not yet completed:
   - D-25: `AblationRunner` skeleton
+- D-26 is now completed in W5-FE-01 below.
+
+---
+
+## Week 5 Frontend Integration Progress Update - 2026-07-11
+
+### W5-FE-01: Kết nối proxy Next.js `/api/chat` - COMPLETE
+
+#### Implementation Summary
+- Added a Next.js chat proxy route:
+  - `frontend/app/api/chat/route.ts`
+  - accepts `POST /api/chat`
+  - requires `Authorization: Bearer <Supabase access_token>`
+  - verifies the token with Supabase server-side via `supabase.auth.getUser(...)`
+  - validates `chart_id` and `query`
+  - forwards to FastAPI `/chat` using `BACKEND_API_BASE_URL` with fallback to `NEXT_PUBLIC_API_BASE_URL`
+  - forwards `user_id` from the verified Supabase session instead of trusting client-provided user IDs
+  - normalizes error responses and avoids leaking backend stack traces
+  - applies a local request timeout for slow backend responses
+- Added a minimal chart-bound chat UI:
+  - `frontend/components/ChatInterface.tsx`
+  - reads the current Supabase session client-side
+  - sends chat requests to `/api/chat`
+  - renders user messages, assistant answers, returned sources, and run metadata such as `experiment_id` and `chunk_strategy_id`
+  - handles loading, disabled submit, auth errors, backend errors, and empty-source fallback text
+- Integrated chat into chart detail:
+  - `frontend/app/chart/[id]/page.tsx`
+  - renders `<ChatInterface chartId={chart.id} chartLabel={chart.label} />` after the chart visualizer/debug section
+- Refreshed global UI styling toward the new `DESIGN.md` direction:
+  - `frontend/app/globals.css`
+  - changed base canvas to warm cream `#faf9f5`
+  - changed primary CTA/accent to coral `#cc785c`
+  - added cream card, dark navy, elevated dark, muted, and on-dark tokens
+  - updated display/body font stacks to serif display + Inter-like UI sans fallbacks
+  - updated buttons, inputs, panels, debug code preview, and new chat components to follow cream/coral/dark-navy surface rhythm
+
+#### Scope Boundary
+- W5-FE-01 intentionally implements only proxy + minimal usable chat proof.
+- Supabase chat history persistence remains W5-FE-02.
+- Full interactive citation panel remains W5-FE-03.
+- Rate limiting and broader error policy remain W5-FE-05.
+
+#### Verification
+- Frontend production build:
+  - `cd frontend && npm run build`
+  - Result: passed. Next.js compiled successfully, type checks passed, and `/api/chat` is listed as a dynamic route.
+
+**Status**: COMPLETE - W5-FE-01 deliverable is implemented and build-verified. Chart detail can now send authenticated chat requests through the Next.js proxy and render backend `answer + sources` responses.
+
+### Current Week 5 Boundary
+- Completed deliverables:
+  - D-26: Next.js chat proxy
+- Not yet completed:
+  - D-27: Chat UI đầy đủ với lịch sử
+  - D-28: Citation panel
+  - D-29: Chart detail page hoàn chỉnh
+  - D-30: Error handling và rate limiting

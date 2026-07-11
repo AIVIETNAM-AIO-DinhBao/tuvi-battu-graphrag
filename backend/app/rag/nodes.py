@@ -142,10 +142,13 @@ def make_load_chart_context_node(chart_loader: ChartLoader | None = None) -> Cal
     return load_chart_context
 
 
-def make_load_config_node(config_path: Path | str | None = None) -> Callable[[RAGState], RAGState]:
+def make_load_config_node(
+    config_path: Path | str | None = None,
+    experiment_config: Any | None = None,
+) -> Callable[[RAGState], RAGState]:
     def load_config(state: RAGState) -> RAGState:
         state_config_path = state.get("experiment_config_path")
-        config = load_experiment_config(config_path or state_config_path)
+        config = experiment_config or load_experiment_config(config_path or state_config_path)
         state["experiment_config"] = config
         state["experiment_id"] = config.experiment_id
         state["config_hash"] = config_hash(config)
@@ -506,6 +509,7 @@ def build_node_map(
     *,
     chart_loader: ChartLoader | None = None,
     config_path: Path | str | None = None,
+    experiment_config: Any | None = None,
     query_rewriter: QueryRewriter | None = None,
     query_entity_extractor: QueryEntityExtractor | None = None,
     neo4j_driver: Any | None = None,
@@ -515,7 +519,7 @@ def build_node_map(
 ) -> dict[str, Callable[[RAGState], RAGState]]:
     return {
         "load_chart_context": make_load_chart_context_node(chart_loader),
-        "load_config": make_load_config_node(config_path),
+        "load_config": make_load_config_node(config_path, experiment_config),
         "normalize_query": normalize_query,
         "classify_query_complexity": classify_query_complexity,
         "query_rewrite": make_query_rewrite_node(query_rewriter),

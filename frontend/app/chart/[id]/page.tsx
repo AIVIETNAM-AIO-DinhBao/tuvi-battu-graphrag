@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { ChatInterface } from "../../../components/ChatInterface";
 import { TuViBoard, type TuViChartData } from "../../../components/TuViBoard";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -129,6 +130,8 @@ export default function ChartDetailPage() {
           </details>
         </section>
       )}
+
+      {chart && <ChatInterface chartId={chart.id} chartLabel={chart.label} />}
     </main>
   );
 }

@@ -1,0 +1,454 @@
+{
+  "completed_at": "2026-07-11T01:13:14.991429Z",
+  "config_count": 2,
+  "configs": [
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "completed_at": "2026-07-11T01:13:14.845250Z",
+      "config_hash": "089bcadb008da2801badb2fbba5735f9c699486b8fc0ea05db3dc8f1195a35c8",
+      "config_name": "golden_smoke_rrf_balanced",
+      "context_assembly_strategy": "balanced",
+      "error": null,
+      "experiment_id": "w4_abl_01_golden_smoke_rrf_balanced",
+      "fusion_method": "rrf",
+      "items": [
+        {
+          "answer_length_chars": 118,
+          "answer_present": true,
+          "answer_token_recall_vs_gold": 0.1053,
+          "answer_token_recall_vs_summary": 0.1667,
+          "char_ngram_similarity_vs_summary": 0.0746,
+          "chart_id": "CHART-001",
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_selected_count": 0,
+          "error": null,
+          "gold_doc_coverage_rate": null,
+          "gold_page_hit_rate": null,
+          "gold_quote_overlap_avg": null,
+          "gold_span_count": 0,
+          "item_id": "TVQA-001",
+          "labels": {
+            "question_family": "core_identity",
+            "topic": "identity"
+          },
+          "latency_ms": 98.95,
+          "query": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+          "question_complexity": "Direct",
+          "rouge_l_like_vs_summary": 0.2727,
+          "source_count": 0,
+          "status": "completed",
+          "summary_coverage_binary": false,
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "completed"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "skipped"
+            },
+            {
+              "node": "document_grading",
+              "status": "skipped"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "fallback"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "answer_length_chars": 118,
+          "answer_present": true,
+          "answer_token_recall_vs_gold": 0.0446,
+          "answer_token_recall_vs_summary": 0.1111,
+          "char_ngram_similarity_vs_summary": 0.0787,
+          "chart_id": "CHART-001",
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_selected_count": 0,
+          "error": null,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.0,
+          "gold_span_count": 6,
+          "item_id": "TVQA-002",
+          "labels": {
+            "question_family": "menh_house_interpretation",
+            "topic": "self"
+          },
+          "latency_ms": 103.78,
+          "query": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+          "question_complexity": "One-hop",
+          "rouge_l_like_vs_summary": 0.0588,
+          "source_count": 0,
+          "status": "completed",
+          "summary_coverage_binary": false,
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "completed"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "skipped"
+            },
+            {
+              "node": "document_grading",
+              "status": "skipped"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "fallback"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "answer_present_rate": 1.0,
+        "avg_answer_length_chars": 118.0,
+        "avg_answer_token_recall_vs_gold": 0.075,
+        "avg_answer_token_recall_vs_summary": 0.1389,
+        "avg_char_ngram_similarity_vs_summary": 0.0766,
+        "avg_gold_doc_coverage_rate": 0.0,
+        "avg_gold_page_hit_rate": 0.0,
+        "avg_gold_quote_overlap": 0.0,
+        "avg_latency_ms": 101.37,
+        "avg_rouge_l_like_vs_summary": 0.1658,
+        "avg_source_count": 0.0,
+        "citation_fallback_count": 0,
+        "citation_marker_presence_rate": 0.0,
+        "citation_source_alignment_rate": 0.0,
+        "completed_count": 2,
+        "context_selected_count_avg": 0.0,
+        "failed_count": 0,
+        "item_count": 2,
+        "source_coverage_rate": 0.0,
+        "summary_coverage_rate": 0.0
+      },
+      "run_id": null,
+      "started_at": "2026-07-11T01:13:14.641291Z",
+      "status": "completed"
+    },
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "completed_at": "2026-07-11T01:13:14.991377Z",
+      "config_hash": "115f4d4d0ed3d7aed6120f874474dc4fc2f3cbefc3b770119b7f60e7e7fa9b36",
+      "config_name": "golden_smoke_graph_first",
+      "context_assembly_strategy": "graph_first",
+      "error": null,
+      "experiment_id": "w4_abl_01_golden_smoke_graph_first",
+      "fusion_method": "graph_first",
+      "items": [
+        {
+          "answer_length_chars": 118,
+          "answer_present": true,
+          "answer_token_recall_vs_gold": 0.1053,
+          "answer_token_recall_vs_summary": 0.1667,
+          "char_ngram_similarity_vs_summary": 0.0746,
+          "chart_id": "CHART-001",
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_selected_count": 0,
+          "error": null,
+          "gold_doc_coverage_rate": null,
+          "gold_page_hit_rate": null,
+          "gold_quote_overlap_avg": null,
+          "gold_span_count": 0,
+          "item_id": "TVQA-001",
+          "labels": {
+            "question_family": "core_identity",
+            "topic": "identity"
+          },
+          "latency_ms": 67.8,
+          "query": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+          "question_complexity": "Direct",
+          "rouge_l_like_vs_summary": 0.2727,
+          "source_count": 0,
+          "status": "completed",
+          "summary_coverage_binary": false,
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "completed"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "skipped"
+            },
+            {
+              "node": "document_grading",
+              "status": "skipped"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "fallback"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "answer_length_chars": 118,
+          "answer_present": true,
+          "answer_token_recall_vs_gold": 0.0446,
+          "answer_token_recall_vs_summary": 0.1111,
+          "char_ngram_similarity_vs_summary": 0.0787,
+          "chart_id": "CHART-001",
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_selected_count": 0,
+          "error": null,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.0,
+          "gold_span_count": 6,
+          "item_id": "TVQA-002",
+          "labels": {
+            "question_family": "menh_house_interpretation",
+            "topic": "self"
+          },
+          "latency_ms": 69.85,
+          "query": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+          "question_complexity": "One-hop",
+          "rouge_l_like_vs_summary": 0.0588,
+          "source_count": 0,
+          "status": "completed",
+          "summary_coverage_binary": false,
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "completed"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "skipped"
+            },
+            {
+              "node": "document_grading",
+              "status": "skipped"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "fallback"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "answer_present_rate": 1.0,
+        "avg_answer_length_chars": 118.0,
+        "avg_answer_token_recall_vs_gold": 0.075,
+        "avg_answer_token_recall_vs_summary": 0.1389,
+        "avg_char_ngram_similarity_vs_summary": 0.0766,
+        "avg_gold_doc_coverage_rate": 0.0,
+        "avg_gold_page_hit_rate": 0.0,
+        "avg_gold_quote_overlap": 0.0,
+        "avg_latency_ms": 68.82,
+        "avg_rouge_l_like_vs_summary": 0.1658,
+        "avg_source_count": 0.0,
+        "citation_fallback_count": 0,
+        "citation_marker_presence_rate": 0.0,
+        "citation_source_alignment_rate": 0.0,
+        "completed_count": 2,
+        "context_selected_count_avg": 0.0,
+        "failed_count": 0,
+        "item_count": 2,
+        "source_coverage_rate": 0.0,
+        "summary_coverage_rate": 0.0
+      },
+      "run_id": null,
+      "started_at": "2026-07-11T01:13:14.852605Z",
+      "status": "completed"
+    }
+  ],
+  "dataset_item_count": 2,
+  "dataset_path": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\release\\tuviqa_v1_release.jsonl",
+  "manifest_name": "w4_abl_01_smoke",
+  "notes": "W4-ABL-01 golden smoke run: release TuViQA dataset, use --limit 2 for local smoke checks",
+  "output_dir": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w4_abl_01",
+  "started_at": "2026-07-11T01:13:14.633867Z"
+}
