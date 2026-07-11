@@ -18,9 +18,10 @@ def test_chat_route_returns_answer_sources_and_trace(monkeypatch) -> None:
         def log_event(self, event_name: str, payload: dict[str, Any]) -> None:
             return None
 
-    def fake_run_rag_dry_run(initial_state: dict[str, Any]) -> dict[str, Any]:
+    def fake_run_rag_dry_run(initial_state: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         assert initial_state["chart_id"] == "chart-1"
         assert initial_state["query"] == "Thiên Mã tại Quan Lộc thế nào?"
+        assert kwargs["retrieval_fallback_on_error"] is True
         return {
             "answer": "Thiên Mã tại Quan Lộc cần xét nguồn [S1].",
             "sources": [

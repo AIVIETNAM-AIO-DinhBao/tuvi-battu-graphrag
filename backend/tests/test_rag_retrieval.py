@@ -85,6 +85,15 @@ class FakeEmbeddingService:
         return [0.0] * 1024
 
 
+class FailingDriver:
+    def __init__(self) -> None:
+        self.session_calls = 0
+
+    def session(self, **kwargs: Any) -> Any:
+        self.session_calls += 1
+        raise OSError("synthetic DNS failure")
+
+
 def config_with(**overrides: Any) -> ExperimentConfig:
     payload = load_experiment_config().model_dump(mode="json")
     payload.update(overrides)
@@ -304,3 +313,29 @@ def test_dry_run_retrieval_toggles_skip_independently(monkeypatch: pytest.Monkey
     assert trace_entry(state, "graph_retrieval")["status"] == "skipped"
     assert trace_entry(state, "dense_retrieval")["status"] == "skipped"
     assert trace_entry(state, "sparse_retrieval")["status"] == "skipped"
+
+
+def test_dry_run_retrieval_backend_failure_can_fallback_to_no_context_answer() -> None:
+    driver = FailingDriver()
+
+    state = run_rag_dry_run(
+        {"query": "Thien Ma tai Quan Loc", "chart_id": "chart-1", "user_id": "user-1"},
+        chart_loader=fake_chart_loader,
+        query_rewriter=PassthroughQueryRewriter(),
+        query_entity_extractor=fake_query_entity_extractor,
+        neo4j_driver=driver,
+        dense_embedding_service=FakeEmbeddingService(),
+        generation_client=DeterministicGenerationClient(),
+        retrieval_fallback_on_error=True,
+    )
+
+    assert driver.session_calls == 1
+    assert state["graph_candidates"] == []
+    assert state["dense_candidates"] == []
+    assert state["sparse_candidates"] == []
+    assert state["answer"]
+    assert state["generation_metadata"]["fallback_reason"] == "no_context"
+    assert trace_entry(state, "graph_retrieval")["status"] == "fallback"
+    assert trace_entry(state, "graph_retrieval")["fallback_reason"] == "retrieval_backend_unavailable"
+    assert trace_entry(state, "dense_retrieval")["status"] == "fallback"
+    assert trace_entry(state, "sparse_retrieval")["status"] == "fallback"

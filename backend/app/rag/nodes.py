@@ -114,6 +114,37 @@ def with_neo4j_session(driver_or_session: Any | None, callback: Callable[[Any], 
                 close_driver()
 
 
+def retrieval_fallback_detail(exc: Exception, *, enabled: bool, top_k: int, **extra: Any) -> dict[str, Any]:
+    return {
+        "candidate_count": 0,
+        "enabled": enabled,
+        "error_type": type(exc).__name__,
+        "fallback_reason": "retrieval_backend_unavailable",
+        "top_k": top_k,
+        **extra,
+    }
+
+
+def mark_retrieval_backend_unavailable(state: RAGState, exc: Exception) -> None:
+    state["retrieval_backend_unavailable"] = True
+    state["retrieval_backend_error_type"] = type(exc).__name__
+
+
+def retrieval_backend_is_unavailable(state: RAGState) -> bool:
+    return bool(state.get("retrieval_backend_unavailable"))
+
+
+def previous_retrieval_fallback_detail(state: RAGState, *, enabled: bool, top_k: int, **extra: Any) -> dict[str, Any]:
+    return {
+        "candidate_count": 0,
+        "enabled": enabled,
+        "error_type": state.get("retrieval_backend_error_type") or "RetrievalBackendUnavailable",
+        "fallback_reason": "retrieval_backend_unavailable",
+        "top_k": top_k,
+        **extra,
+    }
+
+
 def make_load_chart_context_node(chart_loader: ChartLoader | None = None) -> Callable[[RAGState], RAGState]:
     loader = chart_loader or default_chart_loader
 
@@ -290,7 +321,11 @@ def make_entity_extraction_node(
     return entity_extraction
 
 
-def make_graph_retrieval_node(neo4j_driver: Any | None = None) -> Callable[[RAGState], RAGState]:
+def make_graph_retrieval_node(
+    neo4j_driver: Any | None = None,
+    *,
+    fallback_on_error: bool = False,
+) -> Callable[[RAGState], RAGState]:
     def graph_retrieval(state: RAGState) -> RAGState:
         config = state["experiment_config"]
         graph_config = config.graph_retrieval
@@ -302,11 +337,43 @@ def make_graph_retrieval_node(neo4j_driver: Any | None = None) -> Callable[[RAGS
                 status="skipped",
                 detail={"enabled": False, "top_k": graph_config.top_k},
             )
+        if fallback_on_error and retrieval_backend_is_unavailable(state):
+            state["graph_candidates"] = []
+            return append_trace_node(
+                state,
+                "graph_retrieval",
+                status="fallback",
+                detail=previous_retrieval_fallback_detail(
+                    state,
+                    enabled=True,
+                    top_k=graph_config.top_k,
+                    chunk_strategy_id=config.chunk_strategy_id,
+                    source_ids=config.source_ids,
+                ),
+            )
 
-        candidates = with_neo4j_session(
-            neo4j_driver,
-            lambda session: retrieve_graph_candidates(state, session=session, config=config),
-        )
+        try:
+            candidates = with_neo4j_session(
+                neo4j_driver,
+                lambda session: retrieve_graph_candidates(state, session=session, config=config),
+            )
+        except Exception as exc:
+            if not fallback_on_error:
+                raise
+            mark_retrieval_backend_unavailable(state, exc)
+            state["graph_candidates"] = []
+            return append_trace_node(
+                state,
+                "graph_retrieval",
+                status="fallback",
+                detail=retrieval_fallback_detail(
+                    exc,
+                    enabled=True,
+                    top_k=graph_config.top_k,
+                    chunk_strategy_id=config.chunk_strategy_id,
+                    source_ids=config.source_ids,
+                ),
+            )
         state["graph_candidates"] = candidates
         return append_trace_node(
             state,
@@ -328,6 +395,8 @@ def make_graph_retrieval_node(neo4j_driver: Any | None = None) -> Callable[[RAGS
 def make_dense_retrieval_node(
     neo4j_driver: Any | None = None,
     dense_embedding_service: Any | None = None,
+    *,
+    fallback_on_error: bool = False,
 ) -> Callable[[RAGState], RAGState]:
     def dense_retrieval(state: RAGState) -> RAGState:
         config = state["experiment_config"]
@@ -344,17 +413,55 @@ def make_dense_retrieval_node(
                     "top_k": dense_config.top_k,
                 },
             )
-
-        embedding_service = dense_embedding_service or get_dense_query_embedding_service()
-        candidates = with_neo4j_session(
-            neo4j_driver,
-            lambda session: retrieve_dense_candidates(
+        if fallback_on_error and retrieval_backend_is_unavailable(state):
+            state["dense_candidates"] = []
+            return append_trace_node(
                 state,
-                session=session,
-                embedding_service=embedding_service,
-                config=config,
-            ),
-        )
+                "dense_retrieval",
+                status="fallback",
+                detail=previous_retrieval_fallback_detail(
+                    state,
+                    enabled=True,
+                    top_k=dense_config.top_k,
+                    candidate_k=dense_config.candidate_k,
+                    chunk_strategy_id=config.chunk_strategy_id,
+                    embedding_slot=dense_config.embedding_slot,
+                    source_ids=config.source_ids,
+                    vector_index=dense_config.vector_index,
+                ),
+            )
+
+        try:
+            embedding_service = dense_embedding_service or get_dense_query_embedding_service()
+            candidates = with_neo4j_session(
+                neo4j_driver,
+                lambda session: retrieve_dense_candidates(
+                    state,
+                    session=session,
+                    embedding_service=embedding_service,
+                    config=config,
+                ),
+            )
+        except Exception as exc:
+            if not fallback_on_error:
+                raise
+            mark_retrieval_backend_unavailable(state, exc)
+            state["dense_candidates"] = []
+            return append_trace_node(
+                state,
+                "dense_retrieval",
+                status="fallback",
+                detail=retrieval_fallback_detail(
+                    exc,
+                    enabled=True,
+                    top_k=dense_config.top_k,
+                    candidate_k=dense_config.candidate_k,
+                    chunk_strategy_id=config.chunk_strategy_id,
+                    embedding_slot=dense_config.embedding_slot,
+                    source_ids=config.source_ids,
+                    vector_index=dense_config.vector_index,
+                ),
+            )
         state["dense_candidates"] = candidates
         return append_trace_node(
             state,
@@ -375,7 +482,11 @@ def make_dense_retrieval_node(
     return dense_retrieval
 
 
-def make_sparse_retrieval_node(neo4j_driver: Any | None = None) -> Callable[[RAGState], RAGState]:
+def make_sparse_retrieval_node(
+    neo4j_driver: Any | None = None,
+    *,
+    fallback_on_error: bool = False,
+) -> Callable[[RAGState], RAGState]:
     def sparse_retrieval(state: RAGState) -> RAGState:
         config = state["experiment_config"]
         sparse_config = config.sparse_retrieval
@@ -387,11 +498,45 @@ def make_sparse_retrieval_node(neo4j_driver: Any | None = None) -> Callable[[RAG
                 status="skipped",
                 detail={"enabled": False, "top_k": sparse_config.top_k},
             )
+        if fallback_on_error and retrieval_backend_is_unavailable(state):
+            state["sparse_candidates"] = []
+            return append_trace_node(
+                state,
+                "sparse_retrieval",
+                status="fallback",
+                detail=previous_retrieval_fallback_detail(
+                    state,
+                    enabled=True,
+                    top_k=sparse_config.top_k,
+                    chunk_strategy_id=config.chunk_strategy_id,
+                    fulltext_index=sparse_config.fulltext_index,
+                    source_ids=config.source_ids,
+                ),
+            )
 
-        candidates = with_neo4j_session(
-            neo4j_driver,
-            lambda session: retrieve_sparse_candidates(state, session=session, config=config),
-        )
+        try:
+            candidates = with_neo4j_session(
+                neo4j_driver,
+                lambda session: retrieve_sparse_candidates(state, session=session, config=config),
+            )
+        except Exception as exc:
+            if not fallback_on_error:
+                raise
+            mark_retrieval_backend_unavailable(state, exc)
+            state["sparse_candidates"] = []
+            return append_trace_node(
+                state,
+                "sparse_retrieval",
+                status="fallback",
+                detail=retrieval_fallback_detail(
+                    exc,
+                    enabled=True,
+                    top_k=sparse_config.top_k,
+                    chunk_strategy_id=config.chunk_strategy_id,
+                    fulltext_index=sparse_config.fulltext_index,
+                    source_ids=config.source_ids,
+                ),
+            )
         state["sparse_candidates"] = candidates
         return append_trace_node(
             state,
@@ -516,6 +661,7 @@ def build_node_map(
     dense_embedding_service: Any | None = None,
     candidate_reranker: CandidateReranker | None = None,
     generation_client: GenerationClient | None = None,
+    retrieval_fallback_on_error: bool = False,
 ) -> dict[str, Callable[[RAGState], RAGState]]:
     return {
         "load_chart_context": make_load_chart_context_node(chart_loader),
@@ -524,9 +670,19 @@ def build_node_map(
         "classify_query_complexity": classify_query_complexity,
         "query_rewrite": make_query_rewrite_node(query_rewriter),
         "entity_extraction": make_entity_extraction_node(query_entity_extractor),
-        "graph_retrieval": make_graph_retrieval_node(neo4j_driver),
-        "dense_retrieval": make_dense_retrieval_node(neo4j_driver, dense_embedding_service),
-        "sparse_retrieval": make_sparse_retrieval_node(neo4j_driver),
+        "graph_retrieval": make_graph_retrieval_node(
+            neo4j_driver,
+            fallback_on_error=retrieval_fallback_on_error,
+        ),
+        "dense_retrieval": make_dense_retrieval_node(
+            neo4j_driver,
+            dense_embedding_service,
+            fallback_on_error=retrieval_fallback_on_error,
+        ),
+        "sparse_retrieval": make_sparse_retrieval_node(
+            neo4j_driver,
+            fallback_on_error=retrieval_fallback_on_error,
+        ),
         "fusion": fusion_node,
         "rerank": make_rerank_node(candidate_reranker),
         "document_grading": document_grading_node,

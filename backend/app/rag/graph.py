@@ -45,6 +45,7 @@ def build_rag_graph(
     dense_embedding_service: Any | None = None,
     candidate_reranker: CandidateReranker | None = None,
     generation_client: GenerationClient | None = None,
+    retrieval_fallback_on_error: bool = False,
 ) -> Any:
     node_map = build_node_map(
         chart_loader=chart_loader,
@@ -56,6 +57,7 @@ def build_rag_graph(
         dense_embedding_service=dense_embedding_service,
         candidate_reranker=candidate_reranker,
         generation_client=generation_client,
+        retrieval_fallback_on_error=retrieval_fallback_on_error,
     )
 
     if not LANGGRAPH_AVAILABLE or StateGraph is None:
@@ -84,6 +86,7 @@ def run_rag_dry_run(
     dense_embedding_service: Any | None = None,
     candidate_reranker: CandidateReranker | None = None,
     generation_client: GenerationClient | None = None,
+    retrieval_fallback_on_error: bool = False,
 ) -> RAGState:
     graph = build_rag_graph(
         chart_loader=chart_loader,
@@ -95,5 +98,6 @@ def run_rag_dry_run(
         dense_embedding_service=dense_embedding_service,
         candidate_reranker=candidate_reranker,
         generation_client=generation_client,
+        retrieval_fallback_on_error=retrieval_fallback_on_error,
     )
     return graph.invoke(dict(initial_state))

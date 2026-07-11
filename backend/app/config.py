@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     NEO4J_USERNAME: str = "neo4j"
     NEO4J_PASSWORD: str = "test-password"
     NEO4J_DATABASE: str = "neo4j"
+    NEO4J_CONNECTION_TIMEOUT: float = 5.0
+    NEO4J_CONNECTION_ACQUISITION_TIMEOUT: float = 5.0
+    NEO4J_MAX_TRANSACTION_RETRY_TIME: float = 5.0
 
     LANGFUSE_SECRET_KEY: str = "test-secret-key"
     LANGFUSE_PUBLIC_KEY: str = "test-public-key"

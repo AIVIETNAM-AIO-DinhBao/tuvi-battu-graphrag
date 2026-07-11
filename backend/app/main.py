@@ -78,7 +78,7 @@ async def chat(req: ChatRequest):
         if req.experiment_config_path:
             initial_state["experiment_config_path"] = req.experiment_config_path
 
-        state = run_rag_dry_run(initial_state)
+        state = run_rag_dry_run(initial_state, retrieval_fallback_on_error=True)
         config = state.get("experiment_config")
         chunk_strategy_id = getattr(config, "chunk_strategy_id", None)
         response = {

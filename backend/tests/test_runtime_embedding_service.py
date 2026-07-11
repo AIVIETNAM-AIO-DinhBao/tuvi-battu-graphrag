@@ -50,3 +50,34 @@ def test_get_dense_query_embedding_service_uses_settings(monkeypatch) -> None:
         "normalize": True,
         "slot": "bge_m3",
     }
+
+
+def test_get_neo4j_driver_uses_fail_fast_settings(monkeypatch) -> None:
+    captured = {}
+    sentinel_driver = object()
+
+    def fake_driver(uri: str, **kwargs):
+        captured["uri"] = uri
+        captured["kwargs"] = kwargs
+        return sentinel_driver
+
+    monkeypatch.setattr(clients.GraphDatabase, "driver", fake_driver)
+    monkeypatch.setattr(clients.settings, "NEO4J_URI", "neo4j+s://example.databases.neo4j.io")
+    monkeypatch.setattr(clients.settings, "NEO4J_USERNAME", "neo4j-user")
+    monkeypatch.setattr(clients.settings, "NEO4J_PASSWORD", "neo4j-password")
+    monkeypatch.setattr(clients.settings, "NEO4J_CONNECTION_TIMEOUT", 4.0)
+    monkeypatch.setattr(clients.settings, "NEO4J_CONNECTION_ACQUISITION_TIMEOUT", 5.0)
+    monkeypatch.setattr(clients.settings, "NEO4J_MAX_TRANSACTION_RETRY_TIME", 6.0)
+
+    driver = clients.get_neo4j_driver()
+
+    assert driver is sentinel_driver
+    assert captured == {
+        "uri": "neo4j+s://example.databases.neo4j.io",
+        "kwargs": {
+            "auth": ("neo4j-user", "neo4j-password"),
+            "connection_timeout": 4.0,
+            "connection_acquisition_timeout": 5.0,
+            "max_transaction_retry_time": 6.0,
+        },
+    }

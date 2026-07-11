@@ -101,6 +101,9 @@ def get_neo4j_driver():
     return GraphDatabase.driver(
         settings.NEO4J_URI,
         auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD),
+        connection_timeout=settings.NEO4J_CONNECTION_TIMEOUT,
+        connection_acquisition_timeout=settings.NEO4J_CONNECTION_ACQUISITION_TIMEOUT,
+        max_transaction_retry_time=settings.NEO4J_MAX_TRANSACTION_RETRY_TIME,
     )
 
 
