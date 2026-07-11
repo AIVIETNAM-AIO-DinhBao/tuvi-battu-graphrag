@@ -107,7 +107,18 @@ def generate_answer(
 
     prompt = build_generation_prompt(state, config)
     client = generation_client or GeminiGenerationClient()
-    result = client.generate(prompt, config=config, state=state)
+    try:
+        result = client.generate(prompt, config=config, state=state)
+    except Exception as exc:
+        fallback = DeterministicGenerationClient().generate(prompt, config=config, state=state)
+        return fallback.answer, {
+            "error_type": type(exc).__name__,
+            "fallback_reason": "generation_backend_error",
+            "generation_model": config.generation_model,
+            "prompt_chars": len(prompt),
+            "prompt_template_id": config.prompt_template_id,
+            "raw_response_present": False,
+        }
     metadata = {
         "fallback_reason": result.fallback_reason,
         "generation_model": result.model,

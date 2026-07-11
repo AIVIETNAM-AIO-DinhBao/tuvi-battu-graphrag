@@ -17,7 +17,10 @@ embedding:
   model: BAAI/bge-m3
   vector_index: chunkVectorBgeM3
   dimension: 1024
-query_rewrite_enabled: true
+# Keep production chat responsive by default. Query rewrite can be re-enabled
+# after the core Graph/Sparse RAG path is stable because it adds an external
+# Gemini call before retrieval.
+query_rewrite_enabled: false
 query_rewrite:
   backend: gemini
   model: gemini-3.1-flash-lite-preview
@@ -47,7 +50,10 @@ graph_retrieval:
     - LUU_Y
   timeout_seconds: 3.0
   child_only: true
-dense_retrieval_enabled: true
+# Disabled by default for the local runtime path: loading BAAI/bge-m3 on demand
+# can exceed chat request timeouts. Graph + sparse retrieval still returns
+# cited context from Neo4j. Re-enable after preloading/caching embeddings.
+dense_retrieval_enabled: false
 dense_retrieval:
   top_k: 8
   candidate_k: 500
@@ -64,10 +70,10 @@ sparse_retrieval:
   child_only: true
 fusion_method: rrf
 reranker_config:
-  enabled: false
-  model: null
+  enabled: true
+  model: lexical-overlap-v1
   top_k: 10
-document_grading_enabled: false
+document_grading_enabled: true
 prompt_template_id: tuvi_generation_v1
 generation_model: gemini-3.1-flash-lite-preview
 context_assembly_strategy: balanced

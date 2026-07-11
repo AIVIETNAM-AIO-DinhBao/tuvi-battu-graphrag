@@ -45,16 +45,34 @@ class LexicalOverlapReranker:
         state: RAGState,
     ) -> list[dict[str, Any]]:
         query_terms = tokenize(query)
+        canonical_entities = canonical_query_entities(state)
+        meaning_intent = has_meaning_intent(query)
         scored: list[dict[str, Any]] = []
         for candidate in candidates:
             item = dict(candidate)
-            text_terms = tokenize(str(item.get("text") or item.get("text_preview") or ""))
+            text = str(item.get("text") or item.get("text_preview") or "")
+            text_terms = tokenize(text)
             overlap = lexical_overlap_score(query_terms, text_terms)
+            entity_exact = entity_exact_score(canonical_entities, text)
+            definition_heading = definition_heading_score(canonical_entities, text)
+            definition_quality = definition_quality_score(canonical_entities, text) if meaning_intent else 0.0
+            meaning_signal = meaning_signal_score(text) if meaning_intent else 0.0
             fused_score = coerce_float(item.get("fusion_score", item.get("score")))
-            rerank_score = (0.65 * overlap) + (0.35 * fused_score)
+            rerank_score = (
+                (0.50 * definition_quality)
+                + (0.25 * definition_heading)
+                + (0.15 * entity_exact)
+                + (0.05 * overlap)
+                + (0.03 * meaning_signal)
+                + (0.05 * fused_score)
+            )
             item["rerank_score"] = round(rerank_score, 6)
             item["rerank_features"] = {
+                "entity_exact": round(entity_exact, 6),
+                "definition_heading": round(definition_heading, 6),
+                "definition_quality": round(definition_quality, 6),
                 "query_overlap": round(overlap, 6),
+                "meaning_signal": round(meaning_signal, 6),
                 "fusion_score": round(fused_score, 6),
             }
             scored.append(item)
@@ -314,10 +332,11 @@ def apply_document_grading(state: RAGState, config: ExperimentConfig) -> list[di
         return candidates
 
     query_terms = tokenize(retrieval_query_text(state))
+    required_entities = canonical_query_entities(state)
     graded: list[dict[str, Any]] = []
     for candidate in candidates:
         item = dict(candidate)
-        grade = grade_candidate(query_terms, item)
+        grade = grade_candidate(query_terms, item, required_entities=required_entities)
         item["document_grade"] = grade
         item["grade_score"] = grade["score"]
         if grade["accepted"]:
@@ -329,24 +348,118 @@ def apply_document_grading(state: RAGState, config: ExperimentConfig) -> list[di
     return graded
 
 
-def grade_candidate(query_terms: set[str], candidate: dict[str, Any]) -> dict[str, Any]:
+def grade_candidate(
+    query_terms: set[str],
+    candidate: dict[str, Any],
+    *,
+    required_entities: list[str] | None = None,
+) -> dict[str, Any]:
     text = str(candidate.get("text") or candidate.get("text_preview") or "")
     if not text.strip():
         return {"accepted": False, "label": "empty", "score": 0.0, "reason": "missing_text"}
 
     text_terms = tokenize(text)
     overlap = lexical_overlap_score(query_terms, text_terms)
-    has_entity_match = bool(candidate.get("matched_entities"))
+    matched_entities = [str(entity) for entity in candidate.get("matched_entities") or [] if str(entity).strip()]
+    matched_entity_in_text = any(tokenize(entity) <= text_terms for entity in matched_entities)
+    required_entity_exact = entity_exact_score(required_entities or [], text)
     has_positive_rank_score = coerce_float(candidate.get("score")) > 0
-    grade_score = min(1.0, overlap + (0.2 if has_entity_match else 0.0) + (0.1 if has_positive_rank_score else 0.0))
-    label = "relevant" if grade_score >= 0.2 else "weak"
+    grade_score = min(
+        1.0,
+        overlap
+        + (0.35 * required_entity_exact)
+        + (0.15 if matched_entity_in_text else 0.0)
+        + (0.05 if has_positive_rank_score else 0.0),
+    )
+    accepted = (required_entity_exact > 0) if required_entities else (overlap > 0 or matched_entity_in_text)
+    label = "relevant" if accepted and grade_score >= 0.25 else "weak"
     return {
-        "accepted": True,
+        "accepted": accepted,
         "label": label,
         "score": round(grade_score, 6),
         "reason": "deterministic_stub_overlap",
+        "matched_entity_in_text": matched_entity_in_text,
         "query_overlap": round(overlap, 6),
+        "required_entity_exact": round(required_entity_exact, 6),
     }
+
+
+MEANING_QUERY_TERMS = {"ý nghĩa", "nghĩa", "tượng trưng", "chủ về", "là gì", "giải thích"}
+MEANING_TEXT_TERMS = {"ý nghĩa", "nghĩa", "tượng trưng", "chủ về", "biểu tượng", "tính", "tính tình", "đặc tính"}
+
+
+def canonical_query_entities(state: RAGState) -> list[str]:
+    entities: list[str] = []
+    seen: set[str] = set()
+    for record in state.get("query_entities") or []:
+        name = str(record.get("canonical_name") or "").strip()
+        if not name:
+            continue
+        key = normalize_for_match(name)
+        if key in seen:
+            continue
+        seen.add(key)
+        entities.append(name)
+    return entities
+
+
+def entity_exact_score(canonical_entities: list[str], text: str) -> float:
+    if not canonical_entities:
+        return 0.0
+    normalized_text = normalize_for_match(text)
+    hits = [entity for entity in canonical_entities if normalize_for_match(entity) in normalized_text]
+    return len(hits) / len(canonical_entities)
+
+
+def definition_heading_score(canonical_entities: list[str], text: str) -> float:
+    if not canonical_entities:
+        return 0.0
+    normalized_text = normalize_for_match(text)
+    score = 0.0
+    for entity in canonical_entities:
+        normalized_entity = normalize_for_match(entity)
+        if f"{normalized_entity}:" in normalized_text:
+            score += 1.0
+        elif f"{normalized_entity} -" in normalized_text:
+            score += 0.8
+    return min(1.0, score / len(canonical_entities))
+
+
+def definition_quality_score(canonical_entities: list[str], text: str) -> float:
+    if not canonical_entities:
+        return 0.0
+    normalized_text = normalize_for_match(text)
+    quality_markers = ("tánh chất", "tính chất", "tánh tình", "tính tình", "địa vị", "tiền tài", "thế đứng")
+    score = 0.0
+    for entity in canonical_entities:
+        normalized_entity = normalize_for_match(entity)
+        positions = [
+            pos for needle in (f"{normalized_entity}:", f"{normalized_entity} -")
+            if (pos := normalized_text.find(needle)) >= 0
+        ]
+        if not positions:
+            continue
+        window = normalized_text[min(positions): min(len(normalized_text), min(positions) + 900)]
+        marker_hits = sum(1 for marker in quality_markers if marker in window)
+        if marker_hits >= 2:
+            score += 1.0
+        elif marker_hits == 1:
+            score += 0.6
+    return min(1.0, score / len(canonical_entities))
+
+
+def has_meaning_intent(query: str) -> bool:
+    normalized_query = normalize_for_match(query)
+    return any(term in normalized_query for term in MEANING_QUERY_TERMS)
+
+
+def meaning_signal_score(text: str) -> float:
+    normalized_text = normalize_for_match(text)
+    return 1.0 if any(term in normalized_text for term in MEANING_TEXT_TERMS) else 0.0
+
+
+def normalize_for_match(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").casefold()).strip()
 
 
 def fusion_trace_summary(candidates: list[dict[str, Any]], *, limit: int = 20) -> list[dict[str, Any]]:

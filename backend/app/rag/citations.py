@@ -41,7 +41,7 @@ def make_source(chunk: dict[str, Any], *, config: ExperimentConfig, used_in_answ
         "chunk_id": chunk.get("chunk_id"),
         "chunk_hash": chunk.get("chunk_hash"),
         "chunk_strategy_id": chunk.get("chunk_strategy_id") or config.chunk_strategy_id,
-        "confidence": first_present(chunk, "grade_score", "rerank_score", "fusion_score", "score"),
+        "confidence": first_present(chunk, "rerank_score", "grade_score", "fusion_score", "score"),
         "excerpt": chunk.get("excerpt") or "",
         "provenance": dict(chunk.get("provenance") or {}),
         "retrieval_paths": list(chunk.get("retrieval_paths") or []),

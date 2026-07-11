@@ -53,8 +53,10 @@ def order_candidates(candidates: list[dict[str, Any]], *, strategy: str) -> list
         return sorted(candidates, key=lambda item: (path_priority(item, "dense"), score_value(item), -rank_value(item)), reverse=True)
     if strategy == "compact":
         return sorted(candidates, key=lambda item: (score_value(item), -len(str(item.get("text") or "")), -rank_value(item)), reverse=True)
-    # balanced keeps ranking stable but rewards candidates found by multiple paths.
-    return sorted(candidates, key=lambda item: (len(item.get("retrieval_paths") or []), score_value(item), -rank_value(item)), reverse=True)
+    # balanced keeps ranking stable but uses rerank/grade relevance before the
+    # weaker multi-path bonus. Otherwise a mediocre graph+sparse hit can outrank
+    # a high-quality exact-definition hit found by one path.
+    return sorted(candidates, key=lambda item: (score_value(item), len(item.get("retrieval_paths") or []), -rank_value(item)), reverse=True)
 
 
 def select_with_budget(candidates: list[dict[str, Any]], *, max_chars: int, max_chunks: int) -> list[dict[str, Any]]:
@@ -136,7 +138,7 @@ def candidate_text(candidate: dict[str, Any]) -> str:
 
 
 def score_value(candidate: dict[str, Any]) -> float:
-    for field in ("grade_score", "rerank_score", "fusion_score", "score"):
+    for field in ("rerank_score", "grade_score", "fusion_score", "score"):
         value = candidate.get(field)
         if value is not None:
             try:

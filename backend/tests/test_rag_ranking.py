@@ -178,7 +178,7 @@ def test_fusion_dispatcher_uses_config_method(fusion_method: str) -> None:
 
 
 def test_reranker_disabled_passes_through_fused_candidates() -> None:
-    config = config_with()
+    config = config_with(reranker_config={"enabled": False, "model": None, "top_k": 10})
     fused = [candidate("dense", "a", 1, 0.9)]
     state = ranking_state(fused_candidates=fused)
 
@@ -252,6 +252,8 @@ def test_dry_run_ranking_nodes_emit_trace_and_ranked_candidates(monkeypatch: pyt
         graph_retrieval_enabled=False,
         dense_retrieval_enabled=False,
         sparse_retrieval_enabled=False,
+        reranker_config={"enabled": False, "model": None, "top_k": 10},
+        document_grading_enabled=False,
     )
     monkeypatch.setattr(rag_nodes, "load_experiment_config", lambda path=None: config)
 

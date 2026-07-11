@@ -1303,3 +1303,70 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
   - D-28: Citation panel
   - D-29: Chart detail page hoàn chỉnh
   - D-30: Error handling và rate limiting
+
+---
+
+## RAG Chat Reliability & Retrieval Quality Hotfix - 2026-07-11
+
+### Scope
+- Fixed the local `/chat` RAG path after frontend integration exposed two runtime issues:
+  - backend chat instability / error fallback when Neo4j routing or optional retrieval paths failed
+  - poor retrieval quality for simple entity-definition questions such as `Thái Dương có ý nghĩa gì`
+- The focus was a production-safe local default path that can answer from Neo4j graph/sparse context without waiting on slow external rewrite/dense embedding steps.
+
+### Root Causes Identified
+- Runtime entity extraction was too broad:
+  - `NguHanh: Âm Dương` included single-token aliases `Âm` and `Dương`
+  - query `Thái Dương có ý nghĩa gì` therefore seeded both `Sao: Thái Dương` and noisy `NguHanh: Âm Dương`
+- Production config had reranking and document grading disabled, so weak graph/sparse hits could flow directly into context assembly.
+- Vietnamese fulltext retrieval was weak for accented entity-definition queries and could miss the exact definition chunk while returning loose token matches.
+- Context assembly ranked some multi-path but mediocre candidates above exact-definition candidates.
+- Citation confidence preferred `grade_score` before `rerank_score`, even though grading is mostly pass/fail and rerank better represents final relevance.
+
+### Implementation Summary
+- Hardened production runtime defaults in `configs/default_production.yaml`:
+  - disabled query rewrite by default for local responsiveness
+  - disabled dense retrieval by default to avoid on-demand BGE-M3 loading/timeouts
+  - enabled local lexical/entity-aware reranker
+  - enabled deterministic document grading
+- Reduced noisy entity extraction in `configs/entity_extraction.yaml`:
+  - removed aliases `Âm` and `Dương` from `Âm Dương`
+  - kept only the exact alias `Âm Dương`
+- Added exact canonical entity text retrieval in `backend/app/rag/retrieval.py`:
+  - when query entities are available, sparse retrieval also searches chunks containing the canonical entity phrase directly
+  - boosts definition-like chunks containing markers such as `Thái Dương:`, `Tánh chất`, `Tánh tình`, `Địa vị`, and `Thế đứng`
+  - penalizes chart/example/table-like chunks such as `thông tin lá số`, `bảng tra`, and generic Tử Vi placement tables
+- Improved local reranking in `backend/app/rag/ranking.py`:
+  - added canonical entity exact-match features
+  - added definition heading and definition quality features
+  - added meaning-intent detection for questions containing signals like `ý nghĩa`, `nghĩa`, `là gì`, `tượng trưng`, `chủ về`
+  - document grading now rejects empty text and can require exact canonical entity presence when extracted entities are available
+- Fixed context ordering in `backend/app/rag/context.py`:
+  - `balanced` strategy now prioritizes relevance score before multi-path bonus
+  - score resolution now prefers `rerank_score` before `grade_score`
+- Fixed citation confidence in `backend/app/rag/citations.py`:
+  - confidence now prefers `rerank_score` before `grade_score`
+- Added/updated regression coverage in:
+  - `backend/tests/test_rag_ranking.py`
+  - `backend/tests/test_rag_retrieval.py`
+  - `backend/tests/test_chat_route.py`
+
+### Validation
+- Backend focused regression:
+  - `pytest tests/test_rag_ranking.py tests/test_rag_retrieval.py tests/test_chat_route.py -q`
+  - Result: `21 passed, 10 warnings`
+- Smoke-tested the no-chart RAG endpoint with:
+  - `/debug/rag-smoke-no-chart?query=Thái Dương có ý nghĩa gì`
+- Before the fix, top citations were weak/noisy chunks such as Lưu Niên Văn Tinh, Âm Dương/vô chính diệu, or unrelated example chart passages.
+- After the fix, the selected context includes the correct definition chunk first:
+  - `TVGM_chunk_fixed_512_chunk_000087`
+  - source: `Tử Vi Giảng Minh`, page `80`
+  - excerpt contains: `Thái Dương: - Tánh chất: Quan lộc. - Tánh tình: Thông minh, Trung thực. - Địa vị Tiền tài: Uy quyền, Tài lộc.`
+
+### Remaining Follow-ups
+- Improve Vietnamese fulltext analyzer/tokenization to reduce dependence on exact-text fallback.
+- Consider definition-query-specific context trimming, e.g. fewer chunks or stricter grading for `X có ý nghĩa gì`.
+- Improve chunking so each major star/section has cleaner standalone chunks.
+- Re-enable dense retrieval and query rewrite only after runtime preload/caching and timeout policy are stable.
+
+**Status**: COMPLETE - Local `/chat` is stable enough for frontend use, and entity-definition retrieval quality is substantially improved for representative query `Thái Dương có ý nghĩa gì`.

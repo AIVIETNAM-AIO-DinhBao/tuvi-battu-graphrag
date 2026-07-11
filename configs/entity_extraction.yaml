@@ -115,7 +115,9 @@ entities:
     Thủy: ["Thủy", "Thuỷ", "hành Thủy", "hành Thuỷ"]
     Hỏa: ["Hỏa", "Hoả", "hành Hỏa", "hành Hoả"]
     Thổ: ["Thổ", "hành Thổ"]
-    Âm Dương: ["Âm Dương", "Âm", "Dương"]
+    # Avoid single-token aliases "Âm"/"Dương": they collide with star names
+    # such as Thái Âm / Thái Dương and create noisy graph retrieval seeds.
+    Âm Dương: ["Âm Dương"]
     Ngũ Hành: ["Ngũ Hành", "Ngũ hành"]
 
   QuanHeCung:

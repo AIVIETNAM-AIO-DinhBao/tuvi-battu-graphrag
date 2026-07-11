@@ -249,6 +249,7 @@ def test_sparse_retrieval_uses_chunk_fulltext_and_sanitized_query() -> None:
 
 
 def test_dry_run_populates_enabled_retrieval_paths_and_keeps_downstream_placeholders() -> None:
+    config = config_with(dense_retrieval_enabled=True)
     driver = RecordingDriver(
         [
             [
@@ -272,6 +273,7 @@ def test_dry_run_populates_enabled_retrieval_paths_and_keeps_downstream_placehol
         chart_loader=fake_chart_loader,
         query_rewriter=PassthroughQueryRewriter(),
         query_entity_extractor=fake_query_entity_extractor,
+        experiment_config=config,
         neo4j_driver=driver,
         dense_embedding_service=FakeEmbeddingService(),
         generation_client=DeterministicGenerationClient(),
@@ -316,6 +318,7 @@ def test_dry_run_retrieval_toggles_skip_independently(monkeypatch: pytest.Monkey
 
 
 def test_dry_run_retrieval_backend_failure_can_fallback_to_no_context_answer() -> None:
+    config = config_with(dense_retrieval_enabled=True)
     driver = FailingDriver()
 
     state = run_rag_dry_run(
@@ -323,6 +326,7 @@ def test_dry_run_retrieval_backend_failure_can_fallback_to_no_context_answer() -
         chart_loader=fake_chart_loader,
         query_rewriter=PassthroughQueryRewriter(),
         query_entity_extractor=fake_query_entity_extractor,
+        experiment_config=config,
         neo4j_driver=driver,
         dense_embedding_service=FakeEmbeddingService(),
         generation_client=DeterministicGenerationClient(),

@@ -190,7 +190,7 @@ def retrieve_sparse_candidates(
     config: ExperimentConfig,
 ) -> list[RetrievalCandidate]:
     sparse_config = config.sparse_retrieval
-    records = execute_read(
+    fulltext_records = execute_read(
         session,
         sparse_retrieval_tx,
         query=retrieval_query_text(state),
@@ -201,7 +201,20 @@ def retrieve_sparse_candidates(
         fulltext_index_name=sparse_config.fulltext_index,
         child_only=sparse_config.child_only,
     )
-    return normalize_and_rank(records, retrieval_path="sparse")
+    exact_entities = query_entity_rows(state)
+    exact_records = []
+    if exact_entities:
+        exact_records = execute_read(
+            session,
+            exact_entity_text_retrieval_tx,
+            entities=exact_entities,
+            top_k=sparse_config.top_k,
+            domain=config.domain,
+            source_ids=config.source_ids,
+            chunk_strategy_id=config.chunk_strategy_id,
+            child_only=sparse_config.child_only,
+        )
+    return normalize_and_rank([*exact_records, *fulltext_records], retrieval_path="sparse")
 
 
 def graph_retrieval_tx(
@@ -378,6 +391,74 @@ def sparse_retrieval_tx(
             LIMIT $top_k
             """,
             fulltext_query=build_fulltext_query(query),
+            top_k=top_k,
+            domain=domain,
+            source_ids=source_ids,
+            chunk_strategy_id=chunk_strategy_id,
+            child_only=child_only,
+        )
+    )
+
+
+def exact_entity_text_retrieval_tx(
+    tx: Any,
+    *,
+    entities: list[dict[str, str]],
+    top_k: int,
+    domain: str,
+    source_ids: list[str],
+    chunk_strategy_id: str,
+    child_only: bool,
+) -> list[Any]:
+    return list(
+        tx.run(
+            """
+            UNWIND $entities AS qe
+            MATCH (node:Chunk)
+            WHERE node.domain = $domain
+              AND node.source_id IN $source_ids
+              AND node.chunk_strategy_id = $chunk_strategy_id
+              AND (
+                $child_only = false
+                OR $chunk_strategy_id <> 'chunk_structure_parent_child'
+                OR node.chunk_type = 'child'
+              )
+              AND (
+                toLower(coalesce(node.text, '')) CONTAINS toLower(qe.canonical_name)
+                OR toLower(coalesce(node.title, '')) CONTAINS toLower(qe.canonical_name)
+              )
+            WITH node,
+                 collect(DISTINCT qe.canonical_name) AS matched_entities,
+                 toLower(coalesce(node.text, '')) AS text_lc
+            WITH node,
+                 matched_entities,
+                 text_lc,
+                 reduce(def_boost = 0.0, entity IN matched_entities |
+                     def_boost
+                     + CASE WHEN text_lc CONTAINS toLower(entity + ':') THEN 220.0 ELSE 0.0 END
+                     + CASE WHEN text_lc CONTAINS toLower(entity + ' -') THEN 120.0 ELSE 0.0 END
+                 ) AS entity_definition_boost
+            WITH node,
+                 matched_entities,
+                 100.0
+                 + size(matched_entities)
+                 + entity_definition_boost
+                 + CASE WHEN entity_definition_boost > 0.0 AND (text_lc CONTAINS 'tánh chất' OR text_lc CONTAINS 'tính chất') THEN 50.0 ELSE 0.0 END
+                 + CASE WHEN entity_definition_boost > 0.0 AND (text_lc CONTAINS 'tánh tình' OR text_lc CONTAINS 'tính tình') THEN 35.0 ELSE 0.0 END
+                 + CASE WHEN text_lc CONTAINS 'thuộc ' AND text_lc CONTAINS 'hành ' THEN 10.0 ELSE 0.0 END
+                 - CASE WHEN text_lc CONTAINS 'thông tin lá số' THEN 80.0 ELSE 0.0 END
+                 - CASE WHEN text_lc CONTAINS 'tại cung tý nếu tử vi' THEN 90.0 ELSE 0.0 END
+                 - CASE WHEN text_lc CONTAINS 'bảng tra' THEN 50.0 ELSE 0.0 END
+                 - CASE WHEN text_lc CONTAINS 'hóa kỵ' THEN 10.0 ELSE 0.0 END
+                 AS exact_score
+            RETURN node,
+                   exact_score AS score,
+                   matched_entities,
+                   ['EXACT_ENTITY_TEXT'] AS relation_types
+            ORDER BY score DESC, coalesce(node.source_page, 999999) ASC
+            LIMIT $top_k
+            """,
+            entities=entities,
             top_k=top_k,
             domain=domain,
             source_ids=source_ids,
