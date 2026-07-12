@@ -1,7 +1,7 @@
 # Kế Hoạch Công Việc: Hệ Thống Hỏi Đáp Tử Vi với Hybrid GraphRAG
 
 **Dựa trên:** Specification v7.1
-**Phiên bản:** 4.1
+**Phiên bản:** 4.3
 **Ngày:** 2026-06-29
 **Thời gian thực hiện:** 7-8 tuần
 **Định dạng:** Task chia theo tuần, không gán theo thành viên. Team tự phân công nội bộ.
@@ -641,6 +641,126 @@ Mục tiêu: có golden dataset Tử Vi, runner đo metric, experiment matrix v1
 **Depends on:** W4-EXP-01
 **Done when:** Runner validate được toàn bộ configs.
 
+### W6-RAG-01 - Retrieval diagnostics theo complexity và question family
+
+**When:** Tuần 6, ngày 3, trước ablation retrieval/chunking
+**Môi trường:** Local
+
+**What to do:**
+- Thêm diagnostics có cấu trúc cho mỗi query: extracted entities, inferred/provided question family, query complexity, retrieval plan nếu có, candidate count theo graph/sparse/dense/fused, final selected retrieval paths và selected evidence roles.
+- Mở rộng response `/chat` và dry-run để trả `retrieval_diagnostics` phục vụ debug/evaluation.
+- Mở rộng aggregation trong ablation report theo `question_complexity` gồm Direct/One-hop/Two-hop và theo `question_family`.
+- Không thay thế W6-ABL-02 hoặc W6-ABL-03; task này bổ sung lớp đo lường để phân tích sâu hơn các ablation retrieval/fusion/reranker và chunking strategy hiện có.
+
+**Deliverable:** Retrieval diagnostics và report aggregation theo complexity/family.
+**Depends on:** W6-EVAL-02, W6-ABL-01
+**Done when:** Mỗi RAG response có diagnostics; ablation report có section grouped by complexity/family; tests diagnostics/ablation pass.
+
+### W6-RAG-02 - Rule-based query planner
+
+**When:** Tuần 6, sau W6-RAG-01
+**Môi trường:** Local
+
+**What to do:**
+- Tạo query planner map dataset `question_family` sang retrieval plan.
+- Hỗ trợ tối thiểu các family: `core_identity`, `menh_house_interpretation`, `than_cu_interpretation`, `menh_cuc_relation`, `special_state_interpretation`, `dai_van_interpretation`, `menh_tam_hop`, `menh_xung_chieu`, `topic_house_plus_relations`, `synthesis_judgement`.
+- Mỗi plan khai báo retrieval depth, `question_complexity` Direct/One-hop/Two-hop, required evidence roles, chart fact intents, enabled retrieval paths, graph mode và dense gate.
+- Với live chat không có label dataset, thêm heuristic inference fallback từ query/entities/chart data.
+
+**Deliverable:** Query planner deterministic và state có `question_family`, `question_complexity`, `retrieval_plan`.
+**Depends on:** W6-RAG-01
+**Done when:** Tất cả dataset family chính map được sang plan; live chat có fallback plan; diagnostics hiển thị planner output.
+
+### W6-RAG-03 - Chart fact extractor
+
+**When:** Tuần 6, sau W6-RAG-02
+**Môi trường:** Local
+
+**What to do:**
+- Implement utility `extract_chart_facts(chart_data, query_entities, retrieval_plan)`.
+- Trả về target houses, target stars, house facts, relations, `claims_verified` và unverified claims nếu có.
+- Parser phải defensive với nhiều shape chart data: houses/palaces/cung/dia_ban hoặc chart semantic export.
+- Đưa chart facts vào RAG state và context assembly trước corpus chunks để Direct chart QA có grounding rõ.
+
+**Deliverable:** Chart facts extraction và chart-aware context.
+**Depends on:** W6-RAG-02, W2-SCHEMA-01
+**Done when:** `state["chart_facts"]` tồn tại; final context có chart facts; tests chart facts/context pass.
+
+### W6-RAG-04 - Role-aware retrieval
+
+**When:** Tuần 6 hoặc đầu Tuần 7, sau W6-RAG-03
+**Môi trường:** Local
+
+**What to do:**
+- Thêm evidence roles: `house_scope`, `star_definition`, `modifier_effect`, `relation_rule`, `combination_pattern`.
+- Sinh role queries từ retrieval plan + chart facts + query entities.
+- Chạy graph/sparse retrieval theo từng role và annotate candidates bằng `evidence_role`/`retrieval_intent`.
+- Giữ generic retrieval hiện tại làm fallback để không giảm recall đột ngột.
+
+**Deliverable:** Retrieval candidates có evidence role và diagnostics theo role.
+**Depends on:** W6-RAG-03, W4-RAG-03
+**Done when:** Candidate được tag role; diagnostics có candidate count by role; fallback generic retrieval vẫn hoạt động.
+
+### W6-RAG-05 - Conjunctive graph retrieval
+
+**When:** Tuần 6 hoặc đầu Tuần 7, sau W6-RAG-04
+**Môi trường:** Local
+
+**What to do:**
+- Mở rộng graph retrieval mode từ entity-any thành `entity_any`, `entity_all`, `min_hit_count`.
+- Planner chọn graph mode theo question family, đặc biệt các family One-hop quan hệ và Two-hop.
+- Nếu mode strict trả 0 candidates, fallback có kiểm soát sang mode ít strict hơn và ghi vào diagnostics.
+- Test Cypher/transaction params cho `entity_all` và `min_hit_count`.
+
+**Deliverable:** Graph retrieval hỗ trợ conjunctive entity matching.
+**Depends on:** W6-RAG-04
+**Done when:** Multi-entity query có thể yêu cầu all/minimum entity hits; fallback được trace; tests retrieval pass.
+
+### W6-RAG-06 - Role-aware context assembly
+
+**When:** Tuần 7, sau W6-RAG-04/W6-RAG-05
+**Môi trường:** Local
+
+**What to do:**
+- Thay selection “top ranked chunks only” bằng selection theo required evidence roles từ retrieval plan.
+- Luôn ưu tiên chart facts; chọn ít nhất một chunk cho mỗi required role nếu còn budget; phần còn lại fill bằng global ranking.
+- Ghi context summary gồm required roles, selected roles, missing roles, role coverage rate và selected chunks by role.
+- Format context block có role label để prompt generation biết vai trò của từng evidence.
+
+**Deliverable:** Context assembly question-family-aware và role-aware.
+**Depends on:** W6-RAG-04, W6-RAG-05, W4-RAG-05
+**Done when:** One-hop/Two-hop context có multi-role evidence; missing roles được report; citation mapping vẫn hoạt động.
+
+### W6-RAG-07 - Re-enable dense retrieval an toàn theo planner
+
+**When:** Tuần 7, sau W6-RAG-06
+**Môi trường:** Local hoặc Kaggle
+
+**What to do:**
+- Chỉ bật dense retrieval khi planner cho phép, ưu tiên One-hop/Two-hop; Direct chart QA không chạy dense.
+- Cache/preload BGE-M3 query embedding service và cache query embeddings nếu phù hợp.
+- Thêm diagnostics cho dense enabled by config, enabled by plan, candidate count, selected-context rate và latency.
+- Chạy ablation so sánh no-dense vs planner-gated dense sau khi đã có planner/chart facts/role-aware context.
+
+**Deliverable:** Dense retrieval được planner-gate và có latency/quality evidence.
+**Depends on:** W6-RAG-06
+**Done when:** Dense không chạy cho Direct; dense có thể chạy cho One-hop/Two-hop; report cho thấy tradeoff quality/latency và có thể đưa vào ablation retrieval/fusion/reranker.
+
+### W6-DOC-01 - Document question-aware và chart-aware retrieval roadmap
+
+**When:** Tuần 6-7, cập nhật song song W6-RAG-01..07
+**Môi trường:** Local
+
+**What to do:**
+- Viết `docs/rag_question_aware_retrieval.md` giải thích limitation hiện tại: graph entity lookup, sparse fulltext/entity text, dense disabled, generic RRF/fusion, rerank heuristic, context top-ranked chunks.
+- Mô tả target reasoning model: Direct = chart QA; One-hop = chart fact + one evidence role; Two-hop = chart graph expansion + multiple evidence roles + synthesis.
+- Ghi mapping question family, evidence roles, pipeline mới, diagnostics, evaluation aggregation và thứ tự triển khai Task A-G.
+- Cập nhật progress/design note khi từng task hoàn thành.
+
+**Deliverable:** Design/roadmap doc cho question-aware chart-aware retrieval.
+**Depends on:** W6-RAG-01
+**Done when:** Team có thể hiểu roadmap, scope và validation plan mà không cần đọc toàn bộ code.
+
 ### W6-ABL-02 - Ablation retrieval/fusion/reranker
 
 **When:** Tuần 6, ngày 3-4
@@ -653,7 +773,7 @@ Mục tiêu: có golden dataset Tử Vi, runner đo metric, experiment matrix v1
 - Phân tích lỗi retrieval miss và rerank miss.
 
 **Deliverable:** Report ablation retrieval v1.
-**Depends on:** W6-EVAL-02, W6-ABL-01
+**Depends on:** W6-EVAL-02, W6-ABL-01, W6-RAG-01, W6-RAG-02, W6-RAG-03, W6-RAG-04, W6-RAG-05, W6-RAG-06
 **Done when:** Có bảng metric theo experiment và khuyến nghị sơ bộ.
 
 ### W6-ABL-03 - Ablation chunking strategy
@@ -981,6 +1101,14 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 | D-48 | Final evaluation report | W8 |
 | D-49 | Final ablation report | W8 |
 | D-50 | Demo script và dry run | W8 |
+| D-51 | Retrieval diagnostics và report aggregation theo complexity/family | W6 |
+| D-52 | Rule-based query planner theo question family | W6 |
+| D-53 | Chart facts extraction và chart-aware context | W6 |
+| D-54 | Role-aware retrieval với evidence roles | W6-W7 |
+| D-55 | Conjunctive graph retrieval modes `entity_all`/`min_hit_count` | W6-W7 |
+| D-56 | Role-aware context assembly | W7 |
+| D-57 | Planner-gated dense retrieval với latency/quality evidence | W7 |
+| D-58 | Question-aware và chart-aware retrieval design doc | W6-W7 |
 
 ***
 
@@ -1018,3 +1146,4 @@ Không dùng Kaggle để host app hoặc database. Sau mỗi batch, kết quả
 6. Chọn `default_production.yaml` dựa trên report ablation.
 7. Chạy lại app local để xác minh.
 8. Deploy production lên Render và Vercel.
+
