@@ -1073,6 +1073,16 @@ textarea {
   color: var(--color-on-dark);
 }
 
+.chat-history-status {
+  background: var(--color-surface-dark-soft);
+  border: 1px solid rgba(250, 249, 245, 0.1);
+  border-radius: var(--radius-pill);
+  color: var(--color-on-dark-soft);
+  font-size: 0.85rem;
+  padding: 0.45rem 0.8rem;
+  width: fit-content;
+}
+
 .chat-message-list {
   display: grid;
   gap: 0.9rem;
@@ -1124,10 +1134,64 @@ textarea {
   text-transform: uppercase;
 }
 
+.assistant-message-content,
 .chat-meta-block,
-.chat-sources {
+.chat-sources,
+.source-citation-panel {
   display: grid;
   gap: 0.75rem;
+}
+
+.assistant-answer p {
+  white-space: pre-wrap;
+}
+
+.citation-marker-button,
+.citation-quick-list button,
+.source-citation-title {
+  background: transparent;
+  border: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+.citation-marker-button {
+  color: var(--color-accent-amber);
+  display: inline;
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  font-weight: 700;
+  margin: 0 0.12rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.citation-marker-button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--color-on-dark);
+}
+
+.citation-quick-list {
+  align-items: center;
+  color: var(--color-on-dark-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  gap: 0.45rem;
+}
+
+.citation-quick-list button {
+  background: rgba(232, 165, 90, 0.12);
+  border: 1px solid rgba(232, 165, 90, 0.28);
+  border-radius: var(--radius-pill);
+  color: var(--color-accent-amber);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.18rem 0.48rem;
+}
+
+.citation-quick-list button:hover:not(:disabled) {
+  background: rgba(232, 165, 90, 0.22);
 }
 
 .chat-run-meta {
@@ -1137,6 +1201,152 @@ textarea {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   gap: 0.5rem;
+}
+
+.source-citation-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.source-citation-heading h3,
+.source-citation-panel h3 {
+  color: var(--color-on-dark);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.source-citation-heading span {
+  color: var(--color-on-dark-soft);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.source-citation-empty {
+  color: var(--color-on-dark-soft);
+}
+
+.source-citation-list {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.source-citation-card {
+  background: var(--color-surface-dark-soft);
+  border: 1px solid rgba(250, 249, 245, 0.1);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.9rem;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.source-citation-card.is-selected {
+  background: rgba(232, 165, 90, 0.12);
+  border-color: rgba(232, 165, 90, 0.75);
+}
+
+.source-citation-title {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.source-citation-title:hover:not(:disabled) {
+  background: transparent;
+}
+
+.source-citation-title span {
+  color: var(--color-accent-amber);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.source-citation-title strong {
+  color: var(--color-on-dark);
+  font-weight: 500;
+}
+
+.source-citation-excerpt,
+.source-citation-metadata,
+.source-provenance-details {
+  color: var(--color-on-dark-soft);
+  font-size: 0.9rem;
+}
+
+.source-citation-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.source-citation-metadata span {
+  background: rgba(250, 249, 245, 0.07);
+  border-radius: var(--radius-pill);
+  padding: 0.12rem 0.45rem;
+}
+
+.source-provenance-details {
+  border-top: 1px solid rgba(250, 249, 245, 0.1);
+  padding-top: 0.55rem;
+}
+
+.source-provenance-details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.source-provenance-details dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0;
+}
+
+.source-provenance-details div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.source-provenance-details dt {
+  color: var(--color-on-dark);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.source-provenance-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.chat-error-block {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.chat-error-block .error-message {
+  margin: 0;
+}
+
+.chat-retry-button {
+  background: var(--color-surface-dark-elevated);
+  border: 1px solid rgba(250, 249, 245, 0.14);
+  color: var(--color-on-dark);
+}
+
+.chat-retry-button:hover:not(:disabled) {
+  background: var(--color-primary-active);
 }
 
 .chat-sources h3 {
@@ -1250,8 +1460,13 @@ textarea {
   .home-actions,
   .home-actions a,
   .auth-form button,
+  .chat-input-row button,
   .secondary-button {
     width: 100%;
+  }
+
+  .chat-input-row {
+    grid-template-columns: 1fr;
   }
 
   .visualizer-heading p {

@@ -1298,11 +1298,52 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
 ### Current Week 5 Boundary
 - Completed deliverables:
   - D-26: Next.js chat proxy
-- Not yet completed:
   - D-27: Chat UI đầy đủ với lịch sử
   - D-28: Citation panel
+- Not yet completed:
   - D-29: Chart detail page hoàn chỉnh
   - D-30: Error handling và rate limiting
+
+---
+
+## Week 5 Frontend Integration Progress Update - 2026-07-12
+
+### W5-FE-02: Chat UI đầy đủ - COMPLETE
+
+#### Implementation Summary
+- Expanded the chart-bound chat UI in `frontend/components/ChatInterface.tsx`:
+  - loads or creates one `chat_sessions` row per chart through the existing Supabase `chat_sessions.la_so_id` uniqueness boundary
+  - persists full chat history into the existing `chat_sessions.messages` JSONB column
+  - normalizes stored messages/sources before rendering so old or malformed JSON entries do not break the UI
+  - keeps submit disabled while either history or backend chat request is loading
+  - shows explicit history/cold-start status text
+  - rolls back failed optimistic sends, restores the failed query into the input, and exposes a retry button
+  - preserves answer metadata including `experiment_id`, `config_hash`, `chunk_strategy_id`, generation metadata, citation metadata, and source payloads
+- Added shared chat data contracts in `frontend/lib/chatTypes.ts` for reuse between chat and citation components.
+
+#### Scope Boundary
+- Uses the existing single-session-per-chart schema (`chat_sessions.messages` JSONB) rather than introducing a normalized `chat_messages` table.
+- Broader rate-limit/error policy remains W5-FE-05.
+
+### W5-FE-03: Citation panel - COMPLETE
+
+#### Implementation Summary
+- Added `frontend/components/SourceCitationPanel.tsx`:
+  - renders source name/id, page fallback, excerpt fallback, score, confidence, retrieval paths, and collapsible technical provenance (`source_id`, `chunk_id`, `chunk_hash`)
+  - supports selected/highlighted source cards per assistant answer
+  - provides no-source fallback text when the RAG response has no sources
+- Updated `ChatInterface` to render a per-answer citation panel:
+  - clickable inline citation markers when answer text contains backend `citation_marker` values
+  - source quick buttons below each answer so source selection still works when the generated answer omits inline markers
+  - per-answer selection state so each assistant response opens/highlights the correct source independently
+- Updated `frontend/app/globals.css` with responsive chat history, retry, citation marker, citation panel, selected-source, and provenance styles.
+
+#### Verification
+- Frontend production build:
+  - `cd frontend && npm run build`
+  - Result: passed. Next.js compiled successfully, type checks passed, and `/chart/[id]` includes the expanded chat/citation bundle.
+
+**Status**: COMPLETE - W5-FE-02 and W5-FE-03 deliverables are implemented and build-verified. Chart detail chat now persists multi-turn history in Supabase and renders interactive per-answer citation panels with provenance details.
 
 ---
 
