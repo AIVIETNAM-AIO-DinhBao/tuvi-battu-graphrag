@@ -298,6 +298,8 @@ function AssistantMessage({
     <div className="assistant-message-content">
       <div className="assistant-answer">{renderAnswerWithCitations(message.content, sources, onSelectSource)}</div>
 
+      <AssistantFallbackNotice message={message} />
+
       {sources.length > 0 && (
         <div className="citation-quick-list" aria-label="Mở nguồn trích dẫn">
           <span>Nguồn:</span>
@@ -319,6 +321,30 @@ function AssistantMessage({
       />
 
       <AssistantRunMeta message={message} />
+    </div>
+  );
+}
+
+function AssistantFallbackNotice({ message }: { message: ChatMessage }) {
+  const fallbackReason = readStringFromRecord(message.generationMetadata, "fallback_reason");
+  const citationFallback = readBooleanFromRecord(message.citationMetadata, "citation_fallback");
+
+  if (fallbackReason !== "no_context" && !citationFallback) {
+    return null;
+  }
+
+  return (
+    <div className="chat-response-hints">
+      {fallbackReason === "no_context" && (
+        <p className="notice-message">
+          Nguồn hiện có chưa đủ để kết luận chắc chắn. Bạn có thể hỏi cụ thể hơn về một sao, cung hoặc tổ hợp trong lá số.
+        </p>
+      )}
+      {citationFallback && (
+        <p className="chat-response-note">
+          Hệ thống đang hiển thị nguồn fallback gần nhất vì câu trả lời không nêu marker citation rõ ràng.
+        </p>
+      )}
     </div>
   );
 }
@@ -468,6 +494,20 @@ function extractErrorMessage(body: unknown): string | null {
   if (typeof body.error === "string") return body.error;
   if (typeof body.detail === "string") return body.detail;
   return null;
+}
+
+function readStringFromRecord(value: unknown, key: string) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return typeof value[key] === "string" ? value[key] : null;
+}
+
+function readBooleanFromRecord(value: unknown, key: string) {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return value[key] === true;
 }
 
 function makeMessageId(prefix: string) {

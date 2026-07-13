@@ -1,4 +1,4 @@
-# Kế Hoạch Công Việc: Hệ Thống Hỏi Đáp Tử Vi với Hybrid GraphRAG
+﻿# Kế Hoạch Công Việc: Hệ Thống Hỏi Đáp Tử Vi với Hybrid GraphRAG
 
 **Dựa trên:** Specification v7.1
 **Phiên bản:** 4.3

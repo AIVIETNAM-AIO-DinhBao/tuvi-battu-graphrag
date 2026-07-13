@@ -27,14 +27,18 @@ export default function ChartDetailPage() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [chart, setChart] = useState<ChartRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [chartMissing, setChartMissing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadChart() {
+      setError(null);
+      setChartMissing(false);
+
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        router.push("/login");
+        router.replace("/login");
         return;
       }
 
@@ -46,13 +50,16 @@ export default function ChartDetailPage() {
 
       setSessionEmail(sessionData.session.user.email || null);
 
+      const userId = sessionData.session.user.id;
+
       const { data, error: fetchError } = await supabase
         .from("la_so")
         .select(
           "id,label,birth_date,birth_time,gender,chart_system,chart_version,chart_data,created_at",
         )
         .eq("id", chartId)
-        .single();
+        .eq("user_id", userId)
+        .maybeSingle();
 
       if (cancelled) {
         return;
@@ -60,6 +67,9 @@ export default function ChartDetailPage() {
 
       if (fetchError) {
         setError(`Không thể tải chart: ${fetchError.message}`);
+      } else if (!data) {
+        setChartMissing(true);
+        setError("Lá số không tồn tại hoặc bạn không có quyền xem. Hãy quay lại dashboard để chọn một lá số khác.");
       } else {
         setChart(data as ChartRow);
       }
@@ -83,18 +93,38 @@ export default function ChartDetailPage() {
       <header className="page-header">
         <div>
           <h1>Chi tiết chart</h1>
-          <p>Người dùng: {sessionEmail}</p>
+          <p>Xem lá số, bảng 12 cung và lịch sử chat gắn theo từng lá số.</p>
+          {sessionEmail && <p>Người dùng: {sessionEmail}</p>}
         </div>
         <button type="button" className="secondary-button" onClick={() => router.push("/dashboard")}>
           Về dashboard
         </button>
       </header>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && !chart && (
+        <section className="panel chart-error-panel">
+          <h2>Không thể mở lá số</h2>
+          <p className="error-message">{error}</p>
+          <div className="header-actions">
+            <button type="button" className="secondary-button" onClick={() => router.push("/dashboard")}>
+              Quay lại dashboard
+            </button>
+          </div>
+        </section>
+      )}
+
+      {chartMissing && !chart && null}
 
       {chart && (
         <section className="panel">
-          <h2>{chart.label}</h2>
+          <div className="section-heading-row">
+            <div>
+              <h2>{chart.label}</h2>
+              <p>Lịch sử chat sẽ tự gắn với lá số này và được khôi phục khi bạn quay lại.</p>
+            </div>
+            <span className="badge-pill">{formatChartSystem(chart.chart_system)}</span>
+          </div>
+
           <dl className="detail-list">
             <div>
               <dt>Chart ID</dt>
@@ -120,7 +150,13 @@ export default function ChartDetailPage() {
               <dt>Phiên bản chart</dt>
               <dd>{chart.chart_version ?? "N/A"}</dd>
             </div>
+            <div>
+              <dt>Ngày tạo</dt>
+              <dd>{formatDateTime(chart.created_at)}</dd>
+            </div>
           </dl>
+
+          {error && <p className="error-message">{error}</p>}
 
           <ChartVisualizer chartData={chart.chart_data} />
 
@@ -168,6 +204,20 @@ function formatGender(value: string) {
 function formatChartSystem(value: string) {
   if (value === "TUVI") return "Tử Vi";
   return value || "N/A";
+}
+
+function formatDateTime(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value || "N/A";
+  }
+  return parsed.toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function isTuViChartData(value: unknown): value is TuViChartData {

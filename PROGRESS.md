@@ -1347,6 +1347,61 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
 
 ---
 
+## Week 5 Frontend Integration Progress Update - 2026-07-13
+
+### W5-FE-04: Ghép đầy đủ trang chi tiết lá số - COMPLETE
+
+#### Implementation Summary
+- Hardened `frontend/app/chart/[id]/page.tsx` into a more complete chart-detail experience:
+  - keeps route protection via Supabase session check and now uses `router.replace("/login")` for cleaner auth redirect behavior
+  - filters chart fetch by both `id` and current `user_id` so inaccessible charts resolve to a clean not-found/forbidden state instead of a generic failure
+  - distinguishes missing/inaccessible charts from normal success rendering and shows a page-level recovery panel with a dashboard action
+  - expands chart summary with created-at metadata and clearer page copy about chart-bound chat history
+  - keeps `ChatInterface` integrated after the visualizer so auto-created chat sessions continue to happen through the existing chat UI flow
+- Polished the chart board readability in `frontend/components/TuViBoard.tsx` and `frontend/app/globals.css`:
+  - each palace now shows an explicit `Cung {position}` badge
+  - `ĐH` and `Chi` labels are made explicit for palace metadata at a glance
+  - stronger highlighted palace styling and slightly larger palace/star typography improve quick visual scanning
+  - visualizer heading now explains what metadata is shown in each palace cell, making it easier to determine which house is which
+
+#### Verification
+- Frontend production build:
+  - `cd frontend && npm run build`
+  - Result: passed. `/chart/[id]` compiled successfully with the refined chart detail and visualizer readability changes.
+
+### W5-FE-05: Error handling và rate limiting - COMPLETE
+
+#### Implementation Summary
+- Strengthened `frontend/app/api/chat/route.ts`:
+  - added a lightweight in-memory proxy guard keyed by authenticated user id to limit bursty repeated chat submits locally
+  - returns `429` with friendly Vietnamese copy and `Retry-After` when the proxy guard is hit
+  - normalizes backend `429` / quota-like failures into user-friendly rate-limit responses
+  - normalizes validation/auth/not-found/backend failure messages more explicitly
+  - logs important proxy failures to server logs without leaking backend stack traces to the client
+- Improved frontend chat feedback in `frontend/components/ChatInterface.tsx`:
+  - surfaces no-context fallback as a non-fatal explanatory notice inside assistant responses
+  - surfaces citation fallback as a softer provenance note instead of a hard error
+  - preserves retry flow for failed sends while keeping user-facing messages in Vietnamese
+
+#### Verification
+- Frontend production build:
+  - `cd frontend && npm run build`
+  - Result: passed. Next.js compiled successfully after proxy guard and error-state changes.
+
+### Current Week 5 Boundary
+- Completed deliverables:
+  - D-26: Next.js chat proxy
+  - D-27: Chat UI đầy đủ với lịch sử
+  - D-28: Citation panel
+  - D-29: Chart detail page hoàn chỉnh
+  - D-30: Error handling và rate limiting
+- Not yet completed:
+  - None in Week 5 scope
+
+**Status**: COMPLETE - W5-FE-04 and W5-FE-05 are now implemented and build-verified. Chart detail is more robust and readable, the TuViBoard is easier to scan by house, and chat proxy/UI error handling now covers burst rate limiting, timeout, validation, auth, and no-context fallback states more clearly.
+
+---
+
 ## RAG Chat Reliability & Retrieval Quality Hotfix - 2026-07-11
 
 ### Scope

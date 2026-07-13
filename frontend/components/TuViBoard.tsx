@@ -187,9 +187,12 @@ export function TuViBoard({ chart }: TuViBoardProps) {
           <p className="eyebrow">Tử Vi</p>
           <h3 id="tuvi-board-title">Bảng 12 cung</h3>
         </div>
-        <p>
-          {chart.metadata?.birth_date ?? "N/A"} - {chart.metadata?.birth_time ?? "N/A"}
-        </p>
+        <div className="visualizer-heading-meta">
+          <p>
+            {chart.metadata?.birth_date ?? "N/A"} - {chart.metadata?.birth_time ?? "N/A"}
+          </p>
+          <p className="visualizer-caption">Mỗi ô hiển thị Cung số, Đại hạn, Địa chi và các sao để dễ định vị nhanh.</p>
+        </div>
       </div>
 
       <div className="tuvi-board-scroll">
@@ -225,10 +228,12 @@ export function TuViBoard({ chart }: TuViBoardProps) {
                 className={isHighlighted ? "tuvi-palace-cell is-highlighted" : "tuvi-palace-cell"}
                 key={`${palace.position}-${palace.key}`}
                 style={cellStyle(cell.x, cell.y)}
+                title={`${palace.name} - Cung ${palace.position}`}
               >
-                <span className="tuvi-palace-age">{daiHan}</span>
+                <span className="tuvi-palace-age">ĐH {daiHan}</span>
+                <span className="tuvi-palace-index">Cung {palace.position}</span>
                 <span className="tuvi-palace-branch" title={diaChi}>
-                  {truncateText(diaChi, 18)}
+                  {truncateText(`Chi ${diaChi}`, 18)}
                 </span>
 
                 <h4 className="tuvi-palace-name">

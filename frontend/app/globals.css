@@ -634,6 +634,18 @@ textarea {
   text-align: right;
 }
 
+.visualizer-heading-meta {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.visualizer-caption {
+  color: var(--color-slate);
+  font-size: 0.82rem;
+  max-width: 30ch;
+}
+
 .tuvi-board-scroll {
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--color-border-light);
@@ -712,20 +724,24 @@ textarea {
   align-items: center;
   background: var(--color-canvas);
   border: 1px solid var(--color-hairline);
+   box-shadow: inset 0 1px 0 rgba(20, 20, 19, 0.03);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
   min-height: 260px;
   min-width: 0;
-  padding: 2rem 0.65rem 2.7rem;
+  padding: 2.45rem 0.7rem 2.7rem;
   position: relative;
 }
 
 .tuvi-palace-cell.is-highlighted {
   background: var(--color-pale-green);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .tuvi-palace-age,
+.tuvi-palace-index,
 .tuvi-palace-branch,
 .tuvi-palace-limit {
   color: var(--color-slate);
@@ -739,6 +755,18 @@ textarea {
 
 .tuvi-palace-age {
   left: 0.65rem;
+}
+
+.tuvi-palace-index {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-size: 0.64rem;
+  font-weight: 800;
+  left: 50%;
+  padding: 0.12rem 0.45rem;
+  transform: translateX(-50%);
 }
 
 .tuvi-palace-branch {
@@ -755,13 +783,13 @@ textarea {
   display: flex;
   flex: 0 0 auto;
   flex-wrap: wrap;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   gap: 0.22rem;
   justify-content: center;
   line-height: 1.1;
   margin: 0;
-  min-height: 1.05rem;
+  min-height: 2rem;
   overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
@@ -790,7 +818,7 @@ textarea {
 
 .tuvi-star.is-primary {
   color: var(--color-primary);
-  font-size: 0.86rem;
+  font-size: 0.9rem;
   font-weight: 800;
 }
 
@@ -1339,6 +1367,23 @@ textarea {
   margin: 0;
 }
 
+.chat-response-hints {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.chat-response-hints .notice-message {
+  background: rgba(250, 249, 245, 0.08);
+  border: 1px solid rgba(250, 249, 245, 0.12);
+  color: var(--color-on-dark);
+}
+
+.chat-response-note {
+  color: var(--color-on-dark-soft);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
 .chat-retry-button {
   background: var(--color-surface-dark-elevated);
   border: 1px solid rgba(250, 249, 245, 0.14);
@@ -1471,6 +1516,10 @@ textarea {
 
   .visualizer-heading p {
     text-align: left;
+  }
+
+  .visualizer-heading-meta {
+    justify-items: start;
   }
 
   .auth-side {
