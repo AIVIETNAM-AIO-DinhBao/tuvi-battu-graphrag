@@ -245,6 +245,7 @@ async def rag_smoke_debug(req: ChatRequest):
             "fused": len(state.get("fused_candidates") or []),
         },
         "trace": state.get("retrieval_trace") or {},
+        "retrieval_diagnostics": state.get("retrieval_diagnostics") or {},
         "generation_metadata": state.get("generation_metadata") or {},
         "citation_metadata": state.get("citation_metadata") or {},
     }
@@ -278,6 +279,7 @@ async def rag_smoke_no_chart_debug(query: str = "Thiên Mã tại Quan Lộc th�
         },
         "sources": state.get("sources") or [],
         "trace": state.get("retrieval_trace") or {},
+        "retrieval_diagnostics": state.get("retrieval_diagnostics") or {},
     }
 
 @app.post("/chat")
@@ -315,6 +317,7 @@ async def chat(req: ChatRequest):
             "answer": state.get("answer") or "",
             "sources": state.get("sources") or [],
             "trace": state.get("retrieval_trace") or {},
+            "retrieval_diagnostics": state.get("retrieval_diagnostics") or {},
             "experiment_id": state.get("experiment_id"),
             "config_hash": state.get("config_hash"),
             "chunk_strategy_id": chunk_strategy_id,

@@ -49,10 +49,17 @@ def candidate(
     }
 
 
-def test_context_assembly_balanced_uses_ranked_candidates_and_preserves_provenance() -> None:
+def test_context_assembly_balanced_uses_relevance_before_multipath_and_preserves_provenance() -> None:
     config = config_with(context_assembly_strategy="balanced")
     state = {
         "chart_data": {"chart_type": "TUVI", "metadata": {"label": "Lá số test"}},
+        "chart_facts": {
+            "chart_available": True,
+            "summary": {"menh_position": "Ngọ"},
+            "house_facts": [{"house_name": "Mệnh", "earthly_branch": "Ngọ", "major_stars": [{"name": "Tử Vi"}], "aux_stars": []}],
+            "target_houses": ["Mệnh"],
+            "target_stars": [],
+        },
         "ranked_candidates": [
             candidate("dense-only", paths=["dense"], score=0.9, rank=1),
             candidate("multi-path", paths=["graph", "dense"], score=0.8, rank=2),
@@ -61,12 +68,14 @@ def test_context_assembly_balanced_uses_ranked_candidates_and_preserves_provenan
 
     final_context, chunks, summary = assemble_context(state, config)
 
-    assert chunks[0]["chunk_id"] == "multi-path"
+    assert chunks[0]["chunk_id"] == "dense-only"
     assert chunks[0]["citation_marker"] == "S1"
     assert chunks[0]["provenance"]["source_id"] == "TVKL"
     assert "[CHART]" in final_context
+    assert "[CHART_FACTS]" in final_context
     assert "[S1]" in final_context
     assert summary["selected_count"] == 2
+    assert summary["has_chart_facts"] is True
 
 
 def test_context_assembly_strategy_ordering_can_change_order() -> None:

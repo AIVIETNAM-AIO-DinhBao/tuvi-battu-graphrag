@@ -353,6 +353,11 @@ def make_evaluation_rag_runner(
         initial_state: dict[str, Any] = {"chart_id": item.chart_id, "query": item.query}
         if item.user_id:
             initial_state["user_id"] = item.user_id
+        if item.question_complexity:
+            initial_state["question_complexity"] = item.question_complexity
+        question_family = (item.labels or {}).get("question_family")
+        if question_family:
+            initial_state["question_family"] = question_family
 
         chart_loader = None
         if item.chart_data is not None:
@@ -497,6 +502,7 @@ def summarize_evaluation_item(
     context_chunks = state.get("context_chunks") or []
     citation_metadata = state.get("citation_metadata") or {}
     context_summary = state.get("context_summary") or {}
+    diagnostics = state.get("retrieval_diagnostics") or {}
     markers = list(dict.fromkeys(CITATION_MARKER_RE.findall(str(answer))))
     chart_only = len(item.gold_context_spans) == 0
     retrieval_paths = selected_retrieval_paths(state)
@@ -534,6 +540,14 @@ def summarize_evaluation_item(
         "citation_fallback": bool(citation_metadata.get("citation_fallback")),
         "context_selected_count": int(context_summary.get("selected_count") or len(context_chunks) or 0),
         "selected_retrieval_paths": retrieval_paths,
+        "retrieval_diagnostics": diagnostics,
+        "diagnostic_question_complexity": diagnostics.get("question_complexity"),
+        "diagnostic_question_family": diagnostics.get("question_family"),
+        "diagnostic_candidate_counts": diagnostics.get("candidate_counts") or {},
+        "diagnostic_selected_retrieval_paths": diagnostics.get("final_selected_retrieval_paths") or [],
+        "diagnostic_selected_evidence_roles": diagnostics.get("selected_evidence_roles") or [],
+        "diagnostic_family_match": diagnostics.get("question_family") == question_family if question_family else None,
+        "diagnostic_complexity_match": diagnostics.get("question_complexity") == item.question_complexity if item.question_complexity else None,
         "gold_doc_coverage_rate": gold_doc_coverage_rate(sources, item.gold_context_spans),
         "gold_page_hit_rate": gold_page_hit_rate(sources, item.gold_context_spans),
         "gold_quote_overlap_avg": gold_quote_overlap_avg(sources, item.gold_context_spans),
@@ -572,6 +586,14 @@ def summarize_evaluation_error(item: AblationDatasetItem, exc: Exception, *, lat
         "citation_fallback": False,
         "context_selected_count": 0,
         "selected_retrieval_paths": [],
+        "retrieval_diagnostics": {},
+        "diagnostic_question_complexity": None,
+        "diagnostic_question_family": None,
+        "diagnostic_candidate_counts": {},
+        "diagnostic_selected_retrieval_paths": [],
+        "diagnostic_selected_evidence_roles": [],
+        "diagnostic_family_match": None,
+        "diagnostic_complexity_match": None,
         "gold_doc_coverage_rate": None,
         "gold_page_hit_rate": None,
         "gold_quote_overlap_avg": None,
@@ -636,6 +658,24 @@ def trace_node_statuses(state: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def average_diagnostic_candidate_count(item_results: list[dict[str, Any]], key: str) -> float | None:
+    return average_defined([
+        (item.get("diagnostic_candidate_counts") or {}).get(key)
+        for item in item_results
+    ])
+
+
+def selected_path_rate(item_results: list[dict[str, Any]], path: str) -> float | None:
+    values: list[bool | None] = []
+    for item in item_results:
+        paths = item.get("diagnostic_selected_retrieval_paths")
+        if paths is None:
+            values.append(None)
+        else:
+            values.append(path in paths)
+    return rate_defined(values)
+
+
 def aggregate_evaluation_metrics(
     item_results: list[dict[str, Any]],
     *,
@@ -683,6 +723,15 @@ def aggregate_evaluation_metrics(
             4,
         ) if corpus_items else None,
         "context_selected_count_avg": average_defined([item.get("context_selected_count") for item in item_results]),
+        "avg_graph_candidate_count": average_diagnostic_candidate_count(item_results, "graph"),
+        "avg_dense_candidate_count": average_diagnostic_candidate_count(item_results, "dense"),
+        "avg_sparse_candidate_count": average_diagnostic_candidate_count(item_results, "sparse"),
+        "avg_fused_candidate_count": average_diagnostic_candidate_count(item_results, "fused"),
+        "avg_ranked_candidate_count": average_diagnostic_candidate_count(item_results, "ranked"),
+        "avg_context_selected_diagnostic_count": average_diagnostic_candidate_count(item_results, "context_selected"),
+        "selected_graph_path_rate": selected_path_rate(item_results, "graph"),
+        "selected_dense_path_rate": selected_path_rate(item_results, "dense"),
+        "selected_sparse_path_rate": selected_path_rate(item_results, "sparse"),
     }
 
 

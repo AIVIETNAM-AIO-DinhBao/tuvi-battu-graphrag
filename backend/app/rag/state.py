@@ -10,9 +10,12 @@ class RAGState(TypedDict, total=False):
     query: str
     rewritten_query: str
     query_complexity: str
+    question_complexity: str
+    question_family: str
     chart_id: str
     chart_type: str
     chart_data: dict[str, Any]
+    chart_facts: dict[str, Any]
     user_id: str
     domain_filter: str
 
@@ -39,6 +42,8 @@ class RAGState(TypedDict, total=False):
     experiment_id: str
     config_hash: str
     retrieval_trace: dict[str, Any]
+    retrieval_plan: dict[str, Any]
+    retrieval_diagnostics: dict[str, Any]
 
     normalized_query: str
     experiment_config_path: str

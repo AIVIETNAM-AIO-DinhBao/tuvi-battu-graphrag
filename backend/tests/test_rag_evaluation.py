@@ -52,6 +52,23 @@ def fake_state(item: AblationDatasetItem, config: ExperimentConfig) -> dict[str,
                 {"node": "generation", "status": "completed"},
             ]
         },
+        "retrieval_diagnostics": {
+            "question_complexity": item.question_complexity,
+            "question_family": (item.labels or {}).get("question_family"),
+            "candidate_counts": {
+                "graph": 1,
+                "dense": 0,
+                "sparse": 1,
+                "fused": 1,
+                "reranked": 1,
+                "graded": 1,
+                "ranked": 1,
+                "context_selected": 1,
+                "sources": 1,
+            },
+            "final_selected_retrieval_paths": ["graph", "sparse"],
+            "selected_evidence_roles": ["generic"],
+        },
     }
 
 
@@ -115,6 +132,8 @@ def test_summarize_item_excludes_chart_only_from_corpus_metrics() -> None:
     assert result["chart_context_grounding"] == 0.7
     assert result["graph_hit"] is None
     assert result["citation_coverage"] is None
+    assert result["diagnostic_candidate_counts"]["graph"] == 1
+    assert result["diagnostic_selected_retrieval_paths"] == ["graph", "sparse"]
 
 
 def test_aggregate_metrics_and_groups_use_w6_metric_names() -> None:
@@ -135,6 +154,8 @@ def test_aggregate_metrics_and_groups_use_w6_metric_names() -> None:
             "context_selected_count": 0,
             "question_complexity": "Direct",
             "question_family": "core_identity",
+            "diagnostic_candidate_counts": {"graph": 0, "dense": 0, "sparse": 0, "fused": 0, "ranked": 0, "context_selected": 0},
+            "diagnostic_selected_retrieval_paths": [],
         },
         {
             "status": "completed",
@@ -152,6 +173,8 @@ def test_aggregate_metrics_and_groups_use_w6_metric_names() -> None:
             "context_selected_count": 2,
             "question_complexity": "One-hop",
             "question_family": "menh_house_interpretation",
+            "diagnostic_candidate_counts": {"graph": 3, "dense": 0, "sparse": 5, "fused": 6, "ranked": 4, "context_selected": 2},
+            "diagnostic_selected_retrieval_paths": ["graph", "sparse"],
         },
     ]
 
@@ -168,6 +191,10 @@ def test_aggregate_metrics_and_groups_use_w6_metric_names() -> None:
     assert metrics["corpus_source_coverage_rate"] == 1.0
     assert metrics["citation_marker_presence_rate"] == 0.0
     assert metrics["citation_source_alignment_rate"] == 0.0
+    assert metrics["avg_graph_candidate_count"] == 1.5
+    assert metrics["avg_sparse_candidate_count"] == 2.5
+    assert metrics["selected_graph_path_rate"] == 0.5
+    assert metrics["selected_sparse_path_rate"] == 0.5
     assert metrics["p95_latency_ms"] == 290.0
     assert groups["by_question_complexity"]["Direct"]["chart_only_count"] == 1
     assert groups["by_question_family"]["menh_house_interpretation"]["context_recall_avg"] == 0.5
@@ -208,6 +235,8 @@ def test_evaluation_runner_writes_reports_and_experiment_rows(tmp_path: Path) ->
     assert report["judge_backend"] == "gemini"
     assert report["dataset_item_count"] == 2
     assert report["configs"][0]["metrics"]["faithfulness_avg"] == 0.8
+    assert report["configs"][0]["items"][0]["diagnostic_question_family"] == "core_identity"
+    assert report["configs"][0]["items"][1]["diagnostic_question_family"] == "menh_house_interpretation"
     assert "by_question_complexity" in report["configs"][0]["grouped_metrics"]
     assert len(store.rows) == 1
     assert store.rows[0]["status"] == "completed"

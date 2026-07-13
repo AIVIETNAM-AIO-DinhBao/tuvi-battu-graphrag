@@ -38,6 +38,12 @@ def test_chat_route_returns_answer_sources_and_trace(monkeypatch) -> None:
                 }
             ],
             "retrieval_trace": {"nodes": [{"node": "generation", "status": "completed"}]},
+            "retrieval_diagnostics": {
+                "question_complexity": "One-hop",
+                "question_family": "topic_house_plus_relations",
+                "candidate_counts": {"graph": 1, "dense": 0, "sparse": 1, "fused": 1},
+                "final_selected_retrieval_paths": ["graph"],
+            },
             "experiment_id": config.experiment_id,
             "config_hash": "hash-test",
             "experiment_config": config,
@@ -63,5 +69,7 @@ def test_chat_route_returns_answer_sources_and_trace(monkeypatch) -> None:
     assert payload["answer"]
     assert payload["sources"][0]["chunk_id"] == "chunk-1"
     assert payload["trace"]["nodes"][0]["node"] == "generation"
+    assert payload["retrieval_diagnostics"]["question_family"] == "topic_house_plus_relations"
+    assert payload["retrieval_diagnostics"]["candidate_counts"]["graph"] == 1
     assert payload["experiment_id"] == config.experiment_id
     assert payload["chunk_strategy_id"] == config.chunk_strategy_id

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.rag.chart_facts import build_chart_fact_context_block
 from app.rag.config import ExperimentConfig
 from app.rag.state import RAGState
 
@@ -24,11 +25,16 @@ def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, li
         blocks.append(format_context_block(chunk))
 
     chart_summary = summarize_chart_context(state.get("chart_data") or {})
-    final_context = "\n\n".join([part for part in [chart_summary, *blocks] if part.strip()])
+    chart_fact_block = build_chart_fact_context_block(state.get("chart_facts") or {})
+    final_context = "\n\n".join([part for part in [chart_summary, chart_fact_block, *blocks] if part.strip()])
     summary = {
         "candidate_pool_count": len(candidates),
         "context_assembly_strategy": config.context_assembly_strategy,
         "has_chart_summary": bool(chart_summary.strip()),
+        "has_chart_facts": bool(chart_fact_block.strip()),
+        "chart_fact_house_count": len((state.get("chart_facts") or {}).get("house_facts") or []),
+        "chart_fact_target_houses": (state.get("chart_facts") or {}).get("target_houses") or [],
+        "chart_fact_target_stars": (state.get("chart_facts") or {}).get("target_stars") or [],
         "max_chunks": DEFAULT_MAX_CHUNKS,
         "max_context_chars": DEFAULT_MAX_CONTEXT_CHARS,
         "selected_count": len(context_chunks),

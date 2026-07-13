@@ -8,8 +8,11 @@ from app.clients import get_dense_query_embedding_service, get_neo4j_driver, get
 from app.config import settings
 from app.rag.config import RuntimeEntityExtractionConfig, config_hash, load_experiment_config
 from app.rag.citations import map_citations
+from app.rag.chart_facts import extract_chart_facts
 from app.rag.context import assemble_context
+from app.rag.diagnostics import build_retrieval_diagnostics
 from app.rag.generation import GenerationClient, generate_answer
+from app.rag.planner import build_retrieval_plan
 from app.rag.query_entities import canonical_entity_names, extract_query_entities, surface_terms
 from app.rag.retrieval import (
     retrieve_dense_candidates,
@@ -39,6 +42,8 @@ DRY_RUN_NODE_ORDER = [
     "classify_query_complexity",
     "query_rewrite",
     "entity_extraction",
+    "query_planner",
+    "chart_fact_extraction",
     "graph_retrieval",
     "dense_retrieval",
     "sparse_retrieval",
@@ -48,6 +53,7 @@ DRY_RUN_NODE_ORDER = [
     "context_assembly",
     "generation",
     "citation_map",
+    "retrieval_diagnostics",
 ]
 
 
@@ -207,12 +213,20 @@ def normalize_query(state: RAGState) -> RAGState:
 
 
 def classify_query_complexity(state: RAGState) -> RAGState:
+    provided = str(state.get("question_complexity") or "").strip()
+    if provided in {"Direct", "One-hop", "Two-hop"}:
+        state["query_complexity"] = provided
+        return append_trace_node(
+            state,
+            "classify_query_complexity",
+            detail={"query_complexity": state["query_complexity"], "source": "provided"},
+        )
     normalized = state.get("normalized_query") or state.get("query") or ""
     state["query_complexity"] = "complex" if len(normalized) > 120 else "simple"
     return append_trace_node(
         state,
         "classify_query_complexity",
-        detail={"query_complexity": state["query_complexity"]},
+        detail={"query_complexity": state["query_complexity"], "source": "heuristic_legacy"},
     )
 
 
@@ -319,6 +333,46 @@ def make_entity_extraction_node(
         )
 
     return entity_extraction
+
+
+def query_planner_node(state: RAGState) -> RAGState:
+    plan = build_retrieval_plan(state)
+    state["retrieval_plan"] = plan
+    state["question_family"] = plan["question_family"]
+    state["question_complexity"] = plan["question_complexity"]
+    return append_trace_node(
+        state,
+        "query_planner",
+        detail={
+            "planner_version": plan.get("planner_version"),
+            "question_family": plan.get("question_family"),
+            "question_family_source": plan.get("question_family_source"),
+            "question_complexity": plan.get("question_complexity"),
+            "retrieval_depth": plan.get("retrieval_depth"),
+            "target_houses": plan.get("target_houses") or [],
+            "target_stars": plan.get("target_stars") or [],
+        },
+    )
+
+
+def chart_fact_extraction_node(state: RAGState) -> RAGState:
+    chart_facts = extract_chart_facts(
+        state.get("chart_data") or {},
+        state.get("query_entities") or [],
+        state.get("retrieval_plan") or {},
+    )
+    state["chart_facts"] = chart_facts
+    return append_trace_node(
+        state,
+        "chart_fact_extraction",
+        detail={
+            "chart_available": chart_facts.get("chart_available"),
+            "chart_schema_detected": chart_facts.get("chart_schema_detected"),
+            "house_fact_count": len(chart_facts.get("house_facts") or []),
+            "target_houses": chart_facts.get("target_houses") or [],
+            "target_stars": chart_facts.get("target_stars") or [],
+        },
+    )
 
 
 def make_graph_retrieval_node(
@@ -650,6 +704,21 @@ def citation_map_node(state: RAGState) -> RAGState:
     return append_trace_node(state, "citation_map", detail=metadata)
 
 
+def retrieval_diagnostics_node(state: RAGState) -> RAGState:
+    diagnostics = build_retrieval_diagnostics(state)
+    state["retrieval_diagnostics"] = diagnostics
+    return append_trace_node(
+        state,
+        "retrieval_diagnostics",
+        detail={
+            "candidate_counts": diagnostics.get("candidate_counts") or {},
+            "question_complexity": diagnostics.get("question_complexity"),
+            "question_family": diagnostics.get("question_family"),
+            "selected_retrieval_paths": diagnostics.get("final_selected_retrieval_paths") or [],
+        },
+    )
+
+
 def build_node_map(
     *,
     chart_loader: ChartLoader | None = None,
@@ -670,6 +739,8 @@ def build_node_map(
         "classify_query_complexity": classify_query_complexity,
         "query_rewrite": make_query_rewrite_node(query_rewriter),
         "entity_extraction": make_entity_extraction_node(query_entity_extractor),
+        "query_planner": query_planner_node,
+        "chart_fact_extraction": chart_fact_extraction_node,
         "graph_retrieval": make_graph_retrieval_node(
             neo4j_driver,
             fallback_on_error=retrieval_fallback_on_error,
@@ -689,4 +760,5 @@ def build_node_map(
         "context_assembly": context_assembly_node,
         "generation": make_generation_node(generation_client),
         "citation_map": citation_map_node,
+        "retrieval_diagnostics": retrieval_diagnostics_node,
     }

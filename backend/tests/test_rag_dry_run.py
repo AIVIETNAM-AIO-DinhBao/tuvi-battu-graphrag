@@ -18,6 +18,8 @@ def fake_chart_loader(chart_id: str, user_id: str | None = None) -> dict[str, An
         "chart_data": {
             "chart_type": "legacy-value-that-should-not-win",
             "metadata": {"label": "Dry run chart"},
+            "palaces": {"Mệnh": {"name": "Mệnh", "stars": ["Tử Vi"]}},
+            "stars": {"Tử Vi": {"name": "Tử Vi", "palace": "Mệnh", "brightness": "Miếu", "category": "Chính Tinh"}},
         },
     }
 
@@ -87,6 +89,8 @@ def test_rag_dry_run_traverses_expected_nodes_and_preserves_query() -> None:
     assert state["rewritten_query"] == "Cung Mệnh có ý nghĩa gì?"
     assert "Mệnh" in state["entities"]
     assert state["query_entities"]
+    assert state["retrieval_plan"]["question_family"] == "menh_house_interpretation"
+    assert state["chart_facts"]["chart_schema_detected"] == "palaces_v1"
     assert state["graph_candidates"] == []
     assert state["dense_candidates"] == []
     assert state["sparse_candidates"] == []
@@ -97,10 +101,17 @@ def test_rag_dry_run_traverses_expected_nodes_and_preserves_query() -> None:
     assert state["context_chunks"] == []
     assert state["context_summary"]["selected_count"] == 0
     assert "[CHART]" in state["final_context"]
+    assert "[CHART_FACTS]" in state["final_context"]
     assert state["answer"]
     assert state["generation_metadata"]["fallback_reason"] == "no_context"
     assert state["sources"] == []
     assert state["citation_metadata"]["source_count"] == 0
+    assert state["retrieval_diagnostics"]["candidate_counts"]["graph"] == 0
+    assert state["retrieval_diagnostics"]["question_complexity"] == "One-hop"
+    assert state["retrieval_diagnostics"]["question_family"] == "menh_house_interpretation"
+    assert state["retrieval_diagnostics"]["retrieval_plan_source"] == "generated_by_query_planner"
+    assert state["retrieval_diagnostics"]["chart_facts"]["house_fact_count"] == 1
+    assert state["retrieval_diagnostics"]["selected_evidence_roles"] == ["generic"]
 
     trace_nodes = [entry["node"] for entry in state["retrieval_trace"]["nodes"]]
     assert trace_nodes == DRY_RUN_NODE_ORDER
