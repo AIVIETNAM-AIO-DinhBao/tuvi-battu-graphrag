@@ -10,6 +10,7 @@ from app.rag.graph import run_rag_dry_run
 from app.rag.generation import DeterministicGenerationClient
 from app.rag.retrieval import (
     build_fulltext_query,
+    graph_retrieval_tx,
     normalize_candidate,
     retrieve_dense_candidates,
     retrieve_graph_candidates,
@@ -61,6 +62,15 @@ class RecordingSession:
     def execute_read(self, tx_func: Any, **kwargs: Any) -> list[Any]:
         tx = RecordingTx(self.responses)
         result = tx_func(tx, **kwargs)
+        self.runs.extend(tx.runs)
+        return result
+
+
+class MutatingRecordingSession(RecordingSession):
+    def execute_read(self, tx_func: Any, **kwargs: Any) -> list[Any]:
+        tx = RecordingTx(self.responses)
+        result = tx_func(tx, **kwargs)
+        self.responses = tx.responses
         self.runs.extend(tx.runs)
         return result
 
@@ -154,9 +164,30 @@ def test_normalize_candidate_uses_common_shape() -> None:
     assert candidate["provenance"]["source"] == "unit-test"
 
 
+def test_graph_retrieval_skips_without_query_entities_and_records_empty_metadata() -> None:
+    config = config_with()
+    session = RecordingSession([[]])
+    state: dict[str, Any] = {"query_entities": []}
+
+    assert retrieve_graph_candidates(state, session=session, config=config) == []
+    assert state["graph_role_queries"] == []
+    assert state["graph_retrieval_metadata"] == {
+        "requested_mode": "entity_any",
+        "effective_mode": "entity_any",
+        "required_entity_hits": 0,
+        "effective_required_entity_hits": 0,
+        "fallback_used": False,
+        "fallback_reason": None,
+        "candidate_count": 0,
+        "role_query_count": 0,
+        "role_metadata": [],
+    }
+    assert session.runs == []
+
+
 def test_graph_retrieval_filters_by_domain_sources_strategy_and_entities() -> None:
     config = config_with()
-    session = RecordingSession(
+    session = MutatingRecordingSession(
         [
             [
                 {
@@ -199,8 +230,107 @@ def test_graph_retrieval_filters_by_domain_sources_strategy_and_entities() -> No
     assert direct_params["chunk_strategy_id"] == "chunk_fixed_512"
     assert direct_params["entities"] == [{"canonical_name": "Thien Ma", "entity_type": "Sao"}]
     assert direct_params["per_entity_limit"] == config.graph_retrieval.per_entity_limit
+    assert direct_params["graph_mode"] == "entity_any"
+    assert direct_params["required_entity_hits"] == 1
     assert "type(rel) IN $relation_types" in related_query
     assert "MENTIONS" not in related_params["relation_types"]
+
+
+def test_graph_retrieval_entity_all_fallbacks_to_entity_any_when_strict_empty() -> None:
+    config = config_with()
+    session = MutatingRecordingSession(
+        [
+            [],
+            [],
+            [
+                {
+                    "node": sample_node(chunk_hash="fallback", chunk_id="fallback"),
+                    "score": 1.0,
+                    "matched_entities": ["Thien Ma"],
+                    "relation_types": ["MENTIONS"],
+                }
+            ],
+            [],
+        ]
+    )
+    state = {
+        "query_entities": [
+            {"canonical_name": "Thien Ma", "entity_type": "Sao"},
+            {"canonical_name": "Quan Loc", "entity_type": "Cung"},
+        ],
+        "retrieval_plan": {"graph_mode": {"mode": "entity_all", "min_hit_count": 2}},
+    }
+
+    candidates = retrieve_graph_candidates(state, session=session, config=config)
+
+    assert [candidate["chunk_id"] for candidate in candidates] == ["fallback"]
+    assert session.runs[0][1]["graph_mode"] == "entity_all"
+    assert session.runs[0][1]["required_entity_hits"] == 2
+    assert session.runs[2][1]["graph_mode"] == "entity_any"
+    assert session.runs[2][1]["required_entity_hits"] == 1
+    assert candidates[0]["graph_mode_requested"] == "entity_all"
+    assert candidates[0]["graph_mode"] == "entity_any"
+    assert state["graph_retrieval_metadata"]["fallback_used"] is True
+    assert state["graph_retrieval_metadata"]["fallback_reason"] == "strict_mode_returned_no_candidates"
+
+
+def test_graph_retrieval_role_queries_annotate_candidates() -> None:
+    config = config_with()
+    session = MutatingRecordingSession(
+        [
+            [],
+            [],
+            [
+                {
+                    "node": sample_node(chunk_hash="star", chunk_id="star"),
+                    "score": 1.0,
+                    "matched_entities": ["Thien Ma"],
+                    "relation_types": ["MENTIONS"],
+                }
+            ],
+            [],
+        ]
+    )
+    state = {
+        "normalized_query": "Thien Ma co y nghia gi?",
+        "query_entities": [{"canonical_name": "Thien Ma", "entity_type": "Sao"}],
+        "retrieval_plan": {
+            "required_evidence_roles": ["star_definition"],
+            "target_stars": ["Thien Ma"],
+            "graph_mode": {"mode": "entity_any", "min_hit_count": 1},
+        },
+        "chart_facts": {"target_stars": ["Thien Ma"]},
+    }
+
+    candidates = retrieve_graph_candidates(state, session=session, config=config)
+
+    assert candidates[0]["chunk_id"] == "star"
+    assert candidates[0]["evidence_role"] == "star_definition"
+    assert "star_definition" in candidates[0]["evidence_roles"]
+    assert candidates[0]["retrieval_intent"] == "define_star"
+    assert state["graph_role_queries"][0]["evidence_role"] == "star_definition"
+
+
+def test_graph_retrieval_tx_enforces_required_entity_hits() -> None:
+    tx = RecordingTx([[], []])
+
+    graph_retrieval_tx(
+        tx,
+        entities=[{"canonical_name": "A", "entity_type": "Sao"}, {"canonical_name": "B", "entity_type": "Cung"}],
+        top_k=5,
+        per_entity_limit=3,
+        relation_types=["MENTIONS", "GIAI_THICH"],
+        domain="TUVI",
+        source_ids=["TVKL"],
+        chunk_strategy_id="chunk_fixed_512",
+        child_only=False,
+        graph_mode="min_hit_count",
+        required_entity_hits=2,
+    )
+
+    assert "WHERE size(matched_entities) >= $required_entity_hits" in tx.runs[0][0]
+    assert tx.runs[0][1]["graph_mode"] == "min_hit_count"
+    assert tx.runs[0][1]["required_entity_hits"] == 2
 
 
 def test_dense_retrieval_uses_bge_m3_vector_index_and_filters() -> None:
@@ -246,6 +376,31 @@ def test_sparse_retrieval_uses_chunk_fulltext_and_sanitized_query() -> None:
     assert params["fulltext_query"] == "foo OR bar OR baz OR qux"
     assert params["source_ids"] == config.source_ids
     assert params["chunk_strategy_id"] == config.chunk_strategy_id
+
+
+def test_sparse_retrieval_role_queries_annotate_candidates_and_keep_generic_fallback() -> None:
+    config = config_with()
+    session = MutatingRecordingSession(
+        [
+            [{"node": sample_node(chunk_hash="generic", chunk_id="generic"), "score": 0.5}],
+            [{"node": sample_node(chunk_hash="generic", chunk_id="generic"), "score": 100.0, "matched_entities": ["Thien Ma"]}],
+            [{"node": sample_node(chunk_hash="role", chunk_id="role"), "score": 0.7}],
+            [{"node": sample_node(chunk_hash="role", chunk_id="role"), "score": 100.0, "matched_entities": ["Thien Ma"]}],
+        ]
+    )
+    state = {
+        "normalized_query": "Thien Ma co y nghia gi?",
+        "query_entities": [{"canonical_name": "Thien Ma", "entity_type": "Sao"}],
+        "retrieval_plan": {"required_evidence_roles": ["star_definition"], "target_stars": ["Thien Ma"]},
+        "chart_facts": {"target_stars": ["Thien Ma"]},
+    }
+
+    candidates = retrieve_sparse_candidates(state, session=session, config=config)
+
+    roles_by_chunk = {candidate["chunk_id"]: candidate["evidence_roles"] for candidate in candidates}
+    assert "generic" in roles_by_chunk["generic"]
+    assert "star_definition" in roles_by_chunk["role"]
+    assert state["sparse_role_queries"][0]["evidence_role"] == "star_definition"
 
 
 def test_dry_run_populates_enabled_retrieval_paths_and_keeps_downstream_placeholders() -> None:

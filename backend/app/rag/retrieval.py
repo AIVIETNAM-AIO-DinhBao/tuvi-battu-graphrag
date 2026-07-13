@@ -6,6 +6,13 @@ from collections.abc import Iterable
 from typing import Any, TypedDict
 
 from app.rag.config import ExperimentConfig
+from app.rag.role_retrieval import (
+    GENERIC_EVIDENCE_ROLE,
+    annotate_candidate_role,
+    build_role_queries,
+    graph_mode_for_role,
+    merge_candidate_role_metadata,
+)
 from app.rag.state import RAGState
 
 
@@ -33,6 +40,12 @@ class RetrievalCandidate(TypedDict, total=False):
     matched_entities: list[str]
     relation_types: list[str]
     provenance: dict[str, Any]
+    evidence_role: str
+    evidence_roles: list[str]
+    retrieval_intent: str
+    role_query: str
+    graph_mode: str
+    graph_mode_requested: str
 
 
 def safe_index_name(value: str) -> str:
@@ -124,6 +137,9 @@ def normalize_candidate(record: Any, *, retrieval_path: str, rank: int) -> Retri
         "matched_entities": matched_entities,
         "relation_types": relation_types,
         "provenance": provenance,
+        "evidence_role": GENERIC_EVIDENCE_ROLE,
+        "evidence_roles": [GENERIC_EVIDENCE_ROLE],
+        "retrieval_intent": "generic_query",
     }
 
 
@@ -135,22 +151,62 @@ def retrieve_graph_candidates(
 ) -> list[RetrievalCandidate]:
     entities = query_entity_rows(state)
     if not entities:
+        state["graph_role_queries"] = []
+        state["graph_retrieval_metadata"] = {
+            "requested_mode": "entity_any",
+            "effective_mode": "entity_any",
+            "required_entity_hits": 0,
+            "effective_required_entity_hits": 0,
+            "fallback_used": False,
+            "fallback_reason": None,
+            "candidate_count": 0,
+            "role_query_count": 0,
+            "role_metadata": [],
+        }
         return []
 
     graph_config = config.graph_retrieval
-    records = execute_read(
-        session,
-        graph_retrieval_tx,
+    role_queries = build_role_queries(state)
+    state["graph_role_queries"] = role_queries
+    planner_mode = planner_graph_mode(state)
+
+    generic_candidates, metadata = retrieve_graph_for_entities(
+        state,
+        session=session,
+        config=config,
         entities=entities,
-        top_k=graph_config.top_k,
-        per_entity_limit=graph_config.per_entity_limit,
-        relation_types=graph_config.allowed_relation_types,
-        domain=config.domain,
-        source_ids=config.source_ids,
-        chunk_strategy_id=config.chunk_strategy_id,
-        child_only=graph_config.child_only,
+        mode=graph_mode_for_role(GENERIC_EVIDENCE_ROLE, planner_mode),
+        role=GENERIC_EVIDENCE_ROLE,
+        intent="generic_query",
     )
-    return normalize_and_rank(records, retrieval_path="graph")
+    candidates: list[RetrievalCandidate] = list(generic_candidates)
+    role_metadata: list[dict[str, Any]] = []
+    for role_query in role_queries:
+        role_entities = role_query.get("entities") or entities
+        if not role_entities:
+            continue
+        role = str(role_query.get("evidence_role") or GENERIC_EVIDENCE_ROLE)
+        role_candidates, item_metadata = retrieve_graph_for_entities(
+            state,
+            session=session,
+            config=config,
+            entities=role_entities,
+            mode=graph_mode_for_role(role, planner_mode),
+            role=role,
+            intent=str(role_query.get("retrieval_intent") or role),
+            role_query=str(role_query.get("query") or ""),
+        )
+        role_metadata.append({"role": role, **item_metadata})
+        candidates.extend(role_candidates)
+
+    metadata["role_metadata"] = role_metadata
+    metadata["role_query_count"] = len(role_queries)
+    role_fallback = next((item for item in role_metadata if item.get("fallback_used")), None)
+    if role_fallback and not metadata.get("fallback_used"):
+        metadata["fallback_used"] = True
+        metadata["fallback_reason"] = role_fallback.get("fallback_reason")
+    state["graph_retrieval_metadata"] = metadata
+    return rerank_candidates(dedupe_candidates(candidates))
 
 
 def retrieve_dense_candidates(
@@ -190,6 +246,8 @@ def retrieve_sparse_candidates(
     config: ExperimentConfig,
 ) -> list[RetrievalCandidate]:
     sparse_config = config.sparse_retrieval
+    role_queries = build_role_queries(state)
+    state["sparse_role_queries"] = role_queries
     fulltext_records = execute_read(
         session,
         sparse_retrieval_tx,
@@ -214,7 +272,131 @@ def retrieve_sparse_candidates(
             chunk_strategy_id=config.chunk_strategy_id,
             child_only=sparse_config.child_only,
         )
-    return normalize_and_rank([*exact_records, *fulltext_records], retrieval_path="sparse")
+    generic_candidates = normalize_and_rank([*exact_records, *fulltext_records], retrieval_path="sparse")
+    candidates: list[RetrievalCandidate] = [
+        annotate_candidate_role(candidate, GENERIC_EVIDENCE_ROLE, "generic_query") for candidate in generic_candidates
+    ]
+    for role_query in role_queries:
+        role = str(role_query.get("evidence_role") or GENERIC_EVIDENCE_ROLE)
+        intent = str(role_query.get("retrieval_intent") or role)
+        query = str(role_query.get("query") or retrieval_query_text(state))
+        role_fulltext_records = execute_read(
+            session,
+            sparse_retrieval_tx,
+            query=query,
+            top_k=sparse_config.top_k,
+            domain=config.domain,
+            source_ids=config.source_ids,
+            chunk_strategy_id=config.chunk_strategy_id,
+            fulltext_index_name=sparse_config.fulltext_index,
+            child_only=sparse_config.child_only,
+        )
+        role_exact_records = []
+        role_entities = role_query.get("entities") or []
+        if role_entities:
+            role_exact_records = execute_read(
+                session,
+                exact_entity_text_retrieval_tx,
+                entities=role_entities,
+                top_k=sparse_config.top_k,
+                domain=config.domain,
+                source_ids=config.source_ids,
+                chunk_strategy_id=config.chunk_strategy_id,
+                child_only=sparse_config.child_only,
+            )
+        role_candidates = normalize_and_rank([*role_exact_records, *role_fulltext_records], retrieval_path="sparse")
+        candidates.extend(
+            annotate_candidate_role(candidate, role, intent, role_query=query) for candidate in role_candidates
+        )
+    return rerank_candidates(dedupe_candidates(candidates))
+
+
+def retrieve_graph_for_entities(
+    state: RAGState,
+    *,
+    session: Any,
+    config: ExperimentConfig,
+    entities: list[dict[str, str]],
+    mode: dict[str, Any],
+    role: str,
+    intent: str,
+    role_query: str | None = None,
+) -> tuple[list[RetrievalCandidate], dict[str, Any]]:
+    graph_config = config.graph_retrieval
+    requested = normalize_graph_mode(mode, entity_count=len(entities))
+    records = execute_read(
+        session,
+        graph_retrieval_tx,
+        entities=entities,
+        top_k=graph_config.top_k,
+        per_entity_limit=graph_config.per_entity_limit,
+        relation_types=graph_config.allowed_relation_types,
+        domain=config.domain,
+        source_ids=config.source_ids,
+        chunk_strategy_id=config.chunk_strategy_id,
+        child_only=graph_config.child_only,
+        graph_mode=requested["mode"],
+        required_entity_hits=requested["required_entity_hits"],
+    )
+    fallback_used = False
+    fallback_reason = None
+    effective = requested
+    if requested["mode"] != "entity_any" and not records:
+        fallback_used = True
+        fallback_reason = "strict_mode_returned_no_candidates"
+        effective = normalize_graph_mode({"mode": "entity_any", "min_hit_count": 1}, entity_count=len(entities))
+        records = execute_read(
+            session,
+            graph_retrieval_tx,
+            entities=entities,
+            top_k=graph_config.top_k,
+            per_entity_limit=graph_config.per_entity_limit,
+            relation_types=graph_config.allowed_relation_types,
+            domain=config.domain,
+            source_ids=config.source_ids,
+            chunk_strategy_id=config.chunk_strategy_id,
+            child_only=graph_config.child_only,
+            graph_mode=effective["mode"],
+            required_entity_hits=effective["required_entity_hits"],
+        )
+    candidates = [
+        annotate_candidate_role(candidate, role, intent, role_query=role_query)
+        for candidate in normalize_and_rank(records, retrieval_path="graph")
+    ]
+    for candidate in candidates:
+        candidate["graph_mode"] = effective["mode"]
+        candidate["graph_mode_requested"] = requested["mode"]
+    return candidates, {
+        "requested_mode": requested["mode"],
+        "effective_mode": effective["mode"],
+        "required_entity_hits": requested["required_entity_hits"],
+        "effective_required_entity_hits": effective["required_entity_hits"],
+        "fallback_used": fallback_used,
+        "fallback_reason": fallback_reason,
+        "candidate_count": len(candidates),
+    }
+
+
+def planner_graph_mode(state: RAGState) -> dict[str, Any]:
+    plan = state.get("retrieval_plan") or {}
+    raw = plan.get("graph_mode") if isinstance(plan, dict) else None
+    return dict(raw) if isinstance(raw, dict) else {"mode": "entity_any", "min_hit_count": 1}
+
+
+def normalize_graph_mode(mode: dict[str, Any], *, entity_count: int) -> dict[str, Any]:
+    requested = str(mode.get("mode") or "entity_any")
+    if requested not in {"entity_any", "entity_all", "min_hit_count"}:
+        requested = "entity_any"
+    if entity_count <= 1:
+        return {"mode": "entity_any", "min_hit_count": 1, "required_entity_hits": 1 if entity_count else 0}
+    if requested == "entity_all":
+        required = entity_count
+    elif requested == "min_hit_count":
+        required = int_or_default(mode.get("min_hit_count"), 1)
+        required = max(1, min(required, entity_count))
+    else:
+        required = 1
+    return {"mode": requested, "min_hit_count": int_or_default(mode.get("min_hit_count"), 1), "required_entity_hits": required}
 
 
 def graph_retrieval_tx(
@@ -228,6 +410,8 @@ def graph_retrieval_tx(
     source_ids: list[str],
     chunk_strategy_id: str,
     child_only: bool,
+    graph_mode: str = "entity_any",
+    required_entity_hits: int = 1,
 ) -> list[Any]:
     direct = list(
         tx.run(
@@ -253,6 +437,7 @@ def graph_retrieval_tx(
                 LIMIT $per_entity_limit
             }
             WITH node, collect(DISTINCT seed.canonical_name) AS matched_entities
+            WHERE size(matched_entities) >= $required_entity_hits
             RETURN node,
                    1.0 AS score,
                    matched_entities,
@@ -267,6 +452,8 @@ def graph_retrieval_tx(
             source_ids=source_ids,
             chunk_strategy_id=chunk_strategy_id,
             child_only=child_only,
+            graph_mode=graph_mode,
+            required_entity_hits=required_entity_hits,
         )
     )
     related = list(
@@ -297,6 +484,7 @@ def graph_retrieval_tx(
                  max(coalesce(rel.confidence, 0.5)) AS score,
                  collect(DISTINCT seed.canonical_name) AS matched_entities,
                  collect(DISTINCT type(rel)) AS relation_types
+            WHERE size(matched_entities) >= $required_entity_hits
             RETURN node, score, matched_entities, relation_types
             ORDER BY score DESC
             LIMIT $top_k
@@ -309,6 +497,8 @@ def graph_retrieval_tx(
             chunk_strategy_id=chunk_strategy_id,
             relation_types=[relation for relation in relation_types if relation != "MENTIONS"],
             child_only=child_only,
+            graph_mode=graph_mode,
+            required_entity_hits=required_entity_hits,
         )
     )
     return direct + related
@@ -485,6 +675,17 @@ def normalize_and_rank(records: Iterable[Any], *, retrieval_path: str) -> list[R
     return deduped
 
 
+def rerank_candidates(candidates: list[RetrievalCandidate]) -> list[RetrievalCandidate]:
+    ranked = sorted(
+        candidates,
+        key=lambda item: (float(item.get("score") or 0.0), -int(item.get("rank") or 0)),
+        reverse=True,
+    )
+    for index, candidate in enumerate(ranked, start=1):
+        candidate["rank"] = index
+    return ranked
+
+
 def dedupe_candidates(candidates: list[RetrievalCandidate]) -> list[RetrievalCandidate]:
     best_by_key: dict[str, RetrievalCandidate] = {}
     passthrough: list[RetrievalCandidate] = []
@@ -494,8 +695,14 @@ def dedupe_candidates(candidates: list[RetrievalCandidate]) -> list[RetrievalCan
             passthrough.append(candidate)
             continue
         previous = best_by_key.get(key)
-        if previous is None or float(candidate["score"]) > float(previous["score"]):
+        if previous is None:
             best_by_key[key] = candidate
+        else:
+            merge_candidate_role_metadata(previous, candidate)
+            previous["matched_entities"] = to_string_list([*(previous.get("matched_entities") or []), *(candidate.get("matched_entities") or [])])
+            previous["relation_types"] = to_string_list([*(previous.get("relation_types") or []), *(candidate.get("relation_types") or [])])
+            if float(candidate["score"]) > float(previous["score"]):
+                best_by_key[key] = merge_candidate_role_metadata(candidate, previous)
     return sorted(
         [*best_by_key.values(), *passthrough],
         key=lambda item: (float(item.get("score") or 0.0), -int(item.get("rank") or 0)),
@@ -548,3 +755,10 @@ def coerce_provenance(value: Any) -> dict[str, Any]:
             return {"raw": value}
         return parsed if isinstance(parsed, dict) else {"value": parsed}
     return {}
+
+
+def int_or_default(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default

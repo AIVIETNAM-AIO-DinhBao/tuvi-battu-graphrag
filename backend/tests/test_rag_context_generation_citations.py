@@ -78,6 +78,26 @@ def test_context_assembly_balanced_uses_relevance_before_multipath_and_preserves
     assert summary["has_chart_facts"] is True
 
 
+def test_context_block_renders_role_metadata_for_generation_prompt() -> None:
+    config = config_with(context_assembly_strategy="balanced")
+    state = {
+        "ranked_candidates": [
+            {
+                **candidate("role-hit", paths=["graph", "sparse"], score=0.9),
+                "evidence_role": "star_definition",
+                "evidence_roles": ["generic", "star_definition"],
+                "retrieval_intent": "define_star",
+            }
+        ]
+    }
+
+    final_context, chunks, _summary = assemble_context(state, config)
+
+    assert chunks[0]["evidence_roles"] == ["generic", "star_definition"]
+    assert "evidence_roles: generic, star_definition" in final_context
+    assert "retrieval_intent: define_star" in final_context
+
+
 def test_context_assembly_strategy_ordering_can_change_order() -> None:
     candidates = [
         candidate("graph-hit", paths=["graph"], score=0.2, rank=2),

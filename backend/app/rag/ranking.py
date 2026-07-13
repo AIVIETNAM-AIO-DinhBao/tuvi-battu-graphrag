@@ -6,6 +6,7 @@ from typing import Any, Protocol
 
 from app.rag.config import ExperimentConfig
 from app.rag.retrieval import RetrievalCandidate, retrieval_query_text
+from app.rag.role_retrieval import candidate_roles, merge_candidate_role_metadata
 from app.rag.state import RAGState
 
 
@@ -245,6 +246,11 @@ def make_fused_record(candidate: dict[str, Any], *, identity: str) -> dict[str, 
     record["score_breakdown"] = {}
     record["matched_entities"] = unique_strings(candidate.get("matched_entities") or [])
     record["relation_types"] = unique_strings(candidate.get("relation_types") or [])
+    record["evidence_roles"] = candidate_roles(candidate)
+    record["evidence_role"] = next((role for role in record["evidence_roles"] if role != "generic"), record["evidence_roles"][0])
+    record["retrieval_intent"] = candidate.get("retrieval_intent")
+    if candidate.get("role_query"):
+        record["role_query"] = candidate.get("role_query")
     record["provenance"] = dict(candidate.get("provenance") or {})
     return record
 
@@ -256,6 +262,7 @@ def merge_candidate_metadata(record: dict[str, Any], candidate: dict[str, Any]) 
     record["relation_types"] = unique_strings(
         [*(record.get("relation_types") or []), *(candidate.get("relation_types") or [])]
     )
+    merge_candidate_role_metadata(record, candidate)
     provenance = dict(record.get("provenance") or {})
     provenance.update({key: value for key, value in dict(candidate.get("provenance") or {}).items() if value is not None})
     record["provenance"] = provenance

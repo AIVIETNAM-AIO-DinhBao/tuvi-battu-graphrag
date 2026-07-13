@@ -19,6 +19,7 @@ from app.rag.retrieval import (
     retrieve_graph_candidates,
     retrieve_sparse_candidates,
 )
+from app.rag.role_retrieval import candidate_counts_by_role, role_query_summary
 from app.rag.ranking import (
     CandidateReranker,
     apply_document_grading,
@@ -429,14 +430,23 @@ def make_graph_retrieval_node(
                 ),
             )
         state["graph_candidates"] = candidates
+        graph_metadata = state.get("graph_retrieval_metadata") or {}
+        role_queries = state.get("graph_role_queries") or []
         return append_trace_node(
             state,
             "graph_retrieval",
             detail={
                 "candidate_count": len(candidates),
+                "candidate_count_by_role": candidate_counts_by_role(candidates),
                 "chunk_strategy_id": config.chunk_strategy_id,
                 "enabled": True,
+                "graph_mode_requested": graph_metadata.get("requested_mode"),
+                "graph_mode_effective": graph_metadata.get("effective_mode"),
+                "graph_mode_fallback_used": bool(graph_metadata.get("fallback_used")),
+                "graph_mode_fallback_reason": graph_metadata.get("fallback_reason"),
                 "per_entity_limit": graph_config.per_entity_limit,
+                "role_query_count": len(role_queries),
+                "role_queries": role_query_summary(role_queries),
                 "source_ids": config.source_ids,
                 "timeout_seconds": graph_config.timeout_seconds,
                 "top_k": graph_config.top_k,
@@ -592,14 +602,18 @@ def make_sparse_retrieval_node(
                 ),
             )
         state["sparse_candidates"] = candidates
+        role_queries = state.get("sparse_role_queries") or []
         return append_trace_node(
             state,
             "sparse_retrieval",
             detail={
                 "candidate_count": len(candidates),
+                "candidate_count_by_role": candidate_counts_by_role(candidates),
                 "chunk_strategy_id": config.chunk_strategy_id,
                 "enabled": True,
                 "fulltext_index": sparse_config.fulltext_index,
+                "role_query_count": len(role_queries),
+                "role_queries": role_query_summary(role_queries),
                 "source_ids": config.source_ids,
                 "timeout_seconds": sparse_config.timeout_seconds,
                 "top_k": sparse_config.top_k,

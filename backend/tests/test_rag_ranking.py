@@ -135,6 +135,29 @@ def test_rrf_fusion_dedupes_candidates_and_records_score_breakdown() -> None:
     assert by_id["a"]["fusion_score"] > by_id["b"]["fusion_score"]
 
 
+def test_fusion_preserves_multi_role_metadata_across_duplicate_candidates() -> None:
+    graph_hit = {
+        **candidate("graph", "shared", 1, 0.7),
+        "evidence_role": "star_definition",
+        "evidence_roles": ["star_definition"],
+        "retrieval_intent": "define_star",
+    }
+    sparse_hit = {
+        **candidate("sparse", "shared", 1, 5.0),
+        "evidence_role": "combination_pattern",
+        "evidence_roles": ["generic", "combination_pattern"],
+        "retrieval_intent": "combination_pattern",
+    }
+
+    fused = fuse_rrf({"graph": [graph_hit], "dense": [], "sparse": [sparse_hit]})
+    shared = next(item for item in fused if item["chunk_id"] == "shared")
+
+    assert shared["retrieval_paths"] == ["graph", "sparse"]
+    assert shared["evidence_roles"] == ["star_definition", "generic", "combination_pattern"]
+    assert shared["evidence_role"] == "star_definition"
+    assert shared["retrieval_intent"] == "define_star"
+
+
 def test_weighted_sum_uses_normalized_scores_and_can_change_order() -> None:
     fused = fuse_weighted_sum(
         {

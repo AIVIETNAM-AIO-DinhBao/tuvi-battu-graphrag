@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.rag.planner import QUESTION_FAMILIES, infer_question_complexity, infer_question_family
+from app.rag.role_retrieval import candidate_counts_by_role, candidate_roles
 from app.rag.state import RAGState
 
 
@@ -34,9 +35,13 @@ def build_retrieval_diagnostics(state: RAGState) -> dict[str, Any]:
             "sparse": bool(getattr(config, "sparse_retrieval_enabled", False)),
         },
         "candidate_counts": candidate_counts,
+        "candidate_counts_by_role": candidate_counts_by_path_and_role(state),
         "retrieval_node_statuses": retrieval_node_statuses(state),
         "final_selected_retrieval_paths": selected_paths,
         "selected_evidence_roles": selected_roles,
+        "required_evidence_roles": required_evidence_roles(state),
+        "missing_evidence_roles": missing_evidence_roles(state, selected_roles),
+        "graph_retrieval": graph_retrieval_diagnostics(state),
         "selected_chunk_ids": selected_chunk_ids(state),
         "selected_source_ids": selected_source_ids(state),
         "chunk_strategy_id": getattr(config, "chunk_strategy_id", None),
@@ -114,10 +119,50 @@ def selected_evidence_roles(state: RAGState) -> list[str]:
     roles: list[str] = []
     for collection_name in ("context_chunks", "sources"):
         for item in state.get(collection_name) or []:
-            raw_role = item.get("evidence_role") or item.get("retrieval_intent")
-            if raw_role and str(raw_role) not in roles:
-                roles.append(str(raw_role))
+            for role in candidate_roles(item):
+                if role and role not in roles:
+                    roles.append(role)
     return roles or ["generic"]
+
+
+def candidate_counts_by_path_and_role(state: RAGState) -> dict[str, dict[str, int]]:
+    return {
+        "graph": candidate_counts_by_role(state.get("graph_candidates") or []),
+        "dense": candidate_counts_by_role(state.get("dense_candidates") or []),
+        "sparse": candidate_counts_by_role(state.get("sparse_candidates") or []),
+        "fused": candidate_counts_by_role(state.get("fused_candidates") or []),
+        "context_selected": candidate_counts_by_role(state.get("context_chunks") or []),
+    }
+
+
+def required_evidence_roles(state: RAGState) -> list[str]:
+    plan = state.get("retrieval_plan") or {}
+    roles = plan.get("required_evidence_roles") if isinstance(plan, dict) else []
+    result: list[str] = []
+    for role in roles or []:
+        value = str(role).strip()
+        if value and value not in result:
+            result.append(value)
+    return result
+
+
+def missing_evidence_roles(state: RAGState, selected_roles: list[str]) -> list[str]:
+    selected = set(selected_roles or [])
+    return [role for role in required_evidence_roles(state) if role not in selected]
+
+
+def graph_retrieval_diagnostics(state: RAGState) -> dict[str, Any]:
+    metadata = state.get("graph_retrieval_metadata") or {}
+    return {
+        "requested_mode": metadata.get("requested_mode"),
+        "effective_mode": metadata.get("effective_mode"),
+        "required_entity_hits": metadata.get("required_entity_hits"),
+        "effective_required_entity_hits": metadata.get("effective_required_entity_hits"),
+        "fallback_used": bool(metadata.get("fallback_used")),
+        "fallback_reason": metadata.get("fallback_reason"),
+        "role_query_count": metadata.get("role_query_count", len(state.get("graph_role_queries") or [])),
+        "role_metadata": metadata.get("role_metadata") or [],
+    }
 
 
 def selected_chunk_ids(state: RAGState) -> list[str]:

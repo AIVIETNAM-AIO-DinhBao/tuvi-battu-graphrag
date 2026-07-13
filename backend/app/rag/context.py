@@ -95,6 +95,9 @@ def make_context_chunk(candidate: dict[str, Any], *, index: int, config: Experim
         "excerpt": excerpt,
         "fusion_score": candidate.get("fusion_score"),
         "grade_score": candidate.get("grade_score"),
+        "evidence_role": candidate.get("evidence_role"),
+        "evidence_roles": list(candidate.get("evidence_roles") or []),
+        "retrieval_intent": candidate.get("retrieval_intent"),
         "matched_entities": list(candidate.get("matched_entities") or []),
         "parent_id": candidate.get("parent_id"),
         "provenance": dict(candidate.get("provenance") or {}),
@@ -114,11 +117,28 @@ def format_context_block(chunk: dict[str, Any]) -> str:
     page = chunk.get("source_page")
     page_label = f", trang {page}" if page not in (None, "") else ""
     title = f" - {chunk.get('title')}" if chunk.get("title") else ""
+    role_line = format_role_metadata_line(chunk)
+    metadata_lines = [
+        f"chunk_id: {chunk.get('chunk_id')} | strategy: {chunk.get('chunk_strategy_id')}",
+    ]
+    if role_line:
+        metadata_lines.append(role_line)
     return (
         f"[{chunk['citation_marker']}] {source_label}{page_label}{title}\n"
-        f"chunk_id: {chunk.get('chunk_id')} | strategy: {chunk.get('chunk_strategy_id')}\n"
+        f"{'\n'.join(metadata_lines)}\n"
         f"{chunk.get('excerpt') or ''}"
     )
+
+
+def format_role_metadata_line(chunk: dict[str, Any]) -> str:
+    roles = unique_strings([*(chunk.get("evidence_roles") or []), chunk.get("evidence_role")])
+    intent = str(chunk.get("retrieval_intent") or "").strip()
+    parts: list[str] = []
+    if roles:
+        parts.append(f"evidence_roles: {', '.join(roles)}")
+    if intent:
+        parts.append(f"retrieval_intent: {intent}")
+    return " | ".join(parts)
 
 
 def summarize_chart_context(chart_data: dict[str, Any]) -> str:
@@ -172,3 +192,12 @@ def candidate_retrieval_paths(candidate: dict[str, Any]) -> list[str]:
     if retrieval_path and str(retrieval_path) not in paths:
         paths.append(str(retrieval_path))
     return paths
+
+
+def unique_strings(values: list[Any]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if text and text not in result:
+            result.append(text)
+    return result

@@ -13,7 +13,7 @@ def test_build_retrieval_diagnostics_summarizes_counts_paths_and_entities() -> N
         "question_family": "menh_house_interpretation",
         "experiment_config": config,
         "query_entities": [{"canonical_name": "Mệnh", "entity_type": "Cung", "surface": "Cung Mệnh"}],
-        "graph_candidates": [{"chunk_id": "g1"}],
+        "graph_candidates": [{"chunk_id": "g1", "evidence_role": "star_definition", "evidence_roles": ["star_definition"]}],
         "dense_candidates": [],
         "sparse_candidates": [{"chunk_id": "s1"}, {"chunk_id": "s2"}],
         "fused_candidates": [{"chunk_id": "g1"}, {"chunk_id": "s1"}],
@@ -23,13 +23,26 @@ def test_build_retrieval_diagnostics_summarizes_counts_paths_and_entities() -> N
         "context_chunks": [
             {
                 "chunk_id": "g1",
+                "evidence_role": "star_definition",
+                "evidence_roles": ["star_definition", "generic"],
                 "source_id": "TVGM",
                 "retrieval_paths": ["graph", "sparse"],
             }
         ],
         "sources": [{"chunk_id": "g1", "source_id": "TVGM", "retrieval_paths": ["graph", "sparse"]}],
         "retrieval_trace": {"nodes": [{"node": "graph_retrieval", "status": "completed"}]},
-        "retrieval_plan": {"planner_version": "w6_rag_02_v1", "question_family": "menh_house_interpretation"},
+        "retrieval_plan": {
+            "planner_version": "w6_rag_02_v1",
+            "question_family": "menh_house_interpretation",
+            "required_evidence_roles": ["house_scope", "star_definition"],
+        },
+        "graph_retrieval_metadata": {
+            "requested_mode": "entity_all",
+            "effective_mode": "entity_any",
+            "fallback_used": True,
+            "fallback_reason": "strict_mode_returned_no_candidates",
+            "role_query_count": 1,
+        },
         "chart_facts": {
             "chart_available": True,
             "chart_schema_detected": "chart_repr_v2",
@@ -54,7 +67,12 @@ def test_build_retrieval_diagnostics_summarizes_counts_paths_and_entities() -> N
     assert diagnostics["candidate_counts"]["sparse"] == 2
     assert diagnostics["candidate_counts"]["context_selected"] == 1
     assert diagnostics["final_selected_retrieval_paths"] == ["graph", "sparse"]
-    assert diagnostics["selected_evidence_roles"] == ["generic"]
+    assert diagnostics["selected_evidence_roles"] == ["star_definition", "generic"]
+    assert diagnostics["candidate_counts_by_role"]["graph"] == {"star_definition": 1}
+    assert diagnostics["required_evidence_roles"] == ["house_scope", "star_definition"]
+    assert diagnostics["missing_evidence_roles"] == ["house_scope"]
+    assert diagnostics["graph_retrieval"]["fallback_used"] is True
+    assert diagnostics["graph_retrieval"]["effective_mode"] == "entity_any"
     assert diagnostics["selected_chunk_ids"] == ["g1"]
     assert diagnostics["selected_source_ids"] == ["TVGM"]
     assert diagnostics["retrieval_plan"]["planner_version"] == "w6_rag_02_v1"
