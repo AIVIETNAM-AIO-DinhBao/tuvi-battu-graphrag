@@ -1,0 +1,908 @@
+from __future__ import annotations
+
+import json
+import os
+import re
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Callable, Protocol
+
+from app.rag.ablation import (
+    CITATION_MARKER_RE,
+    AblationConfigSpec,
+    AblationDatasetItem,
+    AblationManifest,
+    EmptyNeo4jDriver,
+    ExperimentRunStore,
+    NullExperimentRunStore,
+    SupabaseExperimentRunStore,
+    ZeroDenseEmbeddingService,
+    citation_source_alignment,
+    gold_doc_coverage_rate,
+    gold_page_hit_rate,
+    gold_quote_overlap_avg,
+    load_ablation_dataset,
+    load_ablation_manifest,
+)
+from app.rag.config import ExperimentConfig, config_hash
+from app.rag.generation import DeterministicGenerationClient
+from app.rag.graph import run_rag_dry_run
+from app.rag.rewrite import PassthroughQueryRewriter
+
+
+ROOT_DIR = Path(__file__).resolve().parents[3]
+DEFAULT_W6_EVAL_OUTPUT_DIR = ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "reports" / "w6_eval_02"
+DEFAULT_JUDGE_MODEL = "gemini-3.1-flash-lite-preview"
+JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
+RETRIEVAL_NODE_NAMES = {
+    "graph_retrieval",
+    "dense_retrieval",
+    "sparse_retrieval",
+    "fusion",
+    "rerank",
+    "document_grading",
+}
+
+
+def utc_now() -> str:
+    from datetime import UTC, datetime
+
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def clamp_score(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if numeric < 0:
+        return 0.0
+    if numeric > 1:
+        return 1.0
+    return round(numeric, 4)
+
+
+def average_defined(values: list[float | int | bool | None]) -> float | None:
+    defined = [float(value) for value in values if value is not None]
+    if not defined:
+        return None
+    return round(sum(defined) / len(defined), 4)
+
+
+def rate_defined(values: list[bool | None]) -> float | None:
+    defined = [value for value in values if value is not None]
+    if not defined:
+        return None
+    return round(sum(1 for value in defined if value) / len(defined), 4)
+
+
+def percentile_defined(values: list[float | int | None], percentile: float) -> float | None:
+    defined = sorted(float(value) for value in values if value is not None)
+    if not defined:
+        return None
+    if len(defined) == 1:
+        return round(defined[0], 2)
+    rank = (len(defined) - 1) * percentile
+    lower = int(rank)
+    upper = min(lower + 1, len(defined) - 1)
+    fraction = rank - lower
+    value = defined[lower] * (1 - fraction) + defined[upper] * fraction
+    return round(value, 2)
+
+
+def compact_json(payload: Any, *, max_chars: int = 4_000) -> str:
+    text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "...[truncated]"
+
+
+def extract_json_object(raw_text: str) -> dict[str, Any]:
+    text = raw_text.strip()
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        match = JSON_OBJECT_RE.search(text)
+        if not match:
+            raise ValueError("Gemini judge response did not contain a JSON object.")
+        payload = json.loads(match.group(0))
+    if not isinstance(payload, dict):
+        raise ValueError("Gemini judge response JSON must be an object.")
+    return payload
+
+
+@dataclass(frozen=True)
+class EvaluationJudgeResult:
+    faithfulness: float | None
+    answer_relevancy: float | None
+    context_recall: float | None
+    reasons: dict[str, str] = field(default_factory=dict)
+    backend: str = "unknown"
+    model: str | None = None
+    raw_response: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "faithfulness": self.faithfulness,
+            "answer_relevancy": self.answer_relevancy,
+            "context_recall": self.context_recall,
+            "reasons": self.reasons,
+            "backend": self.backend,
+            "model": self.model,
+            "raw_response_present": bool(self.raw_response),
+        }
+
+
+class EvaluationJudge(Protocol):
+    backend: str
+
+    def evaluate(
+        self,
+        *,
+        item: AblationDatasetItem,
+        state: dict[str, Any],
+        config: ExperimentConfig,
+    ) -> EvaluationJudgeResult:
+        ...
+
+
+class StaticEvaluationJudge:
+    """Deterministic judge for offline smoke tests only; not an official W6 metric judge."""
+
+    backend = "static-smoke"
+
+    def evaluate(
+        self,
+        *,
+        item: AblationDatasetItem,
+        state: dict[str, Any],
+        config: ExperimentConfig,
+    ) -> EvaluationJudgeResult:
+        answer = str(state.get("answer") or "").strip()
+        sources = state.get("sources") or []
+        context_chunks = state.get("context_chunks") or []
+        answer_present = bool(answer)
+        has_support = bool(sources or context_chunks or item.chart_data)
+        has_expected = bool(item.expected_answer_summary or item.gold_answer)
+        return EvaluationJudgeResult(
+            faithfulness=1.0 if answer_present and has_support else 0.0,
+            answer_relevancy=1.0 if answer_present and has_expected else 0.0,
+            context_recall=1.0 if has_support else 0.0,
+            reasons={
+                "faithfulness": "Static smoke score; official W6 runs must use Gemini judge.",
+                "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+                "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+            },
+            backend=self.backend,
+            model="static-smoke",
+        )
+
+
+class GeminiEvaluationJudge:
+    backend = "gemini"
+
+    def __init__(
+        self,
+        *,
+        model: str = DEFAULT_JUDGE_MODEL,
+        api_key: str | None = None,
+        temperature: float = 0.0,
+        max_output_tokens: int = 768,
+    ) -> None:
+        self.model = model
+        self.api_key = api_key
+        self.temperature = temperature
+        self.max_output_tokens = max_output_tokens
+
+    def _api_key(self) -> str:
+        if self.api_key:
+            return self.api_key
+        combined = os.getenv("GEMINI_API_KEYS") or ""
+        keys = [key.strip() for key in combined.split(",") if key.strip()]
+        if keys:
+            return keys[0]
+        key = os.getenv("GEMINI_API_KEY")
+        if key:
+            return key
+        raise RuntimeError("GEMINI_API_KEY or GEMINI_API_KEYS is required for W6 Gemini evaluation judge.")
+
+    def evaluate(
+        self,
+        *,
+        item: AblationDatasetItem,
+        state: dict[str, Any],
+        config: ExperimentConfig,
+    ) -> EvaluationJudgeResult:
+        try:
+            import google.generativeai as genai
+        except Exception as exc:
+            raise RuntimeError("google-generativeai is required for W6 Gemini evaluation judge.") from exc
+
+        prompt = build_gemini_judge_prompt(item=item, state=state, config=config)
+        genai.configure(api_key=self._api_key())
+        model = genai.GenerativeModel(self.model)
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": self.temperature,
+                "max_output_tokens": self.max_output_tokens,
+            },
+        )
+        raw_text = str(getattr(response, "text", "") or "").strip()
+        payload = extract_json_object(raw_text)
+        reasons_payload = payload.get("reasons") if isinstance(payload.get("reasons"), dict) else {}
+        reasons = {
+            key: str(value)
+            for key, value in reasons_payload.items()
+            if key in {"faithfulness", "answer_relevancy", "context_recall"}
+        }
+        return EvaluationJudgeResult(
+            faithfulness=clamp_score(payload.get("faithfulness")),
+            answer_relevancy=clamp_score(payload.get("answer_relevancy")),
+            context_recall=clamp_score(payload.get("context_recall")),
+            reasons=reasons,
+            backend=self.backend,
+            model=self.model,
+            raw_response=raw_text,
+        )
+
+
+def build_gemini_judge_prompt(
+    *,
+    item: AblationDatasetItem,
+    state: dict[str, Any],
+    config: ExperimentConfig,
+) -> str:
+    answer = str(state.get("answer") or "")
+    source_context = build_source_context_for_judge(state)
+    chart_context = compact_json(item.chart_data or state.get("chart_data") or {}, max_chars=4_000)
+    gold_context = compact_json(item.gold_context_spans, max_chars=4_000)
+    expected_summary = item.expected_answer_summary or ""
+    gold_answer = item.gold_answer or ""
+    question_family = (item.labels or {}).get("question_family")
+    chart_only_note = (
+        "This item has no gold_context_spans; evaluate context_recall using CHART_CONTEXT and retrieved SOURCE_CONTEXT."
+        if not item.gold_context_spans
+        else "Evaluate context_recall primarily against GOLD_CONTEXT_SPANS and the needed evidence in EXPECTED/GOLD answer."
+    )
+
+    return f"""
+You are an impartial RAG evaluator for a Vietnamese Tử Vi question-answering system.
+
+Return ONLY a valid JSON object with this exact shape:
+{{
+  "faithfulness": 0.0,
+  "answer_relevancy": 0.0,
+  "context_recall": 0.0,
+  "reasons": {{
+    "faithfulness": "short reason",
+    "answer_relevancy": "short reason",
+    "context_recall": "short reason"
+  }}
+}}
+
+Scoring rules:
+- faithfulness: 1 means the answer is fully supported by CHART_CONTEXT and/or SOURCE_CONTEXT; 0 means unsupported or hallucinated.
+- answer_relevancy: 1 means the answer directly and completely answers QUESTION compared with EXPECTED_SUMMARY/GOLD_ANSWER; 0 means irrelevant.
+- context_recall: 1 means retrieved context contains the evidence needed for EXPECTED_SUMMARY/GOLD_ANSWER; 0 means missing key evidence.
+- Scores may be decimals between 0 and 1.
+- Do not reward astrology claims that are absent from provided context.
+- Keep reasons concise.
+
+Domain: TUVI
+Experiment config: {config.name} | chunk_strategy_id={config.chunk_strategy_id}
+Question complexity: {item.question_complexity}
+Question family: {question_family}
+Context recall note: {chart_only_note}
+
+QUESTION:
+{item.query}
+
+ANSWER_TO_EVALUATE:
+{answer}
+
+EXPECTED_SUMMARY:
+{expected_summary}
+
+GOLD_ANSWER:
+{gold_answer}
+
+CHART_CONTEXT_JSON:
+{chart_context}
+
+GOLD_CONTEXT_SPANS_JSON:
+{gold_context}
+
+RETRIEVED_SOURCE_CONTEXT:
+{source_context}
+""".strip()
+
+
+def build_source_context_for_judge(state: dict[str, Any], *, max_chars: int = 5_000) -> str:
+    chunks = state.get("context_chunks") or []
+    if not chunks:
+        chunks = state.get("sources") or []
+    blocks: list[str] = []
+    for index, chunk in enumerate(chunks[:10], start=1):
+        marker = chunk.get("citation_marker") or f"S{index}"
+        source_id = chunk.get("source_id") or (chunk.get("provenance") or {}).get("source_id")
+        page = chunk.get("source_page") or chunk.get("page_book") or chunk.get("page_pdf")
+        excerpt = chunk.get("excerpt") or chunk.get("text") or ""
+        paths = chunk.get("retrieval_paths") or chunk.get("retrieval_path") or []
+        blocks.append(
+            f"[{marker}] source_id={source_id}; page={page}; retrieval_paths={paths}\n{excerpt}"
+        )
+    text = "\n\n".join(blocks)
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "\n...[truncated]"
+
+
+RagRunCallable = Callable[[AblationDatasetItem, ExperimentConfig], dict[str, Any]]
+
+
+def make_evaluation_rag_runner(
+    *,
+    offline_smoke: bool = False,
+    retrieval_fallback_on_error: bool = True,
+) -> RagRunCallable:
+    def run_item(item: AblationDatasetItem, config: ExperimentConfig) -> dict[str, Any]:
+        initial_state: dict[str, Any] = {"chart_id": item.chart_id, "query": item.query}
+        if item.user_id:
+            initial_state["user_id"] = item.user_id
+
+        chart_loader = None
+        if item.chart_data is not None:
+            chart_loader = lambda chart_id, user_id=None: {  # noqa: E731 - small per-item adapter
+                "id": chart_id,
+                "user_id": user_id,
+                "chart_system": "TUVI",
+                "chart_data": item.chart_data,
+            }
+
+        kwargs: dict[str, Any] = {
+            "experiment_config": config,
+            "chart_loader": chart_loader,
+            "retrieval_fallback_on_error": retrieval_fallback_on_error,
+        }
+        if offline_smoke:
+            kwargs.update(
+                {
+                    "query_rewriter": PassthroughQueryRewriter(),
+                    "neo4j_driver": EmptyNeo4jDriver(),
+                    "dense_embedding_service": ZeroDenseEmbeddingService(),
+                    "generation_client": DeterministicGenerationClient(),
+                }
+            )
+        return dict(run_rag_dry_run(initial_state, **kwargs))
+
+    return run_item
+
+
+@dataclass(frozen=True)
+class EvaluationRunner:
+    run_store: ExperimentRunStore = field(default_factory=NullExperimentRunStore)
+    rag_runner: RagRunCallable = field(default_factory=make_evaluation_rag_runner)
+    judge: EvaluationJudge = field(default_factory=GeminiEvaluationJudge)
+    fail_fast: bool = False
+    write_reports: bool = True
+
+    def run(
+        self,
+        manifest: AblationManifest,
+        *,
+        limit: int | None = None,
+        output_dir: Path | None = None,
+    ) -> dict[str, Any]:
+        items = load_ablation_dataset(manifest.dataset_path, limit=limit)
+        effective_output_dir = output_dir or manifest.output_dir
+        started_at = utc_now()
+        config_results: list[dict[str, Any]] = []
+
+        for spec in manifest.configs:
+            config = spec.build_config()
+            run_id = self.run_store.create_run(config=config, manifest=manifest, notes=manifest.notes)
+            item_results: list[dict[str, Any]] = []
+            config_started = utc_now()
+            config_error: str | None = None
+            try:
+                for item in items:
+                    item_results.append(self._run_item(item, config))
+            except Exception as exc:
+                config_error = f"{type(exc).__name__}: {exc}"
+                if self.fail_fast:
+                    metrics = aggregate_evaluation_metrics(item_results, expected_item_count=len(items))
+                    trace = build_evaluation_trace(manifest=manifest, spec=spec, config=config, item_results=item_results)
+                    self.run_store.fail_run(run_id, metrics=metrics, trace=trace, error=config_error)
+                    raise
+
+            metrics = aggregate_evaluation_metrics(item_results, expected_item_count=len(items))
+            grouped_metrics = aggregate_grouped_metrics(item_results)
+            trace = build_evaluation_trace(
+                manifest=manifest,
+                spec=spec,
+                config=config,
+                item_results=item_results,
+                grouped_metrics=grouped_metrics,
+            )
+            if config_error:
+                self.run_store.fail_run(run_id, metrics=metrics, trace=trace, error=config_error)
+                status = "failed"
+            else:
+                self.run_store.complete_run(run_id, metrics=metrics, trace=trace)
+                status = "completed"
+            config_results.append(
+                {
+                    "config_name": spec.name,
+                    "experiment_id": config.experiment_id,
+                    "config_hash": config_hash(config),
+                    "chunk_strategy_id": config.chunk_strategy_id,
+                    "fusion_method": config.fusion_method,
+                    "context_assembly_strategy": config.context_assembly_strategy,
+                    "run_id": run_id,
+                    "status": status,
+                    "started_at": config_started,
+                    "completed_at": utc_now(),
+                    "metrics": metrics,
+                    "grouped_metrics": grouped_metrics,
+                    "items": item_results,
+                    "error": config_error,
+                }
+            )
+
+        report = {
+            "manifest_name": manifest.name,
+            "notes": manifest.notes,
+            "dataset_path": str(manifest.dataset_path),
+            "output_dir": str(effective_output_dir),
+            "started_at": started_at,
+            "completed_at": utc_now(),
+            "dataset_item_count": len(items),
+            "config_count": len(config_results),
+            "judge_backend": self.judge.backend,
+            "metric_definitions": metric_definitions(self.judge.backend),
+            "configs": config_results,
+        }
+        if self.write_reports:
+            write_evaluation_reports(report, effective_output_dir)
+        return report
+
+    def _run_item(self, item: AblationDatasetItem, config: ExperimentConfig) -> dict[str, Any]:
+        started = time.perf_counter()
+        try:
+            state = self.rag_runner(item, config)
+            latency_ms = round((time.perf_counter() - started) * 1000, 2)
+            judge_result = self.judge.evaluate(item=item, state=state, config=config)
+            return summarize_evaluation_item(item, state, judge_result, latency_ms=latency_ms)
+        except Exception as exc:
+            latency_ms = round((time.perf_counter() - started) * 1000, 2)
+            result = summarize_evaluation_error(item, exc, latency_ms=latency_ms)
+            if self.fail_fast:
+                raise
+            return result
+
+
+def summarize_evaluation_item(
+    item: AblationDatasetItem,
+    state: dict[str, Any],
+    judge_result: EvaluationJudgeResult,
+    *,
+    latency_ms: float,
+) -> dict[str, Any]:
+    answer = state.get("answer") or ""
+    sources = state.get("sources") or []
+    context_chunks = state.get("context_chunks") or []
+    citation_metadata = state.get("citation_metadata") or {}
+    context_summary = state.get("context_summary") or {}
+    markers = list(dict.fromkeys(CITATION_MARKER_RE.findall(str(answer))))
+    chart_only = len(item.gold_context_spans) == 0
+    retrieval_paths = selected_retrieval_paths(state)
+    graph_hit = None if chart_only else (bool(state.get("graph_candidates")) or "graph" in retrieval_paths)
+    citation_coverage = None if chart_only else citation_coverage_value(markers, sources, citation_metadata)
+    context_recall = None if chart_only else judge_result.context_recall
+    chart_context_grounding = judge_result.context_recall if chart_only else None
+    question_family = str((item.labels or {}).get("question_family") or "") or None
+
+    return {
+        "item_id": item.id,
+        "chart_id": item.chart_id,
+        "query": item.query,
+        "question_complexity": item.question_complexity,
+        "question_family": question_family,
+        "labels": item.labels,
+        "chart_only": chart_only,
+        "gold_span_count": len(item.gold_context_spans),
+        "status": "completed",
+        "latency_ms": latency_ms,
+        "retrieval_latency_ms": retrieval_latency_ms(state),
+        "answer_present": bool(str(answer).strip()),
+        "answer_length_chars": len(str(answer)),
+        "faithfulness": judge_result.faithfulness,
+        "answer_relevancy": judge_result.answer_relevancy,
+        "context_recall": context_recall,
+        "chart_context_grounding": chart_context_grounding,
+        "judge": judge_result.as_dict(),
+        "graph_hit": graph_hit,
+        "citation_coverage": citation_coverage,
+        "source_count": len(sources),
+        "citation_marker_count": len(markers),
+        "citation_marker_presence": bool(markers),
+        "citation_source_alignment": citation_source_alignment(markers, sources),
+        "citation_fallback": bool(citation_metadata.get("citation_fallback")),
+        "context_selected_count": int(context_summary.get("selected_count") or len(context_chunks) or 0),
+        "selected_retrieval_paths": retrieval_paths,
+        "gold_doc_coverage_rate": gold_doc_coverage_rate(sources, item.gold_context_spans),
+        "gold_page_hit_rate": gold_page_hit_rate(sources, item.gold_context_spans),
+        "gold_quote_overlap_avg": gold_quote_overlap_avg(sources, item.gold_context_spans),
+        "trace_node_statuses": trace_node_statuses(state),
+        "error": None,
+    }
+
+
+def summarize_evaluation_error(item: AblationDatasetItem, exc: Exception, *, latency_ms: float) -> dict[str, Any]:
+    question_family = str((item.labels or {}).get("question_family") or "") or None
+    return {
+        "item_id": item.id,
+        "chart_id": item.chart_id,
+        "query": item.query,
+        "question_complexity": item.question_complexity,
+        "question_family": question_family,
+        "labels": item.labels,
+        "chart_only": len(item.gold_context_spans) == 0,
+        "gold_span_count": len(item.gold_context_spans),
+        "status": "failed",
+        "latency_ms": latency_ms,
+        "retrieval_latency_ms": None,
+        "answer_present": False,
+        "answer_length_chars": 0,
+        "faithfulness": None,
+        "answer_relevancy": None,
+        "context_recall": None,
+        "chart_context_grounding": None,
+        "judge": {},
+        "graph_hit": None,
+        "citation_coverage": None,
+        "source_count": 0,
+        "citation_marker_count": 0,
+        "citation_marker_presence": False,
+        "citation_source_alignment": False,
+        "citation_fallback": False,
+        "context_selected_count": 0,
+        "selected_retrieval_paths": [],
+        "gold_doc_coverage_rate": None,
+        "gold_page_hit_rate": None,
+        "gold_quote_overlap_avg": None,
+        "trace_node_statuses": [],
+        "error": f"{type(exc).__name__}: {exc}",
+    }
+
+
+def citation_coverage_value(markers: list[str], sources: list[dict[str, Any]], citation_metadata: dict[str, Any]) -> float:
+    if not sources:
+        return 0.0
+    if markers:
+        return 1.0 if citation_source_alignment(markers, sources) else 0.0
+    return 1.0 if citation_metadata.get("citation_fallback") else 0.75
+
+
+def selected_retrieval_paths(state: dict[str, Any]) -> list[str]:
+    paths: list[str] = []
+    for collection_name in ("context_chunks", "sources"):
+        for item in state.get(collection_name) or []:
+            raw_paths = item.get("retrieval_paths") or []
+            if isinstance(raw_paths, str):
+                raw_paths = [raw_paths]
+            for path in raw_paths:
+                value = str(path).strip()
+                if value and value not in paths:
+                    paths.append(value)
+            raw_path = item.get("retrieval_path")
+            if raw_path and str(raw_path) not in paths:
+                paths.append(str(raw_path))
+    return paths
+
+
+def retrieval_latency_ms(state: dict[str, Any]) -> float | None:
+    trace = state.get("retrieval_trace") or {}
+    explicit = trace.get("retrieval_latency_ms") or trace.get("retrieval_duration_ms")
+    if explicit is not None:
+        try:
+            return round(float(explicit), 2)
+        except (TypeError, ValueError):
+            return None
+    durations: list[float] = []
+    for node in trace.get("nodes") or []:
+        if node.get("node") not in RETRIEVAL_NODE_NAMES:
+            continue
+        raw_duration = node.get("duration_ms") or node.get("latency_ms")
+        if raw_duration is None:
+            continue
+        try:
+            durations.append(float(raw_duration))
+        except (TypeError, ValueError):
+            continue
+    if not durations:
+        return None
+    return round(sum(durations), 2)
+
+
+def trace_node_statuses(state: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {"node": node.get("node"), "status": node.get("status", "completed")}
+        for node in (state.get("retrieval_trace") or {}).get("nodes", [])
+    ]
+
+
+def aggregate_evaluation_metrics(
+    item_results: list[dict[str, Any]],
+    *,
+    expected_item_count: int | None = None,
+) -> dict[str, Any]:
+    item_count = expected_item_count if expected_item_count is not None else len(item_results)
+    completed = [item for item in item_results if item.get("status") == "completed"]
+    failed_count = item_count - len(completed)
+    denominator = item_count or 1
+    chart_only_count = sum(1 for item in item_results if item.get("chart_only"))
+    corpus_items = [item for item in item_results if not item.get("chart_only")]
+    corpus_denominator = len(corpus_items) or 1
+    return {
+        "item_count": item_count,
+        "completed_count": len(completed),
+        "failed_count": failed_count,
+        "chart_only_count": chart_only_count,
+        "corpus_grounded_item_count": item_count - chart_only_count,
+        "answer_present_rate": round(sum(1 for item in item_results if item.get("answer_present")) / denominator, 4),
+        "faithfulness_avg": average_defined([item.get("faithfulness") for item in item_results]),
+        "answer_relevancy_avg": average_defined([item.get("answer_relevancy") for item in item_results]),
+        "context_recall_avg": average_defined([item.get("context_recall") for item in item_results]),
+        "chart_context_grounding_avg": average_defined([item.get("chart_context_grounding") for item in item_results]),
+        "graph_hit_rate": rate_defined([item.get("graph_hit") for item in item_results]),
+        "citation_coverage_rate": average_defined([item.get("citation_coverage") for item in item_results]),
+        "corpus_source_coverage_rate": round(
+            sum(1 for item in corpus_items if item.get("source_count", 0) > 0) / corpus_denominator,
+            4,
+        ) if corpus_items else None,
+        "source_coverage_rate": round(sum(1 for item in item_results if item.get("source_count", 0) > 0) / denominator, 4),
+        "avg_source_count": round(sum(float(item.get("source_count") or 0) for item in item_results) / denominator, 4),
+        "avg_gold_doc_coverage_rate": average_defined([item.get("gold_doc_coverage_rate") for item in item_results]),
+        "avg_gold_page_hit_rate": average_defined([item.get("gold_page_hit_rate") for item in item_results]),
+        "avg_gold_quote_overlap": average_defined([item.get("gold_quote_overlap_avg") for item in item_results]),
+        "p95_latency_ms": percentile_defined([item.get("latency_ms") for item in item_results], 0.95),
+        "avg_latency_ms": average_defined([item.get("latency_ms") for item in item_results]),
+        "retrieval_p95_ms": percentile_defined([item.get("retrieval_latency_ms") for item in item_results], 0.95),
+        "avg_retrieval_latency_ms": average_defined([item.get("retrieval_latency_ms") for item in item_results]),
+        "citation_marker_presence_rate": round(
+            sum(1 for item in corpus_items if item.get("citation_marker_presence")) / corpus_denominator,
+            4,
+        ) if corpus_items else None,
+        "citation_source_alignment_rate": round(
+            sum(1 for item in corpus_items if item.get("citation_source_alignment")) / corpus_denominator,
+            4,
+        ) if corpus_items else None,
+        "context_selected_count_avg": average_defined([item.get("context_selected_count") for item in item_results]),
+    }
+
+
+def aggregate_grouped_metrics(item_results: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "by_question_complexity": aggregate_by_key(item_results, "question_complexity"),
+        "by_question_family": aggregate_by_key(item_results, "question_family"),
+    }
+
+
+def aggregate_by_key(item_results: list[dict[str, Any]], key: str) -> dict[str, Any]:
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for item in item_results:
+        value = str(item.get(key) or "unknown")
+        groups.setdefault(value, []).append(item)
+    return {
+        group: aggregate_evaluation_metrics(items, expected_item_count=len(items))
+        for group, items in sorted(groups.items())
+    }
+
+
+def build_evaluation_trace(
+    *,
+    manifest: AblationManifest,
+    spec: AblationConfigSpec,
+    config: ExperimentConfig,
+    item_results: list[dict[str, Any]],
+    grouped_metrics: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "manifest_name": manifest.name,
+        "dataset_path": str(manifest.dataset_path),
+        "config_spec_name": spec.name,
+        "experiment_id": config.experiment_id,
+        "config_hash": config_hash(config),
+        "chunk_strategy_id": config.chunk_strategy_id,
+        "grouped_metrics": grouped_metrics or aggregate_grouped_metrics(item_results),
+        "items": item_results,
+    }
+
+
+def metric_definitions(judge_backend: str) -> dict[str, Any]:
+    return {
+        "faithfulness": f"Gemini judge score in official runs; current judge_backend={judge_backend}.",
+        "answer_relevancy": f"Gemini judge score in official runs; current judge_backend={judge_backend}.",
+        "context_recall": "Gemini judge score for corpus-grounded items; chart-only Direct items are excluded from this aggregate and reported as chart_context_grounding.",
+        "graph_hit_rate": "Rate of non-chart-only items with graph candidates or graph-selected context.",
+        "citation_coverage_rate": "Average citation/source coverage for non-chart-only corpus-grounded items; Direct chart-only items are excluded.",
+        "p95_latency_ms": "95th percentile end-to-end runner latency per item.",
+        "retrieval_p95_ms": "95th percentile retrieval latency if node timing is present; null until W6-RAG-01 timing diagnostics are available.",
+    }
+
+
+def write_evaluation_reports(report: dict[str, Any], output_dir: Path | str) -> None:
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    (destination / "evaluation_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (destination / "evaluation_report.md").write_text(render_markdown_report(report), encoding="utf-8")
+
+
+def render_markdown_report(report: dict[str, Any]) -> str:
+    lines = [
+        f"# W6 Evaluation report: {report.get('manifest_name')}",
+        "",
+        f"- Dataset: `{report.get('dataset_path')}`",
+        f"- Dataset items: {report.get('dataset_item_count')}",
+        f"- Configs: {report.get('config_count')}",
+        f"- Judge backend: `{report.get('judge_backend')}`",
+        f"- Started: {report.get('started_at')}",
+        f"- Completed: {report.get('completed_at')}",
+    ]
+    if report.get("notes"):
+        lines.append(f"- Notes: {report['notes']}")
+    if report.get("judge_backend") != "gemini":
+        lines.extend(
+            [
+                "",
+                "> **Caveat:** This is not an official W6 metric run because RAGAS-like metrics were not judged by Gemini.",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "> **Metric policy:** W6-EVAL-02 runs the RAG pipeline directly with the selected `ExperimentConfig`. `Context recall` is the Gemini-judged corpus-grounding score for non-Direct items; Direct/chart-only items are excluded from corpus retrieval/citation metrics and reported through `chart_context_grounding`.",
+        ]
+    )
+
+    lines.extend(
+        [
+            "",
+            "## Overall metrics",
+            "",
+            "| Config | Status | Items | Faithfulness | Answer relevancy | Context recall | Graph hit | Citation coverage | p95 latency ms | Retrieval p95 ms |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for config in report.get("configs") or []:
+        metrics = config.get("metrics") or {}
+        lines.append(
+            "| {name} | {status} | {items} | {faith} | {rel} | {recall} | {graph} | {cite} | {latency} | {retrieval} |".format(
+                name=config.get("config_name"),
+                status=config.get("status"),
+                items=metrics.get("item_count"),
+                faith=metrics.get("faithfulness_avg"),
+                rel=metrics.get("answer_relevancy_avg"),
+                recall=metrics.get("context_recall_avg"),
+                graph=metrics.get("graph_hit_rate"),
+                cite=metrics.get("citation_coverage_rate"),
+                latency=metrics.get("p95_latency_ms"),
+                retrieval=metrics.get("retrieval_p95_ms"),
+            )
+        )
+
+    lines.extend(["", "## Metrics by question complexity", ""])
+    append_grouped_metrics_table(lines, report, group_key="by_question_complexity")
+    lines.extend(["", "## Metrics by question family", ""])
+    append_grouped_metrics_table(lines, report, group_key="by_question_family")
+
+    lines.extend(["", "## Per-question results", ""])
+    for config in report.get("configs") or []:
+        lines.extend(
+            [
+                f"### {config.get('config_name')}",
+                "",
+                "| Item | Status | Complexity | Family | Chart-only | Faithfulness | Relevancy | Context recall | Graph hit | Citation coverage | Sources | Latency ms | Error |",
+                "|---|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+            ]
+        )
+        for item in config.get("items") or []:
+            lines.append(
+                "| {item_id} | {status} | {complexity} | {family} | {chart_only} | {faith} | {rel} | {recall} | {graph} | {cite} | {sources} | {latency} | {error} |".format(
+                    item_id=item.get("item_id"),
+                    status=item.get("status"),
+                    complexity=item.get("question_complexity") or "",
+                    family=item.get("question_family") or "",
+                    chart_only=item.get("chart_only"),
+                    faith=item.get("faithfulness"),
+                    rel=item.get("answer_relevancy"),
+                    recall=item.get("context_recall"),
+                    graph=item.get("graph_hit"),
+                    cite=item.get("citation_coverage"),
+                    sources=item.get("source_count"),
+                    latency=item.get("latency_ms"),
+                    error=item.get("error") or "",
+                )
+            )
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
+
+
+def append_grouped_metrics_table(lines: list[str], report: dict[str, Any], *, group_key: str) -> None:
+    lines.extend(
+        [
+            "| Config | Group | Items | Faithfulness | Answer relevancy | Context recall | Graph hit | Citation coverage | p95 latency ms |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for config in report.get("configs") or []:
+        groups = ((config.get("grouped_metrics") or {}).get(group_key) or {})
+        for group, metrics in groups.items():
+            lines.append(
+                "| {config} | {group} | {items} | {faith} | {rel} | {recall} | {graph} | {cite} | {latency} |".format(
+                    config=config.get("config_name"),
+                    group=group,
+                    items=metrics.get("item_count"),
+                    faith=metrics.get("faithfulness_avg"),
+                    rel=metrics.get("answer_relevancy_avg"),
+                    recall=metrics.get("context_recall_avg"),
+                    graph=metrics.get("graph_hit_rate"),
+                    cite=metrics.get("citation_coverage_rate"),
+                    latency=metrics.get("p95_latency_ms"),
+                )
+            )
+
+
+def build_single_config_manifest(
+    *,
+    dataset_path: Path,
+    config_path: Path,
+    output_dir: Path | None = None,
+    name: str = "w6_eval_02_single_config",
+) -> AblationManifest:
+    resolved_dataset = dataset_path if dataset_path.is_absolute() else ROOT_DIR / dataset_path
+    resolved_config = config_path if config_path.is_absolute() else ROOT_DIR / config_path
+    return AblationManifest(
+        name=name,
+        dataset_path=resolved_dataset,
+        output_dir=output_dir or DEFAULT_W6_EVAL_OUTPUT_DIR,
+        configs=[AblationConfigSpec(name=resolved_config.stem, base_config_path=resolved_config)],
+        notes="W6-EVAL-02 single-config evaluation run.",
+    )
+
+
+def make_evaluation_judge(*, backend: str, model: str = DEFAULT_JUDGE_MODEL) -> EvaluationJudge:
+    if backend == "gemini":
+        return GeminiEvaluationJudge(model=model)
+    if backend == "static":
+        return StaticEvaluationJudge()
+    raise ValueError(f"Unsupported evaluation judge backend: {backend}")
+
+
+__all__ = [
+    "DEFAULT_JUDGE_MODEL",
+    "DEFAULT_W6_EVAL_OUTPUT_DIR",
+    "EvaluationJudge",
+    "EvaluationJudgeResult",
+    "EvaluationRunner",
+    "GeminiEvaluationJudge",
+    "NullExperimentRunStore",
+    "StaticEvaluationJudge",
+    "SupabaseExperimentRunStore",
+    "aggregate_evaluation_metrics",
+    "aggregate_grouped_metrics",
+    "build_single_config_manifest",
+    "load_ablation_manifest",
+    "make_evaluation_judge",
+    "make_evaluation_rag_runner",
+    "render_markdown_report",
+    "write_evaluation_reports",
+]

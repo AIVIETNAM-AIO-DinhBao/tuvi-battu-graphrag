@@ -1,0 +1,398 @@
+{
+  "completed_at": "2026-07-13T12:52:12.156365Z",
+  "config_count": 1,
+  "configs": [
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "completed_at": "2026-07-13T12:52:12.156331Z",
+      "config_hash": "95e8f1beacb8e82d2e915c500a99fd3821a4ecd1b01f574cde10f0f7bfdc1ad4",
+      "config_name": "default_production_baseline",
+      "context_assembly_strategy": "balanced",
+      "error": null,
+      "experiment_id": "w6_eval_02_default_production_baseline",
+      "fusion_method": "rrf",
+      "grouped_metrics": {
+        "by_question_complexity": {
+          "Direct": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_latency_ms": 37.99,
+            "avg_retrieval_latency_ms": null,
+            "avg_source_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 0.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "p95_latency_ms": 37.99,
+            "retrieval_p95_ms": null,
+            "source_coverage_rate": 0.0
+          },
+          "One-hop": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.0,
+            "avg_latency_ms": 21.88,
+            "avg_retrieval_latency_ms": null,
+            "avg_source_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 0.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 0.0,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "p95_latency_ms": 21.88,
+            "retrieval_p95_ms": null,
+            "source_coverage_rate": 0.0
+          }
+        },
+        "by_question_family": {
+          "core_identity": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_latency_ms": 37.99,
+            "avg_retrieval_latency_ms": null,
+            "avg_source_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 0.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "p95_latency_ms": 37.99,
+            "retrieval_p95_ms": null,
+            "source_coverage_rate": 0.0
+          },
+          "menh_house_interpretation": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.0,
+            "avg_latency_ms": 21.88,
+            "avg_retrieval_latency_ms": null,
+            "avg_source_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 0.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 0.0,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "p95_latency_ms": 21.88,
+            "retrieval_p95_ms": null,
+            "source_coverage_rate": 0.0
+          }
+        }
+      },
+      "items": [
+        {
+          "answer_length_chars": 118,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "chart_context_grounding": 1.0,
+          "chart_id": "CHART-001",
+          "chart_only": true,
+          "citation_coverage": null,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": null,
+          "context_selected_count": 0,
+          "error": null,
+          "faithfulness": 1.0,
+          "gold_doc_coverage_rate": null,
+          "gold_page_hit_rate": null,
+          "gold_quote_overlap_avg": null,
+          "gold_span_count": 0,
+          "graph_hit": null,
+          "item_id": "TVQA-001",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "labels": {
+            "question_family": "core_identity",
+            "topic": "identity"
+          },
+          "latency_ms": 37.99,
+          "query": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+          "question_complexity": "Direct",
+          "question_family": "core_identity",
+          "retrieval_latency_ms": null,
+          "selected_retrieval_paths": [],
+          "source_count": 0,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "fallback"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "answer_length_chars": 118,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "chart_context_grounding": null,
+          "chart_id": "CHART-001",
+          "chart_only": false,
+          "citation_coverage": 0.0,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": 1.0,
+          "context_selected_count": 0,
+          "error": null,
+          "faithfulness": 1.0,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.0,
+          "gold_span_count": 6,
+          "graph_hit": false,
+          "item_id": "TVQA-002",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "labels": {
+            "question_family": "menh_house_interpretation",
+            "topic": "self"
+          },
+          "latency_ms": 21.88,
+          "query": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+          "question_complexity": "One-hop",
+          "question_family": "menh_house_interpretation",
+          "retrieval_latency_ms": null,
+          "selected_retrieval_paths": [],
+          "source_count": 0,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "fallback"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "answer_present_rate": 1.0,
+        "answer_relevancy_avg": 1.0,
+        "avg_gold_doc_coverage_rate": 0.0,
+        "avg_gold_page_hit_rate": 0.0,
+        "avg_gold_quote_overlap": 0.0,
+        "avg_latency_ms": 29.935,
+        "avg_retrieval_latency_ms": null,
+        "avg_source_count": 0.0,
+        "chart_context_grounding_avg": 1.0,
+        "chart_only_count": 1,
+        "citation_coverage_rate": 0.0,
+        "citation_marker_presence_rate": 0.0,
+        "citation_source_alignment_rate": 0.0,
+        "completed_count": 2,
+        "context_recall_avg": 1.0,
+        "context_selected_count_avg": 0.0,
+        "corpus_grounded_item_count": 1,
+        "corpus_source_coverage_rate": 0.0,
+        "failed_count": 0,
+        "faithfulness_avg": 1.0,
+        "graph_hit_rate": 0.0,
+        "item_count": 2,
+        "p95_latency_ms": 37.18,
+        "retrieval_p95_ms": null,
+        "source_coverage_rate": 0.0
+      },
+      "run_id": null,
+      "started_at": "2026-07-13T12:52:12.095885Z",
+      "status": "completed"
+    }
+  ],
+  "dataset_item_count": 2,
+  "dataset_path": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\release\\tuviqa_v1_release.jsonl",
+  "judge_backend": "static-smoke",
+  "manifest_name": "w6_eval_02_baseline",
+  "metric_definitions": {
+    "answer_relevancy": "Gemini judge score in official runs; current judge_backend=static-smoke.",
+    "citation_coverage_rate": "Average citation/source coverage for non-chart-only corpus-grounded items; Direct chart-only items are excluded.",
+    "context_recall": "Gemini judge score for corpus-grounded items; chart-only Direct items are excluded from this aggregate and reported as chart_context_grounding.",
+    "faithfulness": "Gemini judge score in official runs; current judge_backend=static-smoke.",
+    "graph_hit_rate": "Rate of non-chart-only items with graph candidates or graph-selected context.",
+    "p95_latency_ms": "95th percentile end-to-end runner latency per item.",
+    "retrieval_p95_ms": "95th percentile retrieval latency if node timing is present; null until W6-RAG-01 timing diagnostics are available."
+  },
+  "notes": "W6-EVAL-02 baseline: pipeline-direct evaluation on TuViQA v1 release with default production config. Official metrics require --judge-backend gemini; use --offline-smoke only for plumbing checks.",
+  "output_dir": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w6_eval_02",
+  "started_at": "2026-07-13T12:52:12.091550Z"
+}

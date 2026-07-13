@@ -1,0 +1,11 @@
+name: w6_eval_02_baseline
+notes: "W6-EVAL-02 baseline: pipeline-direct evaluation on TuViQA v1 release with default production config. Official metrics require --judge-backend gemini; use --offline-smoke only for plumbing checks."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports/w6_eval_02
+configs:
+  - name: default_production_baseline
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_eval_02_default_production_baseline
+      name: W6 EVAL 02 - default production baseline
+      cache_disabled: true
