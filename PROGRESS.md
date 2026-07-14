@@ -1804,3 +1804,78 @@ These confirmations apply to this W6-RAG-07 task implementation only. Final prod
   - `W7-OBS-01`/`W7-OBS-02`: add production span timing and p95 latency evidence before deciding whether dense should be enabled in final production config.
 
 **Status**: COMPLETE - W6-RAG-07 deliverable is implemented and test-verified. Dense retrieval is now planner-gated, Direct chart QA skips dense, One-hop/Two-hop can run dense when config and planner allow it, and ablation-ready config/diagnostics are available.
+
+---
+
+## Week 6 Documentation Progress Update - W6-DOC-01 Complete - 2026-07-14
+
+### W6-DOC-01: Question-aware and chart-aware retrieval roadmap doc - COMPLETE
+
+#### Implementation Summary
+- Created `docs/rag_question_aware_retrieval.md` as the primary W6 design note for the now-implemented question-aware/chart-aware retrieval path.
+- Updated `docs/README.md` to link the new design note under Design notes.
+- Documented the progression from generic retrieval limitations to the current pipeline:
+  - query family and complexity diagnostics;
+  - deterministic query planner;
+  - chart fact extraction and chart-aware context;
+  - role-aware graph/sparse retrieval;
+  - conjunctive graph retrieval modes;
+  - role-aware context assembly;
+  - planner-gated dense retrieval and ablation config.
+- Added a full question-family mapping for the current planner families:
+  - `core_identity`
+  - `menh_house_interpretation`
+  - `than_cu_interpretation`
+  - `menh_cuc_relation`
+  - `special_state_interpretation`
+  - `dai_van_interpretation`
+  - `menh_tam_hop`
+  - `menh_xung_chieu`
+  - `topic_house_plus_relations`
+  - `synthesis_judgement`
+- Added evidence-role documentation for:
+  - `house_scope`
+  - `star_definition`
+  - `modifier_effect`
+  - `relation_rule`
+  - `combination_pattern`
+- Added the Task A-G mapping back to W6-RAG-01..07.
+- Added validation guidance and manual/dry-run checks for Direct, One-hop, Two-hop and dense-ablation behavior.
+
+#### Production Caveats Captured
+- Dense remains off in `configs/default_production.yaml`; use `configs/w6_planner_gated_dense.yaml` for ablation.
+- Dense should only be promoted to production after W6/W7 quality and p95 latency evidence.
+- BGE-M3 remains lazy-loaded with query embedding cache; no automatic preload is recommended until cold-start impact is measured.
+- Current dense timing is node-local; W7 observability should add Langfuse spans for all major pipeline nodes.
+- Direct chart QA may be correctly chart-grounded without corpus citation, so evaluation/UI should distinguish chart-grounded vs corpus-grounded answers.
+
+#### Files Modified
+- `docs/rag_question_aware_retrieval.md`
+- `docs/README.md`
+- `PROGRESS.md`
+
+#### Verification
+- Documentation artifact exists:
+  - `Test-Path docs/rag_question_aware_retrieval.md`
+  - Result: `True`
+- Required documentation patterns verified:
+  - `core_identity`
+  - `W6-RAG-07`
+  - `configs/w6_planner_gated_dense.yaml`
+  - `role_coverage_rate`
+- Docs index verified to include `rag_question_aware_retrieval.md`.
+
+#### Current Boundary After W6-DOC-01
+- Completed and documented:
+  - `W6-RAG-01`: retrieval diagnostics by complexity/family.
+  - `W6-RAG-02`: rule-based query planner.
+  - `W6-RAG-03`: chart fact extractor.
+  - `W6-RAG-04`: role-aware retrieval.
+  - `W6-RAG-05`: conjunctive graph retrieval.
+  - `W6-RAG-06`: role-aware context assembly.
+  - `W6-RAG-07`: planner-gated dense retrieval.
+  - `W6-DOC-01`: question-aware/chart-aware retrieval design doc.
+- Next recommended task:
+  - `W6-ABL-02`: run retrieval/fusion/reranker ablation comparing default no-dense against `configs/w6_planner_gated_dense.yaml` and other planned configs.
+
+**Status**: COMPLETE - W6-DOC-01 deliverable is implemented. The team can now understand the question-aware/chart-aware retrieval roadmap, implemented scope, diagnostics, validation plan and production caveats without reading the whole codebase.
