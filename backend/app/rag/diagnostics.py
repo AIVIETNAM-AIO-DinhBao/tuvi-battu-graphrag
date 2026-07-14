@@ -42,6 +42,7 @@ def build_retrieval_diagnostics(state: RAGState) -> dict[str, Any]:
         "required_evidence_roles": required_evidence_roles(state),
         "missing_evidence_roles": missing_evidence_roles(state, selected_roles),
         "graph_retrieval": graph_retrieval_diagnostics(state),
+        "dense_retrieval": dense_retrieval_diagnostics(state),
         "selected_chunk_ids": selected_chunk_ids(state),
         "selected_source_ids": selected_source_ids(state),
         "chunk_strategy_id": getattr(config, "chunk_strategy_id", None),
@@ -165,6 +166,32 @@ def graph_retrieval_diagnostics(state: RAGState) -> dict[str, Any]:
     }
 
 
+def dense_retrieval_diagnostics(state: RAGState) -> dict[str, Any]:
+    trace = trace_node(state, "dense_retrieval")
+    candidate_count = len(state.get("dense_candidates") or [])
+    selected_context_count = sum(
+        1
+        for chunk in state.get("context_chunks") or []
+        if "dense" in [str(path) for path in chunk.get("retrieval_paths") or []]
+    )
+    selected_context_rate = round(selected_context_count / candidate_count, 4) if candidate_count else 0.0
+    return {
+        "candidate_count": candidate_count,
+        "duration_ms": trace.get("duration_ms"),
+        "embedding_cache_stats": trace.get("embedding_cache_stats") or {},
+        "enabled": bool(trace.get("enabled")),
+        "enabled_by_config": bool(trace.get("enabled_by_config")),
+        "enabled_by_dense_gate": bool(trace.get("enabled_by_dense_gate")),
+        "enabled_by_plan": bool(trace.get("enabled_by_plan")),
+        "min_query_terms": trace.get("min_query_terms"),
+        "query_term_count": trace.get("query_term_count"),
+        "selected_context_count": selected_context_count,
+        "selected_context_rate": selected_context_rate,
+        "skipped_reason": trace.get("skipped_reason"),
+        "status": trace.get("status"),
+    }
+
+
 def selected_chunk_ids(state: RAGState) -> list[str]:
     values: list[str] = []
     for item in state.get("context_chunks") or []:
@@ -191,6 +218,13 @@ def retrieval_node_statuses(state: RAGState) -> dict[str, str]:
         if name in {"graph_retrieval", "dense_retrieval", "sparse_retrieval", "fusion", "rerank", "document_grading", "context_assembly"}:
             result[name] = str(node.get("status") or "completed")
     return result
+
+
+def trace_node(state: RAGState, node_name: str) -> dict[str, Any]:
+    for node in (state.get("retrieval_trace") or {}).get("nodes") or []:
+        if node.get("node") == node_name:
+            return dict(node)
+    return {}
 
 
 def fallback_nodes(state: RAGState) -> list[dict[str, Any]]:

@@ -14,6 +14,7 @@ from app.rag.config import (
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "default_production.yaml"
+W6_PLANNER_GATED_DENSE_CONFIG_PATH = ROOT_DIR / "configs" / "w6_planner_gated_dense.yaml"
 EXPERIMENT_RUNS_MIGRATION = ROOT_DIR / "infra" / "supabase" / "migrations" / "20260709_experiment_runs.sql"
 
 
@@ -58,6 +59,18 @@ def test_config_hash_is_stable_for_same_config() -> None:
     config = load_experiment_config(DEFAULT_CONFIG_PATH)
 
     assert config_hash(config) == config_hash(ExperimentConfig.model_validate(config.model_dump(mode="json")))
+
+
+def test_w6_planner_gated_dense_config_loads_for_ablation() -> None:
+    default_config = load_experiment_config(DEFAULT_CONFIG_PATH)
+    dense_config = load_experiment_config(W6_PLANNER_GATED_DENSE_CONFIG_PATH)
+
+    assert default_config.dense_retrieval_enabled is False
+    assert dense_config.experiment_id == "w6_planner_gated_dense_v1"
+    assert dense_config.dense_retrieval_enabled is True
+    assert dense_config.dense_retrieval.embedding_slot == "bge_m3"
+    assert dense_config.dense_retrieval.vector_index == "chunkVectorBgeM3"
+    assert dense_config.context_assembly_strategy == default_config.context_assembly_strategy
 
 
 def test_missing_required_field_fails_clearly() -> None:

@@ -81,6 +81,44 @@ def test_build_retrieval_diagnostics_summarizes_counts_paths_and_entities() -> N
     assert diagnostics["chart_facts"]["verified_claim_count"] == 1
 
 
+def test_dense_retrieval_diagnostics_reports_gate_latency_and_selected_rate() -> None:
+    config = load_experiment_config()
+    state = {
+        "experiment_config": config,
+        "dense_candidates": [{"chunk_id": "d1"}, {"chunk_id": "d2"}],
+        "context_chunks": [{"chunk_id": "d1", "retrieval_paths": ["dense", "sparse"]}],
+        "retrieval_trace": {
+            "nodes": [
+                {
+                    "node": "dense_retrieval",
+                    "status": "completed",
+                    "enabled": True,
+                    "enabled_by_config": True,
+                    "enabled_by_plan": True,
+                    "enabled_by_dense_gate": True,
+                    "duration_ms": 12.5,
+                    "query_term_count": 3,
+                    "min_query_terms": 2,
+                    "embedding_cache_stats": {"query_cache_hits": 1, "query_cache_misses": 2},
+                }
+            ]
+        },
+    }
+
+    diagnostics = build_retrieval_diagnostics(state)
+
+    dense = diagnostics["dense_retrieval"]
+    assert dense["enabled"] is True
+    assert dense["enabled_by_config"] is True
+    assert dense["enabled_by_plan"] is True
+    assert dense["enabled_by_dense_gate"] is True
+    assert dense["candidate_count"] == 2
+    assert dense["selected_context_count"] == 1
+    assert dense["selected_context_rate"] == 0.5
+    assert dense["duration_ms"] == 12.5
+    assert dense["embedding_cache_stats"]["query_cache_hits"] == 1
+
+
 def test_heuristic_question_family_and_complexity_for_live_chat_queries() -> None:
     assert infer_question_family("Cung Mệnh của lá số này nằm ở đâu?", [], {}) == "core_identity"
     assert infer_question_family("Cung Mệnh của tôi nói lên gì về bản thân?", [], {}) == "menh_house_interpretation"

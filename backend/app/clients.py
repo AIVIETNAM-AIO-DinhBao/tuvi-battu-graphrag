@@ -1,4 +1,5 @@
 import sys
+from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -51,6 +52,7 @@ class DenseQueryEmbeddingService:
         expected_dim: int,
         implementation: str = "auto",
         normalize: bool = True,
+        query_cache_max_size: int = 128,
     ) -> None:
         self.backend = backend
         self.model_name = model_name
@@ -59,6 +61,10 @@ class DenseQueryEmbeddingService:
         self.expected_dim = expected_dim
         self.implementation = implementation
         self.normalize = normalize
+        self.query_cache_max_size = max(0, query_cache_max_size)
+        self._query_cache: OrderedDict[str, list[float]] = OrderedDict()
+        self._query_cache_hits = 0
+        self._query_cache_misses = 0
         self._client: Any | None = None
 
     def _ensure_client(self) -> LocalBgeM3EmbeddingClient:
@@ -86,11 +92,34 @@ class DenseQueryEmbeddingService:
             "implementation": self.implementation,
             "model_name": self.model_name,
             "normalize": self.normalize,
+            "query_cache_max_size": self.query_cache_max_size,
             "slot": self.slot,
         }
 
+    def cache_stats(self) -> dict[str, Any]:
+        return {
+            "query_cache_enabled": self.query_cache_max_size > 0,
+            "query_cache_hits": self._query_cache_hits,
+            "query_cache_max_size": self.query_cache_max_size,
+            "query_cache_misses": self._query_cache_misses,
+            "query_cache_size": len(self._query_cache),
+        }
+
     def embed_query(self, text: str) -> list[float]:
-        return self._ensure_client().embed_query(text)
+        cache_key = " ".join(str(text or "").split())
+        if self.query_cache_max_size > 0 and cache_key in self._query_cache:
+            self._query_cache_hits += 1
+            cached = self._query_cache.pop(cache_key)
+            self._query_cache[cache_key] = cached
+            return list(cached)
+
+        self._query_cache_misses += 1
+        embedding = list(self._ensure_client().embed_query(text))
+        if self.query_cache_max_size > 0 and cache_key:
+            self._query_cache[cache_key] = list(embedding)
+            while len(self._query_cache) > self.query_cache_max_size:
+                self._query_cache.popitem(last=False)
+        return embedding
 
 
 def get_supabase_client():

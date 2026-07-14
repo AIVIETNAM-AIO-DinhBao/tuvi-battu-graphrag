@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+import time
 from typing import Any
 
 from app.clients import get_dense_query_embedding_service, get_neo4j_driver, get_supabase_client
@@ -139,6 +140,49 @@ def mark_retrieval_backend_unavailable(state: RAGState, exc: Exception) -> None:
 
 def retrieval_backend_is_unavailable(state: RAGState) -> bool:
     return bool(state.get("retrieval_backend_unavailable"))
+
+
+def dense_retrieval_decision(state: RAGState, config: Any) -> dict[str, Any]:
+    plan = state.get("retrieval_plan") or {}
+    enabled_paths = plan.get("enabled_retrieval_paths") if isinstance(plan, dict) else {}
+    dense_gate = plan.get("dense_gate") if isinstance(plan, dict) else {}
+    if not isinstance(enabled_paths, dict):
+        enabled_paths = {}
+    if not isinstance(dense_gate, dict):
+        dense_gate = {}
+
+    query = str(state.get("rewritten_query") or state.get("normalized_query") or state.get("query") or "")
+    query_term_count = len([term for term in query.split() if term.strip()])
+    min_query_terms = int(dense_gate.get("min_query_terms") or 0)
+    enabled_by_config = bool(getattr(config, "dense_retrieval_enabled", False))
+    enabled_by_plan = bool(enabled_paths.get("dense", True))
+    enabled_by_dense_gate = bool(dense_gate.get("enabled", True))
+    query_terms_ok = query_term_count >= min_query_terms
+    skipped_reason = None
+    if not enabled_by_config:
+        skipped_reason = "disabled_by_config"
+    elif not enabled_by_plan:
+        skipped_reason = "disabled_by_plan"
+    elif not enabled_by_dense_gate:
+        skipped_reason = "disabled_by_dense_gate"
+    elif not query_terms_ok:
+        skipped_reason = "query_too_short"
+
+    return {
+        "dense_gate": dict(dense_gate),
+        "enabled": skipped_reason is None,
+        "enabled_by_config": enabled_by_config,
+        "enabled_by_dense_gate": enabled_by_dense_gate,
+        "enabled_by_plan": enabled_by_plan,
+        "min_query_terms": min_query_terms,
+        "query_term_count": query_term_count,
+        "query_terms_ok": query_terms_ok,
+        "skipped_reason": skipped_reason,
+    }
+
+
+def dense_decision_extra(decision: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in decision.items() if key != "enabled"}
 
 
 def previous_retrieval_fallback_detail(state: RAGState, *, enabled: bool, top_k: int, **extra: Any) -> dict[str, Any]:
@@ -465,20 +509,30 @@ def make_dense_retrieval_node(
     def dense_retrieval(state: RAGState) -> RAGState:
         config = state["experiment_config"]
         dense_config = config.dense_retrieval
-        if not config.dense_retrieval_enabled:
+        decision = dense_retrieval_decision(state, config)
+        base_detail = {
+            "candidate_count": 0,
+            "candidate_k": dense_config.candidate_k,
+            "chunk_strategy_id": config.chunk_strategy_id,
+            "embedding_slot": dense_config.embedding_slot,
+            "enabled": False,
+            "source_ids": config.source_ids,
+            "timeout_seconds": dense_config.timeout_seconds,
+            "top_k": dense_config.top_k,
+            "vector_index": dense_config.vector_index,
+            **decision,
+        }
+        if not decision["enabled"]:
             state["dense_candidates"] = []
             return append_trace_node(
                 state,
                 "dense_retrieval",
                 status="skipped",
-                detail={
-                    "enabled": False,
-                    "embedding_slot": dense_config.embedding_slot,
-                    "top_k": dense_config.top_k,
-                },
+                detail=base_detail,
             )
         if fallback_on_error and retrieval_backend_is_unavailable(state):
             state["dense_candidates"] = []
+            decision_extra = dense_decision_extra(decision)
             return append_trace_node(
                 state,
                 "dense_retrieval",
@@ -492,9 +546,12 @@ def make_dense_retrieval_node(
                     embedding_slot=dense_config.embedding_slot,
                     source_ids=config.source_ids,
                     vector_index=dense_config.vector_index,
+                    **decision_extra,
                 ),
             )
 
+        started = time.perf_counter()
+        embedding_service = None
         try:
             embedding_service = dense_embedding_service or get_dense_query_embedding_service()
             candidates = with_neo4j_session(
@@ -507,10 +564,12 @@ def make_dense_retrieval_node(
                 ),
             )
         except Exception as exc:
+            duration_ms = round((time.perf_counter() - started) * 1000, 2)
             if not fallback_on_error:
                 raise
             mark_retrieval_backend_unavailable(state, exc)
             state["dense_candidates"] = []
+            decision_extra = dense_decision_extra(decision)
             return append_trace_node(
                 state,
                 "dense_retrieval",
@@ -524,9 +583,17 @@ def make_dense_retrieval_node(
                     embedding_slot=dense_config.embedding_slot,
                     source_ids=config.source_ids,
                     vector_index=dense_config.vector_index,
+                    duration_ms=duration_ms,
+                    **decision_extra,
                 ),
             )
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
         state["dense_candidates"] = candidates
+        cache_stats = {}
+        if embedding_service is not None:
+            cache_stats_fn = getattr(embedding_service, "cache_stats", None)
+            if callable(cache_stats_fn):
+                cache_stats = cache_stats_fn()
         return append_trace_node(
             state,
             "dense_retrieval",
@@ -534,12 +601,15 @@ def make_dense_retrieval_node(
                 "candidate_count": len(candidates),
                 "candidate_k": dense_config.candidate_k,
                 "chunk_strategy_id": config.chunk_strategy_id,
+                "duration_ms": duration_ms,
                 "embedding_slot": dense_config.embedding_slot,
                 "enabled": True,
+                "embedding_cache_stats": cache_stats,
                 "source_ids": config.source_ids,
                 "timeout_seconds": dense_config.timeout_seconds,
                 "top_k": dense_config.top_k,
                 "vector_index": dense_config.vector_index,
+                **decision,
             },
         )
 

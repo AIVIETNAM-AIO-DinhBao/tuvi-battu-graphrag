@@ -358,6 +358,84 @@ def test_dense_retrieval_uses_bge_m3_vector_index_and_filters() -> None:
     assert params["chunk_strategy_id"] == config.chunk_strategy_id
 
 
+def test_dense_retrieval_node_skips_when_disabled_by_planner() -> None:
+    config = config_with(dense_retrieval_enabled=True)
+    embedding_service = FakeEmbeddingService()
+    state = {
+        "experiment_config": config,
+        "normalized_query": "Cung Mệnh nằm ở đâu?",
+        "retrieval_plan": {
+            "question_family": "core_identity",
+            "enabled_retrieval_paths": {"dense": False},
+            "dense_gate": {"enabled": False},
+        },
+    }
+
+    node = rag_nodes.make_dense_retrieval_node(RecordingDriver([]), embedding_service)
+    result = node(state)
+
+    trace = trace_entry(result, "dense_retrieval")
+    assert result["dense_candidates"] == []
+    assert embedding_service.queries == []
+    assert trace["status"] == "skipped"
+    assert trace["enabled_by_config"] is True
+    assert trace["enabled_by_plan"] is False
+    assert trace["skipped_reason"] == "disabled_by_plan"
+
+
+def test_dense_retrieval_node_runs_when_config_and_planner_gate_allow() -> None:
+    config = config_with(dense_retrieval_enabled=True)
+    embedding_service = FakeEmbeddingService()
+    driver = RecordingDriver([[[{"node": sample_node(chunk_id="dense"), "score": 0.8}]]])
+    state = {
+        "experiment_config": config,
+        "normalized_query": "Thiên Mã Quan Lộc",
+        "retrieval_plan": {
+            "question_family": "menh_house_interpretation",
+            "enabled_retrieval_paths": {"dense": True},
+            "dense_gate": {"enabled": True, "min_query_terms": 2},
+        },
+    }
+
+    node = rag_nodes.make_dense_retrieval_node(driver, embedding_service)
+    result = node(state)
+
+    trace = trace_entry(result, "dense_retrieval")
+    assert [candidate["chunk_id"] for candidate in result["dense_candidates"]] == ["dense"]
+    assert embedding_service.queries == ["Thiên Mã Quan Lộc"]
+    assert trace["status"] == "completed"
+    assert trace["enabled_by_config"] is True
+    assert trace["enabled_by_plan"] is True
+    assert trace["enabled_by_dense_gate"] is True
+    assert trace["candidate_count"] == 1
+    assert trace["duration_ms"] >= 0
+
+
+def test_dense_retrieval_node_skips_when_query_too_short_for_gate() -> None:
+    config = config_with(dense_retrieval_enabled=True)
+    embedding_service = FakeEmbeddingService()
+    state = {
+        "experiment_config": config,
+        "normalized_query": "Mệnh",
+        "retrieval_plan": {
+            "question_family": "menh_house_interpretation",
+            "enabled_retrieval_paths": {"dense": True},
+            "dense_gate": {"enabled": True, "min_query_terms": 2},
+        },
+    }
+
+    node = rag_nodes.make_dense_retrieval_node(RecordingDriver([]), embedding_service)
+    result = node(state)
+
+    trace = trace_entry(result, "dense_retrieval")
+    assert result["dense_candidates"] == []
+    assert embedding_service.queries == []
+    assert trace["status"] == "skipped"
+    assert trace["query_term_count"] == 1
+    assert trace["min_query_terms"] == 2
+    assert trace["skipped_reason"] == "query_too_short"
+
+
 def test_sparse_retrieval_uses_chunk_fulltext_and_sanitized_query() -> None:
     config = config_with()
     session = RecordingSession(

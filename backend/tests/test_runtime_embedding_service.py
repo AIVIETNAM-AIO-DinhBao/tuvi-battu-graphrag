@@ -29,6 +29,34 @@ def test_dense_query_embedding_service_lazy_loads_local_client(monkeypatch) -> N
     assert created["kwargs"]["expected_dim"] == 1024
 
 
+def test_dense_query_embedding_service_caches_repeated_queries(monkeypatch) -> None:
+    calls = {"count": 0}
+
+    class FakeLocalClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def embed_query(self, text: str) -> list[float]:
+            calls["count"] += 1
+            return [float(len(text))]
+
+    monkeypatch.setattr(clients, "LocalBgeM3EmbeddingClient", FakeLocalClient)
+    service = clients.DenseQueryEmbeddingService(
+        backend="local",
+        model_name="BAAI/bge-m3",
+        device="cpu",
+        slot="bge_m3",
+        expected_dim=1024,
+        query_cache_max_size=2,
+    )
+
+    assert service.embed_query("Thiên Mã") == [8.0]
+    assert service.embed_query("Thiên   Mã") == [8.0]
+    assert calls["count"] == 1
+    assert service.cache_stats()["query_cache_hits"] == 1
+    assert service.cache_stats()["query_cache_misses"] == 1
+
+
 def test_get_dense_query_embedding_service_uses_settings(monkeypatch) -> None:
     monkeypatch.setattr(clients.settings, "DENSE_QUERY_EMBEDDING_BACKEND", "local")
     monkeypatch.setattr(clients.settings, "DENSE_QUERY_EMBEDDING_MODEL", "BAAI/bge-m3")
@@ -48,6 +76,7 @@ def test_get_dense_query_embedding_service_uses_settings(monkeypatch) -> None:
         "implementation": "auto",
         "model_name": "BAAI/bge-m3",
         "normalize": True,
+        "query_cache_max_size": 128,
         "slot": "bge_m3",
     }
 

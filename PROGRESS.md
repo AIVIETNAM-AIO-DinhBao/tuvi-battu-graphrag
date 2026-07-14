@@ -1703,3 +1703,104 @@ Before implementation work resumes, write or update the design/roadmap documenta
   - `W6-ABL-02`: retrieval/fusion/reranker ablation v1 can now proceed after documentation/planner-gated dense decision, because the W6-RAG-06 dependency is satisfied.
 
 **Status**: COMPLETE - W6-RAG-06 deliverable is implemented and test-verified. Context assembly is now question-family-aware and role-aware while preserving previous behavior when no required evidence roles are present.
+
+---
+
+## Week 6 RAG Progress Update - W6-RAG-07 Complete - 2026-07-14
+
+### W6-RAG-07: Planner-gated dense retrieval - COMPLETE
+
+#### Implementation Summary
+- Implemented planner-gated dense retrieval in `backend/app/rag/nodes.py`.
+- Dense retrieval now runs only when all runtime gates allow it:
+  - `ExperimentConfig.dense_retrieval_enabled` is true;
+  - `retrieval_plan.enabled_retrieval_paths.dense` is true;
+  - `retrieval_plan.dense_gate.enabled` is true;
+  - query term count satisfies `retrieval_plan.dense_gate.min_query_terms` when configured;
+  - retrieval backend is still available.
+- Direct chart-only QA remains protected:
+  - `core_identity` planner output disables dense retrieval;
+  - dense is skipped even when an ablation config globally enables dense.
+- Added dense trace detail for evaluation/debugging:
+  - `enabled_by_config`
+  - `enabled_by_plan`
+  - `enabled_by_dense_gate`
+  - `query_term_count`
+  - `min_query_terms`
+  - `query_terms_ok`
+  - `skipped_reason`
+  - `duration_ms` for completed/fallback dense calls
+  - `embedding_cache_stats`
+- Added lazy query embedding cache to `DenseQueryEmbeddingService` in `backend/app/clients.py`:
+  - keeps the existing service-level `@lru_cache(maxsize=1)`;
+  - caches repeated normalized query strings inside the service;
+  - exposes `cache_stats()` for trace diagnostics;
+  - does not preload BGE-M3 automatically.
+- Added dense-specific retrieval diagnostics in `backend/app/rag/diagnostics.py`:
+  - candidate count;
+  - selected context count;
+  - selected context rate;
+  - dense gate/config flags;
+  - skip reason;
+  - dense node latency;
+  - embedding cache stats.
+- Added ablation-ready config:
+  - `configs/w6_planner_gated_dense.yaml`
+  - It sets `dense_retrieval_enabled: true`, while runtime execution remains planner-gated.
+- Kept `configs/default_production.yaml` dense off by default and updated comments to point to the ablation config.
+
+#### Clarified Decisions From User Confirmation
+These confirmations apply to this W6-RAG-07 task implementation only. Final production behavior should be revisited later after ablation and production p95 latency evidence.
+
+1. Dense production default vs ablation preparation:
+   - Confirmed for this task: keep `default_production.yaml` dense off and prepare an ablation config instead.
+   - Implemented: `configs/w6_planner_gated_dense.yaml` enables dense globally for experiments, but planner gate still prevents Direct chart QA from running dense.
+   - Production recommendation later: only turn dense on in `default_production.yaml` if W6/W7 ablation shows a quality gain that justifies latency/cost, and p95 chat latency remains within target.
+2. Preload behavior:
+   - Confirmed for this task: no automatic preload; use lazy-load plus query embedding cache.
+   - Implemented: BGE-M3 local client is still created lazily on first dense query; repeated query embeddings are cached.
+   - Production recommendation later: consider startup/pre-warm or background preload only after measuring cold-start impact on Render/local runtime.
+3. Ablation config artifact:
+   - Confirmed for this task: create a dedicated config YAML.
+   - Implemented: `configs/w6_planner_gated_dense.yaml`.
+   - Production recommendation later: include this config in W6-ABL-02/W7-CONFIG-01 evidence before promoting it.
+4. Latency diagnostics scope:
+   - Confirmed for this task: measure dense-node latency only.
+   - Implemented: `dense_retrieval` trace has `duration_ms`; retrieval diagnostics exposes it.
+   - Production recommendation later: W7 observability should add end-to-end span timing and per-node Langfuse spans for all major pipeline nodes, not just dense.
+
+#### Files Modified
+- `backend/app/clients.py`
+- `backend/app/rag/nodes.py`
+- `backend/app/rag/diagnostics.py`
+- `backend/tests/test_experiment_config.py`
+- `backend/tests/test_rag_diagnostics.py`
+- `backend/tests/test_rag_retrieval.py`
+- `backend/tests/test_runtime_embedding_service.py`
+- `configs/default_production.yaml`
+- `configs/w6_planner_gated_dense.yaml`
+- `PROGRESS.md`
+
+#### Verification
+- Focused W6-RAG-07 regression:
+  - `cd backend && python -m pytest tests/test_rag_retrieval.py tests/test_rag_diagnostics.py tests/test_runtime_embedding_service.py tests/test_experiment_config.py -p no:cacheprovider -q`
+  - Result: `39 passed, 1 warning`
+- Broader W6/backend chat regression:
+  - `cd backend && python -m pytest tests/test_rag_context_generation_citations.py tests/test_rag_diagnostics.py tests/test_rag_retrieval.py tests/test_rag_planner.py tests/test_rag_chart_facts.py tests/test_rag_dry_run.py tests/test_chat_route.py tests/test_runtime_embedding_service.py tests/test_experiment_config.py -p no:cacheprovider -q`
+  - Result: `68 passed, 11 warnings`
+
+#### Current Boundary After W6-RAG-07
+- Completed:
+  - `W6-RAG-01`: retrieval diagnostics by complexity/family.
+  - `W6-RAG-02`: rule-based query planner.
+  - `W6-RAG-03`: chart fact extractor.
+  - `W6-RAG-04`: role-aware retrieval.
+  - `W6-RAG-05`: conjunctive graph retrieval.
+  - `W6-RAG-06`: role-aware context assembly.
+  - `W6-RAG-07`: planner-gated dense retrieval with cache and dense latency diagnostics.
+- Next recommended tasks:
+  - `W6-DOC-01`: write `docs/rag_question_aware_retrieval.md` documenting the implemented question-aware/chart-aware retrieval design, including the W6-RAG-07 production caveats above.
+  - `W6-ABL-02`: run retrieval/fusion/reranker ablation comparing default no-dense against `configs/w6_planner_gated_dense.yaml`.
+  - `W7-OBS-01`/`W7-OBS-02`: add production span timing and p95 latency evidence before deciding whether dense should be enabled in final production config.
+
+**Status**: COMPLETE - W6-RAG-07 deliverable is implemented and test-verified. Dense retrieval is now planner-gated, Direct chart QA skips dense, One-hop/Two-hop can run dense when config and planner allow it, and ablation-ready config/diagnostics are available.

@@ -1,5 +1,5 @@
-experiment_id: default_production_v1
-name: Default production candidate
+experiment_id: w6_planner_gated_dense_v1
+name: W6 planner-gated dense retrieval candidate
 branch: gemini-call
 domain: TUVI
 source_ids:
@@ -17,9 +17,6 @@ embedding:
   model: BAAI/bge-m3
   vector_index: chunkVectorBgeM3
   dimension: 1024
-# Keep production chat responsive by default. Query rewrite can be re-enabled
-# after the core Graph/Sparse RAG path is stable because it adds an external
-# Gemini call before retrieval.
 query_rewrite_enabled: false
 query_rewrite:
   backend: gemini
@@ -50,11 +47,10 @@ graph_retrieval:
     - LUU_Y
   timeout_seconds: 3.0
   child_only: true
-# Disabled by default for the local runtime path. W6-RAG-07 adds planner-gated
-# dense retrieval plus query embedding cache, but the production default should
-# only enable dense after W6/W7 ablation and p95 latency evidence confirm the
-# quality/latency tradeoff. Use configs/w6_planner_gated_dense.yaml for ablation.
-dense_retrieval_enabled: false
+# W6-RAG-07 ablation candidate: dense is globally enabled here, but runtime
+# execution is still planner-gated by retrieval_plan.enabled_retrieval_paths and
+# retrieval_plan.dense_gate. Direct chart-only questions should skip dense.
+dense_retrieval_enabled: true
 dense_retrieval:
   top_k: 8
   candidate_k: 500
