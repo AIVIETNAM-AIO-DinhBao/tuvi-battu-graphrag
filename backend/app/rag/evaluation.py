@@ -445,7 +445,12 @@ class EvaluationRunner:
                     "experiment_id": config.experiment_id,
                     "config_hash": config_hash(config),
                     "chunk_strategy_id": config.chunk_strategy_id,
+                    "graph_retrieval_enabled": config.graph_retrieval_enabled,
+                    "dense_retrieval_enabled": config.dense_retrieval_enabled,
+                    "sparse_retrieval_enabled": config.sparse_retrieval_enabled,
                     "fusion_method": config.fusion_method,
+                    "reranker_enabled": config.reranker_enabled,
+                    "document_grading_enabled": config.document_grading_enabled,
                     "context_assembly_strategy": config.context_assembly_strategy,
                     "run_id": run_id,
                     "status": status,
@@ -471,6 +476,7 @@ class EvaluationRunner:
             "metric_definitions": metric_definitions(self.judge.backend),
             "configs": config_results,
         }
+        report["ablation_analysis"] = build_ablation_analysis(report)
         if self.write_reports:
             write_evaluation_reports(report, effective_output_dir)
         return report
@@ -785,6 +791,166 @@ def metric_definitions(judge_backend: str) -> dict[str, Any]:
     }
 
 
+def metric_value(config_result: dict[str, Any], metric_name: str) -> float | None:
+    value = (config_result.get("metrics") or {}).get(metric_name)
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def rank_configs_by_metric(
+    configs: list[dict[str, Any]],
+    metric_name: str,
+    *,
+    higher_is_better: bool = True,
+) -> list[dict[str, Any]]:
+    ranked: list[dict[str, Any]] = []
+    for config in configs:
+        value = metric_value(config, metric_name)
+        if value is None:
+            continue
+        ranked.append(
+            {
+                "config_name": config.get("config_name"),
+                "experiment_id": config.get("experiment_id"),
+                "metric": metric_name,
+                "value": value,
+            }
+        )
+    return sorted(ranked, key=lambda item: item["value"], reverse=higher_is_better)
+
+
+def summarize_retrieval_misses(config: dict[str, Any], *, max_examples: int = 5) -> dict[str, Any]:
+    misses: list[dict[str, Any]] = []
+    for item in config.get("items") or []:
+        if item.get("chart_only") or item.get("status") != "completed":
+            continue
+        doc_coverage = item.get("gold_doc_coverage_rate")
+        source_count = int(item.get("source_count") or 0)
+        context_recall = item.get("context_recall")
+        candidate_counts = item.get("diagnostic_candidate_counts") or {}
+        has_low_context_recall = context_recall is not None and float(context_recall) < 0.5
+        has_doc_miss = doc_coverage in (None, 0, 0.0)
+        has_no_sources = source_count == 0
+        if not (has_doc_miss or has_no_sources or has_low_context_recall):
+            continue
+        reasons: list[str] = []
+        if has_doc_miss:
+            reasons.append("gold_doc_miss")
+        if has_no_sources:
+            reasons.append("no_sources")
+        if has_low_context_recall:
+            reasons.append("low_context_recall")
+        misses.append(
+            {
+                "item_id": item.get("item_id"),
+                "question_complexity": item.get("question_complexity"),
+                "question_family": item.get("question_family"),
+                "reasons": reasons,
+                "context_recall": context_recall,
+                "gold_doc_coverage_rate": doc_coverage,
+                "source_count": source_count,
+                "candidate_counts": candidate_counts,
+                "selected_retrieval_paths": item.get("diagnostic_selected_retrieval_paths") or [],
+            }
+        )
+    return {
+        "config_name": config.get("config_name"),
+        "miss_count": len(misses),
+        "examples": misses[:max_examples],
+    }
+
+
+def summarize_rerank_misses(config: dict[str, Any], *, max_examples: int = 5) -> dict[str, Any]:
+    misses: list[dict[str, Any]] = []
+    if not config.get("reranker_enabled"):
+        return {"config_name": config.get("config_name"), "miss_count": 0, "examples": []}
+    for item in config.get("items") or []:
+        if item.get("chart_only") or item.get("status") != "completed":
+            continue
+        candidate_counts = item.get("diagnostic_candidate_counts") or {}
+        fused_count = int(candidate_counts.get("fused") or 0)
+        ranked_count = int(candidate_counts.get("ranked") or candidate_counts.get("reranked") or 0)
+        selected_count = int(candidate_counts.get("context_selected") or item.get("context_selected_count") or 0)
+        doc_coverage = item.get("gold_doc_coverage_rate")
+        citation_coverage = item.get("citation_coverage")
+        if fused_count <= 0 and ranked_count <= 0:
+            continue
+        if selected_count <= 0:
+            continue
+        if doc_coverage not in (None, 0, 0.0) and citation_coverage not in (None, 0, 0.0):
+            continue
+        misses.append(
+            {
+                "item_id": item.get("item_id"),
+                "question_complexity": item.get("question_complexity"),
+                "question_family": item.get("question_family"),
+                "gold_doc_coverage_rate": doc_coverage,
+                "citation_coverage": citation_coverage,
+                "candidate_counts": candidate_counts,
+                "selected_retrieval_paths": item.get("diagnostic_selected_retrieval_paths") or [],
+                "note": "Heuristic rerank miss: candidates existed and context was selected, but gold/citation coverage remained low.",
+            }
+        )
+    return {
+        "config_name": config.get("config_name"),
+        "miss_count": len(misses),
+        "examples": misses[:max_examples],
+    }
+
+
+def choose_preliminary_recommendation(configs: list[dict[str, Any]]) -> dict[str, Any]:
+    completed = [config for config in configs if config.get("status") == "completed"]
+    if not completed:
+        return {
+            "recommended_candidate": None,
+            "reasoning": ["No completed configs were available for recommendation."],
+        }
+
+    def score(config: dict[str, Any]) -> float:
+        metrics = config.get("metrics") or {}
+        quality = (
+            float(metrics.get("context_recall_avg") or 0) * 0.35
+            + float(metrics.get("citation_coverage_rate") or 0) * 0.25
+            + float(metrics.get("faithfulness_avg") or 0) * 0.2
+            + float(metrics.get("answer_relevancy_avg") or 0) * 0.15
+            + float(metrics.get("graph_hit_rate") or 0) * 0.05
+        )
+        latency = float(metrics.get("p95_latency_ms") or 0)
+        latency_penalty = min(latency / 30_000, 0.2) if latency else 0.0
+        return quality - latency_penalty
+
+    best = max(completed, key=score)
+    metrics = best.get("metrics") or {}
+    return {
+        "recommended_candidate": best.get("config_name"),
+        "score": round(score(best), 4),
+        "reasoning": [
+            "Preliminary heuristic ranks configs by context recall, citation coverage, faithfulness, answer relevancy, graph hit rate, and a small p95 latency penalty.",
+            f"Selected `{best.get('config_name')}` with context_recall_avg={metrics.get('context_recall_avg')}, citation_coverage_rate={metrics.get('citation_coverage_rate')}, p95_latency_ms={metrics.get('p95_latency_ms')}.",
+            "Treat this as a smoke/first-pass recommendation until official Gemini judge and full dataset runs are complete.",
+        ],
+    }
+
+
+def build_ablation_analysis(report: dict[str, Any]) -> dict[str, Any]:
+    configs = list(report.get("configs") or [])
+    baseline_name = "baseline_graph_sparse_rrf"
+    return {
+        "baseline_config_name": baseline_name,
+        "ranking_by_context_recall": rank_configs_by_metric(configs, "context_recall_avg"),
+        "ranking_by_citation_coverage": rank_configs_by_metric(configs, "citation_coverage_rate"),
+        "ranking_by_graph_hit_rate": rank_configs_by_metric(configs, "graph_hit_rate"),
+        "ranking_by_p95_latency": rank_configs_by_metric(configs, "p95_latency_ms", higher_is_better=False),
+        "retrieval_miss_summary": [summarize_retrieval_misses(config) for config in configs],
+        "rerank_miss_summary": [summarize_rerank_misses(config) for config in configs],
+        "preliminary_recommendation": choose_preliminary_recommendation(configs),
+    }
+
+
 def write_evaluation_reports(report: dict[str, Any], output_dir: Path | str) -> None:
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -848,6 +1014,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             )
         )
 
+    append_ablation_analysis(lines, report)
+
     lines.extend(["", "## Metrics by question complexity", ""])
     append_grouped_metrics_table(lines, report, group_key="by_question_complexity")
     lines.extend(["", "## Metrics by question family", ""])
@@ -883,6 +1051,61 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             )
         lines.append("")
     return "\n".join(lines).strip() + "\n"
+
+
+def append_ablation_analysis(lines: list[str], report: dict[str, Any]) -> None:
+    analysis = report.get("ablation_analysis") or {}
+    if not analysis:
+        return
+    recommendation = analysis.get("preliminary_recommendation") or {}
+    lines.extend(
+        [
+            "",
+            "## Ablation analysis",
+            "",
+            f"- Baseline config: `{analysis.get('baseline_config_name')}`",
+            f"- Preliminary recommendation: `{recommendation.get('recommended_candidate')}`",
+        ]
+    )
+    for reason in recommendation.get("reasoning") or []:
+        lines.append(f"  - {reason}")
+
+    ranking_specs = [
+        ("ranking_by_context_recall", "Context recall ranking"),
+        ("ranking_by_citation_coverage", "Citation coverage ranking"),
+        ("ranking_by_graph_hit_rate", "Graph hit ranking"),
+        ("ranking_by_p95_latency", "p95 latency ranking"),
+    ]
+    for key, title in ranking_specs:
+        lines.extend(["", f"### {title}", "", "| Rank | Config | Value |", "|---:|---|---:|"])
+        for index, item in enumerate(analysis.get(key) or [], start=1):
+            lines.append(f"| {index} | {item.get('config_name')} | {item.get('value')} |")
+
+    lines.extend(
+        [
+            "",
+            "### Retrieval miss summary",
+            "",
+            "| Config | Miss count | Example item IDs |",
+            "|---|---:|---|",
+        ]
+    )
+    for summary in analysis.get("retrieval_miss_summary") or []:
+        examples = ", ".join(str(example.get("item_id")) for example in summary.get("examples") or [])
+        lines.append(f"| {summary.get('config_name')} | {summary.get('miss_count')} | {examples} |")
+
+    lines.extend(
+        [
+            "",
+            "### Rerank miss summary",
+            "",
+            "| Config | Miss count | Example item IDs |",
+            "|---|---:|---|",
+        ]
+    )
+    for summary in analysis.get("rerank_miss_summary") or []:
+        examples = ", ".join(str(example.get("item_id")) for example in summary.get("examples") or [])
+        lines.append(f"| {summary.get('config_name')} | {summary.get('miss_count')} | {examples} |")
 
 
 def append_grouped_metrics_table(lines: list[str], report: dict[str, Any], *, group_key: str) -> None:

@@ -1879,3 +1879,122 @@ These confirmations apply to this W6-RAG-07 task implementation only. Final prod
   - `W6-ABL-02`: run retrieval/fusion/reranker ablation comparing default no-dense against `configs/w6_planner_gated_dense.yaml` and other planned configs.
 
 **Status**: COMPLETE - W6-DOC-01 deliverable is implemented. The team can now understand the question-aware/chart-aware retrieval roadmap, implemented scope, diagnostics, validation plan and production caveats without reading the whole codebase.
+
+---
+
+## Week 6 Ablation Progress Update - W6-ABL-02 Complete - 2026-07-14
+
+### W6-ABL-02: Retrieval/fusion/reranker ablation v1 - COMPLETE
+
+#### Implementation Summary
+- Created `configs/w6_abl_02_retrieval_matrix.yaml` as the official W6-ABL-02 retrieval/fusion/reranker matrix manifest.
+- Added 11 ablation configs covering the PLAN.md requirements:
+  - `baseline_graph_sparse_rrf`
+  - `graph_only_rrf`
+  - `sparse_only_rrf`
+  - `dense_only_rrf`
+  - `dense_sparse_rrf`
+  - `graph_dense_rrf`
+  - `graph_sparse_rrf`
+  - `all_paths_planner_dense_rrf`
+  - `baseline_no_reranker`
+  - `baseline_weighted_sum`
+  - `baseline_graph_first`
+- Dense variants use `configs/w6_planner_gated_dense.yaml`, so dense is globally enabled for ablation but still planner-gated at runtime:
+  - Direct chart QA should skip dense.
+  - One-hop/Two-hop can run dense when planner and query length allow it.
+- Extended `backend/app/rag/evaluation.py` report generation with an automatic `ablation_analysis` block containing:
+  - baseline config name;
+  - rankings by Context Recall, Citation Coverage, Graph Hit Rate and p95 latency;
+  - retrieval miss summary;
+  - rerank miss summary;
+  - preliminary recommendation heuristic.
+- Extended the Markdown report with an `## Ablation analysis` section including retrieval miss and rerank miss tables.
+- Added regression tests for:
+  - W6-ABL-02 manifest loading;
+  - 11 unique experiment configs;
+  - dense/no-reranker/fusion overrides;
+  - `ablation_analysis` JSON/Markdown rendering;
+  - retrieval miss and rerank miss heuristics.
+
+#### Files Modified or Created
+- `configs/w6_abl_02_retrieval_matrix.yaml`
+- `backend/app/rag/evaluation.py`
+- `backend/tests/test_rag_evaluation.py`
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_02/evaluation_report.json`
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_02/evaluation_report.md`
+- `PROGRESS.md`
+
+#### Verification - Focused Tests
+Command:
+
+```powershell
+cd backend; python -m pytest tests/test_rag_evaluation.py tests/test_experiment_config.py -p no:cacheprovider -q
+```
+
+Result:
+
+```text
+24 passed in 2.38s
+```
+
+#### Verification - W6-ABL-02 Offline Smoke
+Command:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_02_retrieval_matrix.yaml --offline-smoke --limit 2 --skip-persistence
+```
+
+Result summary:
+
+```text
+manifest_name: w6_abl_02_retrieval_fusion_reranker_v1
+dataset_item_count: 2
+config_count: 11
+judge_backend: static-smoke
+statuses: all 11 configs completed
+```
+
+Generated local smoke reports:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_02/evaluation_report.json
+benchmark/tuvi_golden_dataset/reports/w6_abl_02/evaluation_report.md
+```
+
+Report pattern checks passed for:
+
+```text
+Ablation analysis
+Retrieval miss summary
+Rerank miss summary
+baseline_graph_sparse_rrf
+```
+
+#### Official Run Command
+The implementation smoke did **not** persist Supabase rows and did **not** use Gemini judge. This is intentional: static smoke verifies plumbing only and is not the official W6 metric run.
+
+Official partial run when Gemini quota and live Neo4j/Supabase env are available:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_02_retrieval_matrix.yaml --judge-backend gemini --limit 10 --persist-supabase
+```
+
+Official full run:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_02_retrieval_matrix.yaml --judge-backend gemini --persist-supabase
+```
+
+#### Caveats and Boundary
+- The smoke report uses `static-smoke`, so its metric values and preliminary recommendation are not production evidence.
+- Dense latency/quality tradeoff must be judged from the official Gemini/live retrieval run, not from offline smoke.
+- The `ablation_analysis.preliminary_recommendation` is a heuristic ranking helper, not a final production config decision.
+- Final production config selection remains part of `W7-CONFIG-01` after W6-ABL-02 official evidence and W7 p95 latency evidence.
+
+#### Next Recommended Tasks
+- Run W6-ABL-02 official partial/full with Gemini judge when quota allows.
+- Continue to `W6-ABL-03` chunking strategy ablation after retrieval/fusion/reranker evidence is available.
+- Use W6-ABL-02 report output as input to `W7-CONFIG-01` production config selection.
+
+**Status**: COMPLETE - W6-ABL-02 implementation is complete and smoke-verified. The retrieval/fusion/reranker matrix, automated ablation analysis, local report artifacts and verification commands are in place. Official Gemini/live DB run remains the next evidence-gathering step when quota/env are available.

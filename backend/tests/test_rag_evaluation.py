@@ -11,6 +11,7 @@ from app.rag.evaluation import (
     StaticEvaluationJudge,
     aggregate_evaluation_metrics,
     aggregate_grouped_metrics,
+    build_ablation_analysis,
     build_single_config_manifest,
     extract_json_object,
     render_markdown_report,
@@ -22,6 +23,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 RELEASE_DATASET_PATH = ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "release" / "tuviqa_v1_release.jsonl"
 DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "default_production.yaml"
 W6_BASELINE_MANIFEST = ROOT_DIR / "configs" / "w6_eval_baseline.yaml"
+W6_ABL_02_MANIFEST = ROOT_DIR / "configs" / "w6_abl_02_retrieval_matrix.yaml"
 
 
 def fake_state(item: AblationDatasetItem, config: ExperimentConfig) -> dict[str, Any]:
@@ -212,6 +214,37 @@ def test_w6_eval_baseline_manifest_loads_release_dataset_and_default_config() ->
     assert config.cache_disabled is True
 
 
+def test_w6_abl_02_manifest_loads_full_retrieval_matrix() -> None:
+    manifest = load_ablation_manifest(W6_ABL_02_MANIFEST)
+    names = [spec.name for spec in manifest.configs]
+    configs = {spec.name: spec.build_config() for spec in manifest.configs}
+
+    assert manifest.name == "w6_abl_02_retrieval_fusion_reranker_v1"
+    assert manifest.dataset_path == RELEASE_DATASET_PATH
+    assert manifest.output_dir == ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "reports" / "w6_abl_02"
+    assert len(names) == 11
+    assert len({config.experiment_id for config in configs.values()}) == 11
+    assert {
+        "baseline_graph_sparse_rrf",
+        "graph_only_rrf",
+        "sparse_only_rrf",
+        "dense_only_rrf",
+        "dense_sparse_rrf",
+        "graph_dense_rrf",
+        "graph_sparse_rrf",
+        "all_paths_planner_dense_rrf",
+        "baseline_no_reranker",
+        "baseline_weighted_sum",
+        "baseline_graph_first",
+    } == set(names)
+    assert configs["dense_only_rrf"].dense_retrieval_enabled is True
+    assert configs["dense_only_rrf"].graph_retrieval_enabled is False
+    assert configs["dense_only_rrf"].sparse_retrieval_enabled is False
+    assert configs["baseline_no_reranker"].reranker_enabled is False
+    assert configs["baseline_weighted_sum"].fusion_method == "weighted_sum"
+    assert configs["baseline_graph_first"].fusion_method == "graph_first"
+
+
 def test_evaluation_runner_writes_reports_and_experiment_rows(tmp_path: Path) -> None:
     manifest = build_single_config_manifest(
         dataset_path=RELEASE_DATASET_PATH,
@@ -238,6 +271,8 @@ def test_evaluation_runner_writes_reports_and_experiment_rows(tmp_path: Path) ->
     assert report["configs"][0]["items"][0]["diagnostic_question_family"] == "core_identity"
     assert report["configs"][0]["items"][1]["diagnostic_question_family"] == "menh_house_interpretation"
     assert "by_question_complexity" in report["configs"][0]["grouped_metrics"]
+    assert "ablation_analysis" in report
+    assert report["ablation_analysis"]["preliminary_recommendation"]["recommended_candidate"]
     assert len(store.rows) == 1
     assert store.rows[0]["status"] == "completed"
     assert store.rows[0]["metrics"]["answer_relevancy_avg"] == 0.7
@@ -269,3 +304,75 @@ def test_static_judge_is_marked_as_non_official_in_markdown(tmp_path: Path) -> N
 
     assert "not an official W6 metric run" in markdown
     assert "Overall metrics" in markdown
+
+
+def test_ablation_analysis_ranks_and_marks_retrieval_and_rerank_misses() -> None:
+    report = {
+        "configs": [
+            {
+                "config_name": "baseline_graph_sparse_rrf",
+                "experiment_id": "baseline",
+                "status": "completed",
+                "reranker_enabled": True,
+                "metrics": {
+                    "context_recall_avg": 0.2,
+                    "citation_coverage_rate": 0.0,
+                    "faithfulness_avg": 0.5,
+                    "answer_relevancy_avg": 0.6,
+                    "graph_hit_rate": 0.0,
+                    "p95_latency_ms": 100.0,
+                },
+                "items": [
+                    {
+                        "item_id": "TVQA-X",
+                        "status": "completed",
+                        "chart_only": False,
+                        "question_complexity": "One-hop",
+                        "question_family": "menh_house_interpretation",
+                        "context_recall": 0.2,
+                        "gold_doc_coverage_rate": 0.0,
+                        "citation_coverage": 0.0,
+                        "source_count": 1,
+                        "context_selected_count": 1,
+                        "diagnostic_candidate_counts": {"fused": 3, "ranked": 2, "context_selected": 1},
+                        "diagnostic_selected_retrieval_paths": ["graph"],
+                    }
+                ],
+            },
+            {
+                "config_name": "sparse_only_rrf",
+                "experiment_id": "sparse",
+                "status": "completed",
+                "reranker_enabled": False,
+                "metrics": {
+                    "context_recall_avg": 0.8,
+                    "citation_coverage_rate": 1.0,
+                    "faithfulness_avg": 0.8,
+                    "answer_relevancy_avg": 0.8,
+                    "graph_hit_rate": 0.0,
+                    "p95_latency_ms": 200.0,
+                },
+                "items": [],
+            },
+        ]
+    }
+
+    analysis = build_ablation_analysis(report)
+    rendered = render_markdown_report({
+        "manifest_name": "w6_abl_02_retrieval_fusion_reranker_v1",
+        "dataset_path": "dataset.jsonl",
+        "dataset_item_count": 1,
+        "config_count": 2,
+        "judge_backend": "gemini",
+        "started_at": "start",
+        "completed_at": "done",
+        "configs": report["configs"],
+        "ablation_analysis": analysis,
+    })
+
+    assert analysis["ranking_by_context_recall"][0]["config_name"] == "sparse_only_rrf"
+    assert analysis["retrieval_miss_summary"][0]["miss_count"] == 1
+    assert analysis["rerank_miss_summary"][0]["miss_count"] == 1
+    assert "Ablation analysis" in rendered
+    assert "Retrieval miss summary" in rendered
+    assert "Rerank miss summary" in rendered

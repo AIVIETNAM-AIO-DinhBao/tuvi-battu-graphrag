@@ -1,0 +1,148 @@
+name: w6_abl_02_retrieval_fusion_reranker_v1
+notes: "W6-ABL-02 retrieval/fusion/reranker ablation v1. Official metrics require --judge-backend gemini; use --offline-smoke --limit 2 only for local plumbing checks. Dense variants use configs/w6_planner_gated_dense.yaml so Direct chart QA still skips dense by planner gate."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports/w6_abl_02
+configs:
+  - name: baseline_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_02_baseline_graph_sparse_rrf
+      name: W6 ABL 02 - baseline graph+sparse RRF
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: graph_only_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_02_graph_only_rrf
+      name: W6 ABL 02 - graph only RRF
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: sparse_only_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_02_sparse_only_rrf
+      name: W6 ABL 02 - sparse only RRF
+      cache_disabled: true
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: dense_only_rrf
+    base_config_path: configs/w6_planner_gated_dense.yaml
+    overrides:
+      experiment_id: w6_abl_02_dense_only_rrf
+      name: W6 ABL 02 - dense only RRF planner-gated
+      cache_disabled: true
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: dense_sparse_rrf
+    base_config_path: configs/w6_planner_gated_dense.yaml
+    overrides:
+      experiment_id: w6_abl_02_dense_sparse_rrf
+      name: W6 ABL 02 - dense+sparse RRF planner-gated
+      cache_disabled: true
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: graph_dense_rrf
+    base_config_path: configs/w6_planner_gated_dense.yaml
+    overrides:
+      experiment_id: w6_abl_02_graph_dense_rrf
+      name: W6 ABL 02 - graph+dense RRF planner-gated
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_02_graph_sparse_rrf
+      name: W6 ABL 02 - graph+sparse explicit RRF
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: all_paths_planner_dense_rrf
+    base_config_path: configs/w6_planner_gated_dense.yaml
+    overrides:
+      experiment_id: w6_abl_02_all_paths_planner_dense_rrf
+      name: W6 ABL 02 - graph+dense+sparse RRF planner-gated
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: baseline_no_reranker
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_02_baseline_no_reranker
+      name: W6 ABL 02 - baseline graph+sparse no reranker
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: false
+
+  - name: baseline_weighted_sum
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_02_baseline_weighted_sum
+      name: W6 ABL 02 - baseline graph+sparse weighted_sum
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: weighted_sum
+      reranker_config:
+        enabled: true
+
+  - name: baseline_graph_first
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_02_baseline_graph_first
+      name: W6 ABL 02 - baseline graph+sparse graph_first
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: graph_first
+      context_assembly_strategy: graph_first
+      reranker_config:
+        enabled: true
