@@ -1466,3 +1466,167 @@ Historical note: this section documents the local-Kaggle fallback/repro/comparis
 - Re-enable dense retrieval and query rewrite only after runtime preload/caching and timeout policy are stable.
 
 **Status**: COMPLETE - Local `/chat` is stable enough for frontend use, and entity-definition retrieval quality is substantially improved for representative query `Thái Dương có ý nghĩa gì`.
+
+---
+
+## Week 6 RAG/Evaluation Progress Update - 2026-07-14
+
+### Scope of this update
+
+This update records the current Week 6 boundary after completing and verifying the question-aware retrieval work through `W6-RAG-05`. The goal is to keep `PROGRESS.md` aligned with the implementation state before planning the next tasks.
+
+### W6-EVAL-02: Evaluation runner config-aware - COMPLETE WITH CAVEAT
+
+#### Implementation Summary
+- Added a config-aware evaluation runner path through `scripts/run_eval.py` and `backend/app/rag/evaluation.py`.
+- The runner can execute the RAG pipeline directly with a selected `ExperimentConfig` and write structured JSON/Markdown reports.
+- Evaluation report artifacts exist under:
+  - `benchmark/tuvi_golden_dataset/reports/w6_eval_02/`
+  - `benchmark/tuvi_golden_dataset/reports/w6_eval_02_smoke/`
+- Report output includes metric policy notes for Direct/chart-only questions versus corpus-grounded questions.
+
+#### Caveat
+- The available report notes that official W6 metric runs require Gemini judge mode for RAGAS-like metrics.
+- Existing smoke/baseline reports verify runner plumbing and report generation, but official metric interpretation should still distinguish Gemini-judged runs from offline smoke runs.
+
+**Status**: COMPLETE WITH CAVEAT - The config-aware runner and report path are implemented. Official evaluation claims should reference whether the run used Gemini judge or offline smoke mode.
+
+### W6-RAG-01: Retrieval diagnostics theo complexity và question family - COMPLETE
+
+#### Implementation Summary
+- Added structured retrieval diagnostics in `backend/app/rag/diagnostics.py`.
+- Diagnostics summarize:
+  - extracted/query entities
+  - provided or inferred `question_family`
+  - provided or inferred `question_complexity`
+  - retrieval plan source
+  - candidate counts by graph/dense/sparse/fused/context-selected
+  - final selected retrieval paths
+  - selected, required, and missing evidence roles
+  - graph retrieval mode/fallback metadata
+  - chart facts summary
+- Diagnostics are exposed in RAG responses/dry-run state for debugging and evaluation aggregation.
+
+**Status**: COMPLETE - Retrieval diagnostics are implemented and covered by focused tests.
+
+### W6-RAG-02: Rule-based query planner - COMPLETE
+
+#### Implementation Summary
+- Added deterministic planner logic in `backend/app/rag/planner.py`.
+- Supported question families include:
+  - `core_identity`
+  - `menh_house_interpretation`
+  - `than_cu_interpretation`
+  - `menh_cuc_relation`
+  - `special_state_interpretation`
+  - `dai_van_interpretation`
+  - `menh_tam_hop`
+  - `menh_xung_chieu`
+  - `topic_house_plus_relations`
+  - `synthesis_judgement`
+- Planner output includes:
+  - `question_family`
+  - `question_complexity`
+  - retrieval depth
+  - required evidence roles
+  - chart fact intents
+  - enabled retrieval paths
+  - graph mode
+  - dense gate metadata
+- Live chat fallback heuristics infer family/complexity from query text and entities when dataset labels are absent.
+
+**Status**: COMPLETE - Planner output is available in state and diagnostics, with tests covering family mapping and fallback inference.
+
+### W6-RAG-03: Chart fact extractor - COMPLETE
+
+#### Implementation Summary
+- Added chart-aware extraction logic that populates `state["chart_facts"]` before retrieval/context assembly.
+- The extractor is defensive across multiple chart shapes, including chart representation variants and palace/cung-style structures.
+- Extracted information includes:
+  - chart availability and detected schema
+  - target houses
+  - target stars
+  - house facts
+  - relations
+  - verified claims
+  - unverified claims/warnings
+- Chart facts are summarized in retrieval diagnostics and are available for chart-aware context construction.
+
+**Status**: COMPLETE - Chart fact extraction is implemented and tested for multiple chart-data shapes and defensive fallback behavior.
+
+### W6-RAG-04: Role-aware retrieval - COMPLETE
+
+#### Implementation Summary
+- Added evidence-role-aware retrieval query generation through role retrieval utilities used by graph and sparse retrieval.
+- Supported evidence roles include:
+  - `house_scope`
+  - `star_definition`
+  - `modifier_effect`
+  - `relation_rule`
+  - `combination_pattern`
+- Retrieval candidates can now carry role metadata such as:
+  - `evidence_role`
+  - `evidence_roles`
+  - `retrieval_intent`
+  - `role_query`
+- Generic retrieval remains as fallback so recall does not depend only on role-specific queries.
+- Diagnostics include candidate counts by evidence role and role query summaries.
+
+**Status**: COMPLETE - Role-aware graph/sparse retrieval is implemented and covered by retrieval tests.
+
+### W6-RAG-05: Conjunctive graph retrieval - COMPLETE
+
+#### Implementation Summary
+- Extended graph retrieval from entity-any only to configurable graph modes:
+  - `entity_any`
+  - `entity_all`
+  - `min_hit_count`
+- Planner-selected graph modes are now assigned by question family:
+  - direct/simple families use `entity_any`
+  - relation-heavy One-hop families can use `entity_all`
+  - Two-hop/synthesis families can use `min_hit_count`
+- Graph retrieval enforces `required_entity_hits` in the Cypher/transaction path for strict matching.
+- If strict graph matching returns zero candidates, retrieval falls back in a controlled way to a less strict mode and records diagnostics.
+- Graph diagnostics now include:
+  - requested mode
+  - effective mode
+  - requested/effective required entity hits
+  - fallback used
+  - fallback reason
+  - role metadata
+
+#### Verification
+- Focused W6-RAG-05 tests:
+  - `cd backend && python -m pytest tests/test_rag_retrieval.py -k "graph_retrieval_entity_all_fallbacks_to_entity_any_when_strict_empty or graph_retrieval_tx_enforces_required_entity_hits" -p no:cacheprovider -q`
+  - Result: `2 passed, 11 deselected`
+- Week 6 RAG focused regression:
+  - `cd backend && python -m pytest tests/test_rag_retrieval.py tests/test_rag_chart_facts.py tests/test_rag_planner.py tests/test_rag_diagnostics.py -p no:cacheprovider -q`
+  - Result: `30 passed`
+
+**Status**: COMPLETE - Multi-entity graph retrieval can require all/minimum entity hits, strict fallback is traced, and retrieval tests pass.
+
+### Current Week 6 Boundary
+
+#### Completed or implementation-verified
+- `W6-EVAL-02`: Evaluation runner config-aware, with official-metric caveat for Gemini judge mode.
+- `W6-RAG-01`: Retrieval diagnostics by complexity/family.
+- `W6-RAG-02`: Rule-based query planner.
+- `W6-RAG-03`: Chart fact extractor and chart-aware state.
+- `W6-RAG-04`: Role-aware retrieval with evidence roles.
+- `W6-RAG-05`: Conjunctive graph retrieval with `entity_all`/`min_hit_count` and strict fallback diagnostics.
+
+#### Not yet completed / next candidates
+- `W6-RAG-06`: Role-aware context assembly.
+  - Needed before official `W6-ABL-02` because retrieval ablation depends on context selection by required evidence roles.
+  - Expected work: prioritize chart facts, select at least one chunk per required role when budget allows, record role coverage summary, and format context blocks with role labels.
+- `W6-RAG-07`: Planner-gated dense retrieval.
+  - Should wait until `W6-RAG-06` is complete.
+  - Expected work: enforce dense gate so Direct chart QA does not run dense retrieval, add dense diagnostics, and produce latency/quality evidence.
+- `W6-DOC-01`: Question-aware and chart-aware retrieval roadmap doc.
+  - Recommended before or alongside `W6-RAG-06`/`W6-RAG-07` so the design rationale remains explicit.
+- `W6-ABL-02`: Retrieval/fusion/reranker ablation v1.
+  - Blocked until at least `W6-RAG-06` is complete per `PLAN.md` dependencies.
+
+### Recommended Next Step
+
+Before implementation work resumes, write or update the design/roadmap documentation for question-aware and chart-aware retrieval, then implement `W6-RAG-06` with focused tests for role-aware context assembly and citation preservation.
