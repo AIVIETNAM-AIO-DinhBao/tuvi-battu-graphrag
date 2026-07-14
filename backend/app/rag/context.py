@@ -15,7 +15,17 @@ EXCERPT_CHARS = 700
 def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     candidates = select_candidate_pool(state)
     ordered = order_candidates(candidates, strategy=config.context_assembly_strategy)
-    selected = select_with_budget(ordered, max_chars=DEFAULT_MAX_CONTEXT_CHARS, max_chunks=DEFAULT_MAX_CHUNKS)
+    required_roles = required_evidence_roles_from_plan(state)
+    role_aware_enabled = bool(required_roles)
+    if role_aware_enabled:
+        selected = select_role_aware_with_budget(
+            ordered,
+            required_roles=required_roles,
+            max_chars=DEFAULT_MAX_CONTEXT_CHARS,
+            max_chunks=DEFAULT_MAX_CHUNKS,
+        )
+    else:
+        selected = select_with_budget(ordered, max_chars=DEFAULT_MAX_CONTEXT_CHARS, max_chunks=DEFAULT_MAX_CHUNKS)
 
     context_chunks: list[dict[str, Any]] = []
     blocks: list[str] = []
@@ -27,9 +37,15 @@ def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, li
     chart_summary = summarize_chart_context(state.get("chart_data") or {})
     chart_fact_block = build_chart_fact_context_block(state.get("chart_facts") or {})
     final_context = "\n\n".join([part for part in [chart_summary, chart_fact_block, *blocks] if part.strip()])
+    role_summary = build_context_role_summary(
+        context_chunks,
+        required_roles=required_roles,
+        role_aware_enabled=role_aware_enabled,
+    )
     summary = {
         "candidate_pool_count": len(candidates),
         "context_assembly_strategy": config.context_assembly_strategy,
+        "chart_context_priority": "before_corpus_chunks",
         "has_chart_summary": bool(chart_summary.strip()),
         "has_chart_facts": bool(chart_fact_block.strip()),
         "chart_fact_house_count": len((state.get("chart_facts") or {}).get("house_facts") or []),
@@ -41,6 +57,7 @@ def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, li
         "selected_chunk_ids": [chunk.get("chunk_id") for chunk in context_chunks],
         "total_context_chars": len(final_context),
     }
+    summary.update(role_summary)
     return final_context, context_chunks, summary
 
 
@@ -69,17 +86,95 @@ def select_with_budget(candidates: list[dict[str, Any]], *, max_chars: int, max_
     selected: list[dict[str, Any]] = []
     used_chars = 0
     for candidate in candidates:
-        text = candidate_text(candidate)
-        if not text:
+        accepted, used_chars = try_add_candidate_with_budget(
+            selected,
+            candidate,
+            used_chars=used_chars,
+            max_chars=max_chars,
+            max_chunks=max_chunks,
+        )
+        if not accepted:
             continue
-        projected = used_chars + min(len(text), EXCERPT_CHARS)
-        if selected and projected > max_chars:
-            continue
-        selected.append(candidate)
-        used_chars = projected
         if len(selected) >= max_chunks:
             break
     return selected
+
+
+def select_role_aware_with_budget(
+    candidates: list[dict[str, Any]],
+    *,
+    required_roles: list[str],
+    max_chars: int,
+    max_chunks: int,
+) -> list[dict[str, Any]]:
+    """Select context chunks by covering required evidence roles, then fill by rank.
+
+    The input `candidates` is already ordered by the configured context strategy.
+    Role-aware selection treats role coverage as a soft constraint: it attempts to
+    select at least one candidate for each required role when budget allows, then
+    fills remaining slots using the original global ordering. Final output is
+    sorted by original ordering to preserve relevance/citation stability.
+    """
+    selected: list[dict[str, Any]] = []
+    selected_keys: set[str] = set()
+    used_chars = 0
+
+    for role in required_roles:
+        if len(selected) >= max_chunks:
+            break
+        for candidate in candidates:
+            key = candidate_identity(candidate)
+            if key in selected_keys or role not in candidate_roles(candidate):
+                continue
+            accepted, used_chars = try_add_candidate_with_budget(
+                selected,
+                candidate,
+                used_chars=used_chars,
+                max_chars=max_chars,
+                max_chunks=max_chunks,
+            )
+            if accepted:
+                selected_keys.add(key)
+                break
+
+    for candidate in candidates:
+        if len(selected) >= max_chunks:
+            break
+        key = candidate_identity(candidate)
+        if key in selected_keys:
+            continue
+        accepted, used_chars = try_add_candidate_with_budget(
+            selected,
+            candidate,
+            used_chars=used_chars,
+            max_chars=max_chars,
+            max_chunks=max_chunks,
+        )
+        if accepted:
+            selected_keys.add(key)
+
+    order = {candidate_identity(candidate): index for index, candidate in enumerate(candidates)}
+    return sorted(selected, key=lambda item: order.get(candidate_identity(item), 10_000))
+
+
+def try_add_candidate_with_budget(
+    selected: list[dict[str, Any]],
+    candidate: dict[str, Any],
+    *,
+    used_chars: int,
+    max_chars: int,
+    max_chunks: int,
+) -> tuple[bool, int]:
+    if len(selected) >= max_chunks:
+        return False, used_chars
+    text = candidate_text(candidate)
+    if not text:
+        return False, used_chars
+    projected = used_chars + min(len(text), EXCERPT_CHARS)
+    if selected and projected > max_chars:
+        return False, used_chars
+    selected.append(candidate)
+    return True, projected
 
 
 def make_context_chunk(candidate: dict[str, Any], *, index: int, config: ExperimentConfig) -> dict[str, Any]:
@@ -139,6 +234,72 @@ def format_role_metadata_line(chunk: dict[str, Any]) -> str:
     if intent:
         parts.append(f"retrieval_intent: {intent}")
     return " | ".join(parts)
+
+
+def required_evidence_roles_from_plan(state: RAGState) -> list[str]:
+    plan = state.get("retrieval_plan") or {}
+    roles = plan.get("required_evidence_roles") if isinstance(plan, dict) else []
+    return unique_strings(list(roles or []))
+
+
+def candidate_roles(candidate: dict[str, Any]) -> list[str]:
+    return unique_strings([*(candidate.get("evidence_roles") or []), candidate.get("evidence_role")])
+
+
+def candidate_identity(candidate: dict[str, Any]) -> str:
+    for field in ("chunk_hash", "chunk_id"):
+        value = str(candidate.get(field) or "").strip()
+        if value:
+            return f"{field}:{value}"
+    return f"object:{id(candidate)}"
+
+
+def build_context_role_summary(
+    context_chunks: list[dict[str, Any]],
+    *,
+    required_roles: list[str],
+    role_aware_enabled: bool,
+) -> dict[str, Any]:
+    selected_by_role: dict[str, list[str]] = {}
+    selected_roles: list[str] = []
+    for chunk in context_chunks:
+        chunk_id = str(chunk.get("chunk_id") or chunk.get("chunk_hash") or "").strip()
+        for role in candidate_roles(chunk):
+            if role not in selected_roles:
+                selected_roles.append(role)
+            if not chunk_id:
+                continue
+            selected_by_role.setdefault(role, [])
+            if chunk_id not in selected_by_role[role]:
+                selected_by_role[role].append(chunk_id)
+
+    missing_roles = [role for role in required_roles if role not in selected_roles]
+    required_count = len(required_roles)
+    covered_count = required_count - len(missing_roles)
+    coverage_rate = round(covered_count / required_count, 4) if required_count else 1.0
+    role_selected_chunk_ids = set(
+        chunk_id
+        for role in required_roles
+        for chunk_id in selected_by_role.get(role, [])
+    )
+    fallback_fill_count = sum(
+        1
+        for chunk in context_chunks
+        if str(chunk.get("chunk_id") or chunk.get("chunk_hash") or "").strip() not in role_selected_chunk_ids
+    )
+    return {
+        "role_aware_enabled": role_aware_enabled,
+        "required_evidence_roles": required_roles,
+        "selected_evidence_roles": selected_roles,
+        "missing_evidence_roles": missing_roles,
+        "role_coverage_rate": coverage_rate,
+        "selected_chunks_by_role": selected_by_role,
+        "role_selection": {
+            "required_role_count": required_count,
+            "covered_role_count": covered_count,
+            "fallback_fill_count": fallback_fill_count,
+        },
+    }
 
 
 def summarize_chart_context(chart_data: dict[str, Any]) -> str:

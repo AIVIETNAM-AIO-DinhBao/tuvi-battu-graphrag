@@ -1630,3 +1630,76 @@ This update records the current Week 6 boundary after completing and verifying t
 ### Recommended Next Step
 
 Before implementation work resumes, write or update the design/roadmap documentation for question-aware and chart-aware retrieval, then implement `W6-RAG-06` with focused tests for role-aware context assembly and citation preservation.
+
+---
+
+## Week 6 RAG Progress Update - W6-RAG-06 Complete - 2026-07-14
+
+### W6-RAG-06: Role-aware context assembly - COMPLETE
+
+#### Implementation Summary
+- Upgraded `backend/app/rag/context.py` so context assembly becomes role-aware when `retrieval_plan.required_evidence_roles` is present.
+- Kept backward-compatible behavior for queries/configs without required evidence roles:
+  - the existing configured context strategy such as `balanced`, `graph_first`, `dense_first`, or `compact` still orders candidates;
+  - role-aware selection only adds a soft role-coverage pass before global fill when the planner requires evidence roles.
+- Implemented role-aware selection policy:
+  - attempt to select at least one candidate per required evidence role when budget allows;
+  - deduplicate selected chunks by `chunk_hash`/`chunk_id`;
+  - fill remaining budget with globally ranked candidates;
+  - sort final selected chunks back by original strategy order to preserve relevance and stable citation marker ordering.
+- Preserved chart-first context ordering:
+  - `[CHART]` summary remains before corpus chunks;
+  - `[CHART_FACTS]` remains before corpus chunks;
+  - corpus chunks still receive citation markers `[S1]`, `[S2]`, ...
+- Expanded `context_summary` with W6-RAG-06 diagnostics:
+  - `role_aware_enabled`
+  - `required_evidence_roles`
+  - `selected_evidence_roles`
+  - `missing_evidence_roles`
+  - `role_coverage_rate`
+  - `selected_chunks_by_role`
+  - `role_selection.required_role_count`
+  - `role_selection.covered_role_count`
+  - `role_selection.fallback_fill_count`
+  - `chart_context_priority = "before_corpus_chunks"`
+- Kept role labels in generated context blocks using existing metadata line format:
+  - `evidence_roles: ... | retrieval_intent: ...`
+- Updated chart-only generation behavior in `backend/app/rag/generation.py`:
+  - generation can now run when `final_context` contains chart/chart-fact context even if no corpus `context_chunks` are selected;
+  - citation mapping still returns no corpus sources when there are no selected corpus chunks;
+  - retrieval backend failure remains protected and still produces `no_context` fallback instead of masking backend outage with chart-only context.
+
+#### Files Modified
+- `backend/app/rag/context.py`
+- `backend/app/rag/generation.py`
+- `backend/tests/test_rag_context_generation_citations.py`
+- `backend/tests/test_rag_dry_run.py`
+
+#### Verification
+- Focused context/generation/citation tests:
+  - `cd backend && python -m pytest tests/test_rag_context_generation_citations.py -p no:cacheprovider -q`
+  - Result: `10 passed`
+- W6 RAG focused regression:
+  - `cd backend && python -m pytest tests/test_rag_context_generation_citations.py tests/test_rag_diagnostics.py tests/test_rag_retrieval.py tests/test_rag_planner.py tests/test_rag_chart_facts.py -p no:cacheprovider -q`
+  - Result: `40 passed, 1 warning`
+- Dry-run/chat regression:
+  - `cd backend && python -m pytest tests/test_rag_dry_run.py tests/test_chat_route.py -p no:cacheprovider -q`
+  - Result: `4 passed, 11 warnings`
+- Combined W6/backend chat regression:
+  - `cd backend && python -m pytest tests/test_rag_context_generation_citations.py tests/test_rag_diagnostics.py tests/test_rag_retrieval.py tests/test_rag_planner.py tests/test_rag_chart_facts.py tests/test_rag_dry_run.py tests/test_chat_route.py -p no:cacheprovider -q`
+  - Result: `44 passed, 11 warnings`
+
+#### Current Boundary After W6-RAG-06
+- Completed:
+  - `W6-RAG-01`: retrieval diagnostics by complexity/family.
+  - `W6-RAG-02`: rule-based query planner.
+  - `W6-RAG-03`: chart fact extractor.
+  - `W6-RAG-04`: role-aware retrieval.
+  - `W6-RAG-05`: conjunctive graph retrieval.
+  - `W6-RAG-06`: role-aware context assembly.
+- Next recommended tasks:
+  - `W6-DOC-01`: write `docs/rag_question_aware_retrieval.md` to document the now-implemented question-aware/chart-aware retrieval design.
+  - `W6-RAG-07`: planner-gated dense retrieval with latency/quality diagnostics.
+  - `W6-ABL-02`: retrieval/fusion/reranker ablation v1 can now proceed after documentation/planner-gated dense decision, because the W6-RAG-06 dependency is satisfied.
+
+**Status**: COMPLETE - W6-RAG-06 deliverable is implemented and test-verified. Context assembly is now question-family-aware and role-aware while preserving previous behavior when no required evidence roles are present.

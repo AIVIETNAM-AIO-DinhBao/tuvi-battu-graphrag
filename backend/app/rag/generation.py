@@ -64,9 +64,9 @@ class DeterministicGenerationClient:
 
     def generate(self, prompt: str, *, config: ExperimentConfig, state: RAGState) -> GenerationResult:
         context_chunks = state.get("context_chunks") or []
-        if not context_chunks:
+        if not context_chunks and not str(state.get("final_context") or "").strip():
             return GenerationResult(answer=NO_CONTEXT_ANSWER, model="deterministic-test", fallback_reason="no_context")
-        markers = ", ".join(f"[{chunk.get('citation_marker')}]" for chunk in context_chunks[:2])
+        markers = ", ".join(f"[{chunk.get('citation_marker')}]" for chunk in context_chunks[:2]) or "ngữ cảnh lá số"
         query = state.get("rewritten_query") or state.get("normalized_query") or state.get("query") or "câu hỏi"
         answer = (
             f"Dựa trên nguồn Tử Vi đã truy xuất, câu hỏi '{query}' cần được luận trong phạm vi các đoạn liên quan. "
@@ -98,7 +98,8 @@ def generate_answer(
     generation_client: GenerationClient | None = None,
 ) -> tuple[str, dict[str, Any]]:
     context_chunks = state.get("context_chunks") or []
-    if not context_chunks:
+    final_context = str(state.get("final_context") or "").strip()
+    if not context_chunks and (not final_context or state.get("retrieval_backend_unavailable")):
         return NO_CONTEXT_ANSWER, {
             "fallback_reason": "no_context",
             "generation_model": config.generation_model,

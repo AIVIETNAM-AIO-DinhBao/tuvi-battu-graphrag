@@ -76,6 +76,67 @@ def test_context_assembly_balanced_uses_relevance_before_multipath_and_preserves
     assert "[S1]" in final_context
     assert summary["selected_count"] == 2
     assert summary["has_chart_facts"] is True
+    assert summary["role_aware_enabled"] is False
+
+
+def test_role_aware_context_assembly_covers_required_roles_before_global_fill() -> None:
+    config = config_with(context_assembly_strategy="balanced")
+    star_hits = [
+        {
+            **candidate(f"star-{index}", score=1.0 - index * 0.01, rank=index),
+            "evidence_role": "star_definition",
+            "evidence_roles": ["star_definition"],
+            "retrieval_intent": "define_star",
+        }
+        for index in range(1, 9)
+    ]
+    low_ranked_house_scope = {
+        **candidate("house-scope", score=0.1, rank=9),
+        "evidence_role": "house_scope",
+        "evidence_roles": ["house_scope"],
+        "retrieval_intent": "explain_house_scope",
+    }
+    state = {
+        "retrieval_plan": {"required_evidence_roles": ["house_scope", "star_definition"]},
+        "ranked_candidates": [*star_hits, low_ranked_house_scope],
+    }
+
+    final_context, chunks, summary = assemble_context(state, config)
+
+    selected_ids = [chunk["chunk_id"] for chunk in chunks]
+    assert len(chunks) == 8
+    assert "house-scope" in selected_ids
+    assert "star-8" not in selected_ids
+    assert selected_ids[-1] == "house-scope"
+    assert summary["role_aware_enabled"] is True
+    assert summary["required_evidence_roles"] == ["house_scope", "star_definition"]
+    assert summary["missing_evidence_roles"] == []
+    assert summary["role_coverage_rate"] == 1.0
+    assert summary["selected_chunks_by_role"]["house_scope"] == ["house-scope"]
+    assert summary["selected_chunks_by_role"]["star_definition"][0] == "star-1"
+    assert "evidence_roles: house_scope" in final_context
+
+
+def test_role_aware_context_summary_reports_missing_roles() -> None:
+    config = config_with(context_assembly_strategy="balanced")
+    state = {
+        "retrieval_plan": {"required_evidence_roles": ["relation_rule", "modifier_effect"]},
+        "ranked_candidates": [
+            {
+                **candidate("modifier", score=0.8),
+                "evidence_role": "modifier_effect",
+                "evidence_roles": ["modifier_effect"],
+            }
+        ],
+    }
+
+    _final_context, chunks, summary = assemble_context(state, config)
+
+    assert [chunk["chunk_id"] for chunk in chunks] == ["modifier"]
+    assert summary["role_aware_enabled"] is True
+    assert summary["selected_evidence_roles"] == ["modifier_effect"]
+    assert summary["missing_evidence_roles"] == ["relation_rule"]
+    assert summary["role_coverage_rate"] == 0.5
 
 
 def test_context_block_renders_role_metadata_for_generation_prompt() -> None:
@@ -117,6 +178,22 @@ def test_generation_no_context_returns_safe_vietnamese_fallback() -> None:
 
     assert answer == NO_CONTEXT_ANSWER
     assert metadata["fallback_reason"] == "no_context"
+
+
+def test_generation_allows_chart_only_context_without_corpus_sources() -> None:
+    config = config_with()
+    state = {
+        "query": "Cung Mệnh của lá số này nằm ở đâu?",
+        "final_context": "[CHART_FACTS]\n- Cung Mệnh: Ngọ, chính tinh: Tử Vi.",
+        "context_chunks": [],
+    }
+
+    answer, metadata = generate_answer(state, config, generation_client=DeterministicGenerationClient())
+
+    assert answer != NO_CONTEXT_ANSWER
+    assert "ngữ cảnh lá số" in answer
+    assert metadata["fallback_reason"] is None
+    assert metadata["generation_model"] == "deterministic-test"
 
 
 def test_generation_prompt_and_deterministic_client_use_citations() -> None:
