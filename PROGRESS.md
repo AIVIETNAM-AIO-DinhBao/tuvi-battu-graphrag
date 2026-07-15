@@ -1998,3 +1998,625 @@ python scripts/run_eval.py --manifest configs/w6_abl_02_retrieval_matrix.yaml --
 - Use W6-ABL-02 report output as input to `W7-CONFIG-01` production config selection.
 
 **Status**: COMPLETE - W6-ABL-02 implementation is complete and smoke-verified. The retrieval/fusion/reranker matrix, automated ablation analysis, local report artifacts and verification commands are in place. Official Gemini/live DB run remains the next evidence-gathering step when quota/env are available.
+
+---
+
+## Cập nhật tiến độ Tuần 6 - Hoàn tất cài đặt W6-ABL-03 - 2026-07-14
+
+### W6-ABL-03: Ablation chiến lược chunking - ĐÃ CÀI ĐẶT VÀ SMOKE-VERIFY
+
+#### Mục tiêu của task
+W6-ABL-03 dùng để so sánh 3 chiến lược chunking trên cùng một nền dữ liệu, không đổi corpus và không đổi golden dataset. Biến chính của thí nghiệm là:
+
+```text
+chunk_strategy_id
+```
+
+Ba chiến lược được so sánh trong runtime hiện tại là:
+
+```text
+chunk_fixed_512
+chunk_structure_parent_child
+chunk_semantic_embedding_bge_m3
+```
+
+Ghi chú quan trọng: `PLAN.md` gọi chiến lược semantic là `chunk_semantic_embedding`, nhưng code runtime hiện chỉ chấp nhận mã chính thức `chunk_semantic_embedding_bge_m3`. Vì vậy W6-ABL-03 dùng `chunk_semantic_embedding_bge_m3` và ghi rõ đây là mã vận hành của strategy semantic embedding.
+
+#### Quyết định triển khai đã chốt
+- Dùng `chunk_semantic_embedding_bge_m3`, không sửa code để thêm alias `chunk_semantic_embedding`.
+- Matrix chính giữ cố định retrieval stack:
+  - Graph retrieval: bật.
+  - Sparse retrieval: bật.
+  - Dense retrieval: tắt.
+  - Fusion: `rrf`.
+  - Reranker: bật.
+  - Context assembly: `balanced`.
+- Lý do tắt dense: W6-ABL-03 phải cô lập biến chunking. Nếu bật dense, kết quả sẽ trộn lẫn ảnh hưởng của chunking với query embedding, vector index, preload/cache và latency dense retrieval.
+- Kiểm tra coverage local dùng `--allow-missing`, vì repo hiện chỉ có artifact local cho `chunk_fixed_512`; coverage runtime chính thức phải kiểm bằng Neo4j.
+- Thêm phân tích riêng `chunking_ablation_analysis` trong report để có ranking theo strategy và gợi ý ứng viên chunking sơ bộ.
+
+#### File đã tạo hoặc chỉnh sửa
+- `configs/w6_abl_03_chunking_matrix.yaml`
+- `scripts/check_w6_abl_03_chunk_coverage.py`
+- `backend/app/rag/evaluation.py`
+- `backend/tests/test_rag_evaluation.py`
+- `backend/tests/test_w6_abl_03_chunk_coverage.py`
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.json`
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.md`
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.json`
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.md`
+- `PROGRESS.md`
+
+#### Manifest W6-ABL-03
+Manifest chính:
+
+```text
+configs/w6_abl_03_chunking_matrix.yaml
+```
+
+Manifest có 3 config:
+
+| Config | Chunk strategy | Retrieval stack |
+|---|---|---|
+| `fixed_512_graph_sparse_rrf` | `chunk_fixed_512` | Graph + Sparse + RRF + reranker |
+| `parent_child_graph_sparse_rrf` | `chunk_structure_parent_child` | Graph + Sparse + RRF + reranker |
+| `semantic_bge_m3_graph_sparse_rrf` | `chunk_semantic_embedding_bge_m3` | Graph + Sparse + RRF + reranker |
+
+Tất cả config dùng cùng 4 nguồn:
+
+```text
+TVKL, TVNL, TVHS, TVGM
+```
+
+#### Coverage checker
+Script mới:
+
+```text
+scripts/check_w6_abl_03_chunk_coverage.py
+```
+
+Script kiểm tra đủ 12 cặp source-strategy:
+
+```text
+4 nguồn x 3 strategy = 12 cặp
+```
+
+Hai chế độ:
+
+```powershell
+python scripts/check_w6_abl_03_chunk_coverage.py --mode local-artifacts
+python scripts/check_w6_abl_03_chunk_coverage.py --mode neo4j
+```
+
+Ý nghĩa:
+- `local-artifacts`: chỉ kiểm file JSONL trong repo, phù hợp smoke cục bộ.
+- `neo4j`: kiểm dữ liệu `Chunk` runtime trong Neo4j, nên dùng làm bằng chứng chính thức trước khi chạy Gemini evaluation.
+
+#### Kết quả coverage local smoke
+Command đã chạy:
+
+```powershell
+python scripts/check_w6_abl_03_chunk_coverage.py --mode local-artifacts --allow-missing
+```
+
+Kết quả:
+
+```text
+completed: false
+expected_pair_count: 12
+observed_pair_count: 4
+missing_pair_count: 8
+mode: local-artifacts
+```
+
+Diễn giải:
+- Repo hiện có đủ local artifact cho `chunk_fixed_512` trên 4 nguồn.
+- Repo hiện thiếu local artifact cho:
+  - `chunk_structure_parent_child` trên 4 nguồn;
+  - `chunk_semantic_embedding_bge_m3` trên 4 nguồn.
+- Đây chưa phải kết luận runtime thiếu dữ liệu, vì retrieval đọc từ Neo4j. Cần chạy `--mode neo4j` để xác nhận dữ liệu live DB.
+
+Report coverage đã sinh:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.json
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.md
+```
+
+#### Phân tích chunking trong evaluation report
+Đã bổ sung `chunking_ablation_analysis` vào report JSON khi manifest là W6-ABL-03 hoặc khi report có nhiều `chunk_strategy_id`.
+
+Nội dung phân tích gồm:
+- phạm vi so sánh chunking;
+- ghi chú tên strategy semantic;
+- chính sách tắt dense để cô lập biến chunking;
+- danh sách strategy;
+- ranking theo Context Recall;
+- ranking theo Citation Coverage;
+- ranking theo Graph Hit Rate;
+- ranking theo p95 latency;
+- ứng viên chunking sơ bộ.
+
+Trong Markdown report, section tiếng Việt là:
+
+```text
+## Phân tích ablation chiến lược chunking
+```
+
+#### Verification - Focused tests
+Command:
+
+```powershell
+cd backend; python -m pytest tests/test_rag_evaluation.py tests/test_experiment_config.py tests/test_w6_abl_03_chunk_coverage.py -p no:cacheprovider -q
+```
+
+Kết quả:
+
+```text
+28 passed in 4.99s
+```
+
+#### Verification - Evaluation smoke
+Command:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --offline-smoke --limit 2 --skip-persistence
+```
+
+Kết quả tóm tắt:
+
+```text
+manifest_name: w6_abl_03_chunking_strategy_v1
+dataset_item_count: 2
+config_count: 3
+judge_backend: static-smoke
+statuses: all 3 configs completed
+```
+
+Report evaluation đã sinh:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.json
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.md
+```
+
+Đã kiểm tra report có các phần:
+
+```text
+Phân tích ablation chiến lược chunking
+Ứng viên chunking sơ bộ
+chunk_semantic_embedding_bge_m3
+```
+
+#### Lưu ý rất quan trọng về kết quả smoke
+Kết quả smoke dùng `static-smoke`, không dùng Gemini judge, không dùng Neo4j live, không persist Supabase. Vì vậy:
+- Không được dùng metric smoke để chọn production config.
+- Không được coi ứng viên chunking sơ bộ trong smoke là quyết định cuối.
+- W6-ABL-03 chỉ có bằng chứng chính thức sau khi:
+  1. `--mode neo4j` xác nhận đủ 12 cặp source-strategy trong live DB;
+  2. chạy Gemini judge trên cùng golden dataset/subset;
+  3. so sánh Context Recall, Citation Coverage, Graph Hit Rate và latency.
+
+#### Lệnh kiểm tra runtime chính thức bằng Neo4j
+Khi có env Neo4j live:
+
+```powershell
+python scripts/check_w6_abl_03_chunk_coverage.py --mode neo4j
+```
+
+Điều kiện đạt:
+
+```text
+completed: true
+expected_pair_count: 12
+observed_pair_count: 12
+missing_pair_count: 0
+```
+
+#### Lệnh chạy official partial bằng Gemini
+Khi có quota Gemini và Neo4j/Supabase sẵn sàng:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --limit 10 --persist-supabase
+```
+
+#### Lệnh chạy official full bằng Gemini
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --persist-supabase
+```
+
+#### Tiêu chí hoàn tất bằng chứng W6-ABL-03 sau này
+W6-ABL-03 implementation đã xong, nhưng bằng chứng chính thức cần thêm:
+- Neo4j coverage đủ 12 cặp source-strategy.
+- Report official có đủ 3 strategy trên cùng golden dataset/corpus.
+- Ranking strategy dựa trên metric thật:
+  - Context Recall;
+  - Citation Coverage;
+  - Graph Hit Rate;
+  - p95 latency.
+- Có khuyến nghị chunking candidate kèm lý do.
+
+#### Task tiếp theo khuyến nghị
+- Nếu muốn đóng bằng chứng W6-ABL-03 ngay: chạy `--mode neo4j`, rồi chạy official Gemini partial/full.
+- Nếu chưa có quota/env: chuyển sang `W6-INT-01` hoặc chuẩn bị dữ liệu/Neo4j để chạy official ablation.
+- Kết quả W6-ABL-03 official sẽ là đầu vào cho `W7-CONFIG-01` khi chọn production config cuối.
+
+**Trạng thái**: COMPLETE ở mức cài đặt và smoke verification. Chưa COMPLETE ở mức bằng chứng official vì local repo hiện thiếu artifact cho 8/12 cặp và chưa chạy Gemini/live Neo4j official run.
+
+---
+
+## Cập nhật tiến độ W6-ABL-03 - Neo4j coverage và Gemini partial official - 2026-07-14
+
+### Kết quả chạy Option 1
+Đã thực hiện Option 1 theo thứ tự an toàn:
+
+1. Kiểm tra runtime coverage trong Neo4j.
+2. Chạy W6-ABL-03 bằng Gemini judge trên golden subset `limit 10`.
+3. Verify report JSON/Markdown và log lỗi.
+
+### 1. Neo4j coverage - PASS
+Command đã chạy:
+
+```powershell
+python scripts/check_w6_abl_03_chunk_coverage.py --mode neo4j
+```
+
+Kết quả:
+
+```text
+completed: true
+expected_pair_count: 12
+observed_pair_count: 12
+missing_pair_count: 0
+mode: neo4j
+```
+
+Report đã cập nhật:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.json
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.md
+```
+
+Coverage runtime theo Neo4j:
+
+| Source | `chunk_fixed_512` | `chunk_structure_parent_child` | `chunk_semantic_embedding_bge_m3` |
+|---|---:|---:|---:|
+| `TVKL` | 347 | 1330 | 511 |
+| `TVNL` | 266 | 1110 | 363 |
+| `TVHS` | 287 | 1138 | 439 |
+| `TVGM` | 258 | 924 | 377 |
+
+Diễn giải:
+- Local artifacts vẫn thiếu một số file JSONL, nhưng runtime Neo4j đã đủ 12/12 cặp source-strategy.
+- W6-ABL-03 có thể chạy official evaluation vì RAG retrieval đọc từ Neo4j.
+
+### 2. Supabase persistence attempt - BLOCKED
+Command đã thử trước:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --limit 10 --persist-supabase
+```
+
+Kết quả: fail trước khi chạy evaluation vì Supabase chưa thấy bảng `experiment_runs`:
+
+```text
+postgrest.exceptions.APIError: {
+  'message': "Could not find the table 'public.experiment_runs' in the schema cache",
+  'code': 'PGRST205'
+}
+```
+
+Nguyên nhân khả dĩ:
+- migration `infra/supabase/migrations/20260709_experiment_runs.sql` đã có trong repo nhưng chưa được apply lên Supabase project đang dùng; hoặc
+- migration đã apply nhưng PostgREST schema cache chưa reload.
+
+Việc cần làm để bật lại `--persist-supabase`:
+
+```text
+Apply migration infra/supabase/migrations/20260709_experiment_runs.sql lên Supabase live DB,
+sau đó reload PostgREST/schema cache nếu cần.
+```
+
+Migration hiện có trong repo tạo:
+- bảng `experiment_runs`;
+- trigger `experiment_runs_update_timestamp`;
+- indexes `idx_experiment_runs_experiment_id`, `idx_experiment_runs_config_hash`, `idx_experiment_runs_status`.
+
+### 3. Gemini partial official local report - PASS
+Vì Supabase persistence bị block, đã chạy lại Gemini partial với `--skip-persistence` để vẫn lấy metric official local:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --limit 10 --skip-persistence
+```
+
+Do tool terminal có timeout ngắn, run được chạy background và log vào:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/gemini_partial_stdout.log
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/gemini_partial_stderr.log
+```
+
+Kết quả:
+
+```text
+manifest_name: w6_abl_03_chunking_strategy_v1
+judge_backend: gemini
+dataset_item_count: 10
+config_count: 3
+statuses: completed, completed, completed
+```
+
+Report đã cập nhật:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.json
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.md
+```
+
+Không thấy lỗi trong log theo các pattern:
+
+```text
+Traceback, Error, Exception, APIError, quota, 429, ResourceExhausted, Deadline
+```
+
+Log stderr có nhiều warning Neo4j dạng deprecation:
+
+```text
+CALL subquery without a variable scope clause is deprecated.
+```
+
+Đây là warning Cypher, không làm fail run. Nên xử lý sau để giảm nhiễu log, không phải blocker W6-ABL-03.
+
+### 4. Metric partial limit 10
+Kết quả overall từ report Gemini partial:
+
+| Config | Items | Faithfulness | Answer relevancy | Context recall | Graph hit | Citation coverage | p95 latency ms |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `fixed_512_graph_sparse_rrf` | 10 | 0.81 | 0.70 | 0.5556 | 1.0 | 1.0 | 14074.47 |
+| `parent_child_graph_sparse_rrf` | 10 | 0.74 | 0.67 | 0.5444 | 1.0 | 1.0 | 7431.16 |
+| `semantic_bge_m3_graph_sparse_rrf` | 10 | 0.85 | 0.74 | 0.5444 | 1.0 | 1.0 | 18042.16 |
+
+Ranking đáng chú ý:
+- Context Recall cao nhất: `chunk_fixed_512` với `0.5556`.
+- Faithfulness và Answer Relevancy cao nhất: `chunk_semantic_embedding_bge_m3`.
+- p95 latency tốt nhất: `chunk_structure_parent_child`.
+- Graph Hit và Citation Coverage đều `1.0` cho cả 3 strategy trên subset 10 câu.
+
+### 5. Kết luận hiện tại
+W6-ABL-03 hiện đã đạt:
+- Implementation complete.
+- Local smoke complete.
+- Neo4j runtime coverage complete 12/12.
+- Gemini partial official local report complete trên 10 câu x 3 configs.
+
+W6-ABL-03 vẫn chưa đạt full official closure vì:
+- `--persist-supabase` đang bị block bởi bảng `experiment_runs` chưa có trong Supabase schema cache.
+- Chưa chạy full dataset Gemini evaluation.
+
+### 6. Khuyến nghị trước khi chạy full
+Không nên chạy full với `--persist-supabase` cho đến khi xử lý Supabase migration/schema cache.
+
+Hai lựa chọn tiếp theo:
+
+1. **Khuyến nghị để hoàn tất đúng chuẩn PLAN.md**:
+   - apply migration `infra/supabase/migrations/20260709_experiment_runs.sql` lên Supabase live DB;
+   - verify `experiment_runs` visible qua PostgREST;
+   - rerun partial hoặc full với `--persist-supabase`.
+
+2. **Nếu chỉ cần report file local trước**:
+   - chạy full với `--skip-persistence`;
+   - ghi caveat rõ rằng kết quả chưa sync vào `experiment_runs`.
+
+Lệnh full local-only nếu chọn cách 2:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --skip-persistence
+```
+
+Lệnh full đúng chuẩn sau khi Supabase migration sẵn sàng:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --persist-supabase
+```
+
+**Trạng thái cập nhật**: W6-ABL-03 PASS ở mức Neo4j coverage + Gemini partial official local report. BLOCKED ở phần Supabase persistence/full official closure do bảng `experiment_runs` chưa sẵn sàng trong Supabase live schema cache.
+
+---
+
+## Chốt W6-ABL-03 - Claim DONE theo balanced golden subset - 2026-07-15
+
+### Quyết định chốt
+W6-ABL-03 được chốt **DONE cho phạm vi ablation chunking v1** dựa trên bằng chứng đã có:
+
+- đã có matrix 3 chunk strategy đại diện;
+- đã kiểm tra Neo4j runtime coverage đủ 12/12 cặp `source_id + chunk_strategy_id`;
+- đã chạy Gemini judge trên balanced golden subset gồm 10 câu, phủ đủ 10 question family chính;
+- đã sinh report JSON/Markdown có ranking chunk strategy, metric table, grouped metrics theo complexity/family, retrieval miss và rerank miss;
+- cùng một corpus, cùng một golden dataset, cùng một retrieval stack Graph + Sparse + RRF + reranker được dùng để so sánh 3 strategy.
+
+Phần Supabase `experiment_runs` persistence không được dùng để block W6-ABL-03 nữa vì đây là blocker hạ tầng kết nối/migration Supabase, không phải thiếu implementation/evidence của ablation chunking. Blocker này cần xử lý trước các run production/final evaluation sau.
+
+### Bằng chứng đã verify
+
+#### 1. Coverage 12/12 trong Neo4j
+Command:
+
+```powershell
+python scripts/check_w6_abl_03_chunk_coverage.py --mode neo4j
+```
+
+Kết quả:
+
+```text
+completed=true
+expected_pair_count=12
+observed_pair_count=12
+missing_pair_count=0
+```
+
+Report:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.json
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/chunk_strategy_coverage.md
+```
+
+#### 2. Balanced golden subset
+Dataset release thực tế có 100 item:
+
+```text
+TVQA-001 .. TVQA-100
+Direct: 10
+One-hop: 46
+Two-hop: 44
+10 question family, mỗi family 10 câu
+```
+
+W6-ABL-03 Gemini run đã dùng `--limit 10`, tương ứng 10 item đầu `TVQA-001..TVQA-010`. Đây là balanced subset vì phủ đủ 10 question family chính:
+
+| Item | Question family | Complexity |
+|---|---|---|
+| `TVQA-001` | `core_identity` | Direct |
+| `TVQA-002` | `menh_house_interpretation` | One-hop |
+| `TVQA-003` | `than_cu_interpretation` | One-hop |
+| `TVQA-004` | `menh_cuc_relation` | One-hop |
+| `TVQA-005` | `special_state_interpretation` | One-hop |
+| `TVQA-006` | `menh_tam_hop` | Two-hop |
+| `TVQA-007` | `menh_xung_chieu` | Two-hop |
+| `TVQA-008` | `dai_van_interpretation` | One-hop |
+| `TVQA-009` | `topic_house_plus_relations` | Two-hop |
+| `TVQA-010` | `synthesis_judgement` | Two-hop |
+
+Như vậy run này thỏa điều kiện “cùng golden subset” cho cả 3 chunk strategy và đủ đại diện Direct/One-hop/Two-hop.
+
+#### 3. Gemini official local run
+Command đã chạy thành công:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --limit 10 --skip-persistence
+```
+
+Kết quả:
+
+```text
+manifest_name=w6_abl_03_chunking_strategy_v1
+judge_backend=gemini
+dataset_item_count=10
+config_count=3
+statuses=completed, completed, completed
+```
+
+Report:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.json
+benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.md
+```
+
+### Metric chốt W6-ABL-03
+
+| Config | Chunk strategy | Items | Faithfulness | Answer relevancy | Context recall | Graph hit | Citation coverage | p95 latency ms |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| `fixed_512_graph_sparse_rrf` | `chunk_fixed_512` | 10 | 0.81 | 0.70 | 0.5556 | 1.0 | 1.0 | 14074.47 |
+| `parent_child_graph_sparse_rrf` | `chunk_structure_parent_child` | 10 | 0.74 | 0.67 | 0.5444 | 1.0 | 1.0 | 7431.16 |
+| `semantic_bge_m3_graph_sparse_rrf` | `chunk_semantic_embedding_bge_m3` | 10 | 0.85 | 0.74 | 0.5444 | 1.0 | 1.0 | 18042.16 |
+
+### Kết luận chunking candidate v1
+
+Không có một strategy thắng tuyệt đối trên mọi metric:
+
+- `chunk_fixed_512` thắng nhẹ về `context_recall_avg`.
+- `chunk_semantic_embedding_bge_m3` thắng về `faithfulness_avg` và `answer_relevancy_avg`.
+- `chunk_structure_parent_child` thắng rõ về latency p95.
+- Cả 3 đều đạt `graph_hit_rate=1.0` và `citation_coverage_rate=1.0` trên balanced subset.
+
+Candidate sơ bộ cho production v1 vẫn là:
+
+```text
+chunk_semantic_embedding_bge_m3
+```
+
+Lý do:
+- chất lượng trả lời tốt nhất trên Faithfulness và Answer Relevancy;
+- Citation Coverage và Graph Hit không kém hai strategy còn lại;
+- latency cao hơn, nên cần tiếp tục tối ưu top-k/context budget hoặc so sánh lại ở W7-CONFIG-01 trước khi lock production config.
+
+Candidate latency fallback:
+
+```text
+chunk_structure_parent_child
+```
+
+Lý do:
+- p95 thấp nhất trong 3 strategy;
+- phù hợp nếu W7 latency target quan trọng hơn chênh lệch quality metric.
+
+### Những việc đã thử nhưng không dùng để block DONE
+
+#### Supabase persistence
+Đã thử:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --limit 10 --persist-supabase
+```
+
+Kết quả bị block:
+
+```text
+Could not find the table 'public.experiment_runs' in the schema cache
+code=PGRST205
+```
+
+Đã thử apply migration bằng helper:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/apply_supabase_migration.py infra/supabase/migrations/20260709_experiment_runs.sql
+```
+
+Kết quả bị block ở network/DNS direct DB:
+
+```text
+failed to resolve host 'db.baxcnbbhhnhajiyjmzfi.supabase.co'
+```
+
+Đã thử hostaddr IPv6 từ DNS, nhưng network local không reach được IPv6 Postgres:
+
+```text
+Network is unreachable
+```
+
+Đã thử kiểm PostgREST bằng service role, bảng vẫn chưa visible.
+
+Kết luận: Supabase persistence cần xử lý bằng một trong các cách sau trước W7/W8 production/final runs:
+
+1. apply SQL trực tiếp trong Supabase SQL Editor;
+2. cập nhật `.env` với Supabase pooler `DATABASE_URL` đúng;
+3. thiết lập Supabase CLI access token/project link và chạy migration qua CLI.
+
+#### Full 100-item run
+Đã kiểm tra release dataset có 100 item. Đã thử start full run không limit với Gemini, nhưng dừng lại để tránh tiêu quota kéo dài khi persistence vẫn chưa giải quyết. Full-100 là follow-up tốt cho W7/W8 final evaluation, không bắt buộc để claim W6-ABL-03 vì W6-ABL-03 yêu cầu so sánh trên cùng golden subset và hiện subset 10 câu đã cân bằng theo 10 family.
+
+### Lệnh tái lập W6-ABL-03 đã chốt
+
+```powershell
+python scripts/check_w6_abl_03_chunk_coverage.py --mode neo4j
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --limit 10 --skip-persistence
+```
+
+### Lệnh follow-up khi Supabase đã sẵn sàng
+
+Partial persistence verification:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --limit 10 --persist-supabase
+```
+
+Full 100-item official run:
+
+```powershell
+python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --persist-supabase
+```
+
+**Trạng thái cuối W6-ABL-03**: DONE cho chunking ablation v1. Có report và ranking strategy trên balanced golden subset, đủ 12 cặp source-strategy runtime trong Neo4j, cùng corpus/config/dataset subset cho 3 strategy. Supabase persistence được ghi nhận là blocker hạ tầng follow-up, không còn chặn claim DONE của task W6-ABL-03.

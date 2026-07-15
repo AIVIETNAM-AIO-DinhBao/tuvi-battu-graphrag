@@ -1,0 +1,52 @@
+name: w6_abl_03_chunking_strategy_v1
+notes: "W6-ABL-03 so sánh 3 chiến lược chunking trên cùng bộ corpus TVKL/TVNL/TVHS/TVGM. Biến chính của ablation là chunk_strategy_id. PLAN.md gọi chiến lược semantic là chunk_semantic_embedding; runtime hiện dùng mã chính thức chunk_semantic_embedding_bge_m3, nên manifest này dùng chunk_semantic_embedding_bge_m3 và ghi rõ như alias vận hành. Matrix chính giữ Graph+Sparse+RRF+reranker, tắt dense để không trộn lẫn biến chunking với biến dense retrieval."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports/w6_abl_03
+configs:
+  - name: fixed_512_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_03_fixed_512_graph_sparse_rrf
+      name: W6 ABL 03 - fixed 512 graph+sparse RRF
+      chunk_strategy_id: chunk_fixed_512
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
+
+  - name: parent_child_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_03_parent_child_graph_sparse_rrf
+      name: W6 ABL 03 - parent child graph+sparse RRF
+      chunk_strategy_id: chunk_structure_parent_child
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
+
+  - name: semantic_bge_m3_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w6_abl_03_semantic_bge_m3_graph_sparse_rrf
+      name: W6 ABL 03 - semantic BGE-M3 graph+sparse RRF
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true

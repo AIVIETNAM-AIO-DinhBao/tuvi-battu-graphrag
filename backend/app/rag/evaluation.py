@@ -477,6 +477,9 @@ class EvaluationRunner:
             "configs": config_results,
         }
         report["ablation_analysis"] = build_ablation_analysis(report)
+        chunking_analysis = build_chunking_ablation_analysis(report)
+        if chunking_analysis:
+            report["chunking_ablation_analysis"] = chunking_analysis
         if self.write_reports:
             write_evaluation_reports(report, effective_output_dir)
         return report
@@ -823,6 +826,30 @@ def rank_configs_by_metric(
     return sorted(ranked, key=lambda item: item["value"], reverse=higher_is_better)
 
 
+def rank_chunk_strategies_by_metric(
+    configs: list[dict[str, Any]],
+    metric_name: str,
+    *,
+    higher_is_better: bool = True,
+) -> list[dict[str, Any]]:
+    ranked: list[dict[str, Any]] = []
+    for config in configs:
+        strategy = config.get("chunk_strategy_id")
+        value = metric_value(config, metric_name)
+        if not strategy or value is None:
+            continue
+        ranked.append(
+            {
+                "chunk_strategy_id": strategy,
+                "config_name": config.get("config_name"),
+                "experiment_id": config.get("experiment_id"),
+                "metric": metric_name,
+                "value": value,
+            }
+        )
+    return sorted(ranked, key=lambda item: item["value"], reverse=higher_is_better)
+
+
 def summarize_retrieval_misses(config: dict[str, Any], *, max_examples: int = 5) -> dict[str, Any]:
     misses: list[dict[str, Any]] = []
     for item in config.get("items") or []:
@@ -951,6 +978,65 @@ def build_ablation_analysis(report: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def choose_chunking_candidate(configs: list[dict[str, Any]]) -> dict[str, Any]:
+    completed = [config for config in configs if config.get("status") == "completed" and config.get("chunk_strategy_id")]
+    if not completed:
+        return {
+            "recommended_chunk_strategy_id": None,
+            "recommended_config_name": None,
+            "reasoning_vi": ["Chưa có cấu hình chunking nào hoàn tất để chọn ứng viên."],
+        }
+
+    def score(config: dict[str, Any]) -> float:
+        metrics = config.get("metrics") or {}
+        quality = (
+            float(metrics.get("context_recall_avg") or 0) * 0.4
+            + float(metrics.get("citation_coverage_rate") or 0) * 0.25
+            + float(metrics.get("graph_hit_rate") or 0) * 0.15
+            + float(metrics.get("faithfulness_avg") or 0) * 0.1
+            + float(metrics.get("answer_relevancy_avg") or 0) * 0.1
+        )
+        latency = float(metrics.get("p95_latency_ms") or 0)
+        latency_penalty = min(latency / 30_000, 0.2) if latency else 0.0
+        return quality - latency_penalty
+
+    best = max(completed, key=score)
+    metrics = best.get("metrics") or {}
+    return {
+        "recommended_chunk_strategy_id": best.get("chunk_strategy_id"),
+        "recommended_config_name": best.get("config_name"),
+        "score": round(score(best), 4),
+        "reasoning_vi": [
+            "Đây là gợi ý sơ bộ do máy tính tổng hợp, không phải quyết định production cuối cùng.",
+            "Điểm ưu tiên Context Recall, Citation Coverage, Graph Hit Rate, sau đó mới xét Faithfulness, Answer Relevancy và phạt nhẹ p95 latency.",
+            f"Ứng viên hiện tại là `{best.get('chunk_strategy_id')}` qua config `{best.get('config_name')}` với context_recall_avg={metrics.get('context_recall_avg')}, citation_coverage_rate={metrics.get('citation_coverage_rate')}, graph_hit_rate={metrics.get('graph_hit_rate')}, p95_latency_ms={metrics.get('p95_latency_ms')}.",
+            "Chỉ được dùng làm bằng chứng chính thức sau khi chạy Gemini judge/live database trên cùng golden dataset và đủ 12 cặp source-strategy.",
+        ],
+    }
+
+
+def build_chunking_ablation_analysis(report: dict[str, Any]) -> dict[str, Any] | None:
+    configs = list(report.get("configs") or [])
+    strategies = sorted({str(config.get("chunk_strategy_id")) for config in configs if config.get("chunk_strategy_id")})
+    manifest_name = str(report.get("manifest_name") or "")
+    if len(strategies) < 2 and "w6_abl_03" not in manifest_name:
+        return None
+    if "w6_abl_03" not in manifest_name and len(strategies) < 3:
+        return None
+    return {
+        "analysis_language": "vi",
+        "scope_vi": "So sánh chiến lược chunking trên cùng corpus TVKL/TVNL/TVHS/TVGM; biến chính là chunk_strategy_id.",
+        "semantic_strategy_note_vi": "PLAN.md gọi chiến lược semantic là chunk_semantic_embedding; runtime hiện dùng mã chunk_semantic_embedding_bge_m3.",
+        "dense_policy_vi": "Matrix chính tắt dense retrieval để không trộn lẫn biến chunking với biến dense retrieval. Retrieval stack cố định là Graph + Sparse + RRF + reranker.",
+        "strategies": strategies,
+        "ranking_by_context_recall": rank_chunk_strategies_by_metric(configs, "context_recall_avg"),
+        "ranking_by_citation_coverage": rank_chunk_strategies_by_metric(configs, "citation_coverage_rate"),
+        "ranking_by_graph_hit_rate": rank_chunk_strategies_by_metric(configs, "graph_hit_rate"),
+        "ranking_by_p95_latency": rank_chunk_strategies_by_metric(configs, "p95_latency_ms", higher_is_better=False),
+        "preliminary_chunking_candidate": choose_chunking_candidate(configs),
+    }
+
+
 def write_evaluation_reports(report: dict[str, Any], output_dir: Path | str) -> None:
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -1015,6 +1101,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         )
 
     append_ablation_analysis(lines, report)
+    append_chunking_ablation_analysis(lines, report)
 
     lines.extend(["", "## Metrics by question complexity", ""])
     append_grouped_metrics_table(lines, report, group_key="by_question_complexity")
@@ -1106,6 +1193,48 @@ def append_ablation_analysis(lines: list[str], report: dict[str, Any]) -> None:
     for summary in analysis.get("rerank_miss_summary") or []:
         examples = ", ".join(str(example.get("item_id")) for example in summary.get("examples") or [])
         lines.append(f"| {summary.get('config_name')} | {summary.get('miss_count')} | {examples} |")
+
+
+def append_chunking_ablation_analysis(lines: list[str], report: dict[str, Any]) -> None:
+    analysis = report.get("chunking_ablation_analysis") or {}
+    if not analysis:
+        return
+    candidate = analysis.get("preliminary_chunking_candidate") or {}
+    lines.extend(
+        [
+            "",
+            "## Phân tích ablation chiến lược chunking",
+            "",
+            f"- Phạm vi: {analysis.get('scope_vi')}",
+            f"- Ghi chú tên strategy: {analysis.get('semantic_strategy_note_vi')}",
+            f"- Chính sách dense: {analysis.get('dense_policy_vi')}",
+            f"- Các chiến lược được so sánh: `{', '.join(analysis.get('strategies') or [])}`",
+            f"- Ứng viên chunking sơ bộ: `{candidate.get('recommended_chunk_strategy_id')}` qua config `{candidate.get('recommended_config_name')}`",
+        ]
+    )
+    for reason in candidate.get("reasoning_vi") or []:
+        lines.append(f"  - {reason}")
+
+    ranking_specs = [
+        ("ranking_by_context_recall", "Xếp hạng theo Context Recall"),
+        ("ranking_by_citation_coverage", "Xếp hạng theo Citation Coverage"),
+        ("ranking_by_graph_hit_rate", "Xếp hạng theo Graph Hit Rate"),
+        ("ranking_by_p95_latency", "Xếp hạng theo p95 latency"),
+    ]
+    for key, title in ranking_specs:
+        lines.extend(
+            [
+                "",
+                f"### {title}",
+                "",
+                "| Hạng | Chunk strategy | Config | Giá trị |",
+                "|---:|---|---|---:|",
+            ]
+        )
+        for index, item in enumerate(analysis.get(key) or [], start=1):
+            lines.append(
+                f"| {index} | {item.get('chunk_strategy_id')} | {item.get('config_name')} | {item.get('value')} |"
+            )
 
 
 def append_grouped_metrics_table(lines: list[str], report: dict[str, Any], *, group_key: str) -> None:

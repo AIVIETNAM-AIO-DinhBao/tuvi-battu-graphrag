@@ -12,6 +12,7 @@ from app.rag.evaluation import (
     aggregate_evaluation_metrics,
     aggregate_grouped_metrics,
     build_ablation_analysis,
+    build_chunking_ablation_analysis,
     build_single_config_manifest,
     extract_json_object,
     render_markdown_report,
@@ -24,6 +25,7 @@ RELEASE_DATASET_PATH = ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "release
 DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "default_production.yaml"
 W6_BASELINE_MANIFEST = ROOT_DIR / "configs" / "w6_eval_baseline.yaml"
 W6_ABL_02_MANIFEST = ROOT_DIR / "configs" / "w6_abl_02_retrieval_matrix.yaml"
+W6_ABL_03_MANIFEST = ROOT_DIR / "configs" / "w6_abl_03_chunking_matrix.yaml"
 
 
 def fake_state(item: AblationDatasetItem, config: ExperimentConfig) -> dict[str, Any]:
@@ -245,6 +247,34 @@ def test_w6_abl_02_manifest_loads_full_retrieval_matrix() -> None:
     assert configs["baseline_graph_first"].fusion_method == "graph_first"
 
 
+def test_w6_abl_03_manifest_loads_chunking_matrix_with_single_variable() -> None:
+    manifest = load_ablation_manifest(W6_ABL_03_MANIFEST)
+    configs = {spec.name: spec.build_config() for spec in manifest.configs}
+
+    assert manifest.name == "w6_abl_03_chunking_strategy_v1"
+    assert manifest.dataset_path == RELEASE_DATASET_PATH
+    assert manifest.output_dir == ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "reports" / "w6_abl_03"
+    assert set(configs) == {
+        "fixed_512_graph_sparse_rrf",
+        "parent_child_graph_sparse_rrf",
+        "semantic_bge_m3_graph_sparse_rrf",
+    }
+    assert {config.chunk_strategy_id for config in configs.values()} == {
+        "chunk_fixed_512",
+        "chunk_structure_parent_child",
+        "chunk_semantic_embedding_bge_m3",
+    }
+    assert len({config.experiment_id for config in configs.values()}) == 3
+    for config in configs.values():
+        assert config.source_ids == ["TVKL", "TVNL", "TVHS", "TVGM"]
+        assert config.graph_retrieval_enabled is True
+        assert config.dense_retrieval_enabled is False
+        assert config.sparse_retrieval_enabled is True
+        assert config.fusion_method == "rrf"
+        assert config.reranker_enabled is True
+        assert config.context_assembly_strategy == "balanced"
+
+
 def test_evaluation_runner_writes_reports_and_experiment_rows(tmp_path: Path) -> None:
     manifest = build_single_config_manifest(
         dataset_path=RELEASE_DATASET_PATH,
@@ -376,3 +406,59 @@ def test_ablation_analysis_ranks_and_marks_retrieval_and_rerank_misses() -> None
     assert "Ablation analysis" in rendered
     assert "Retrieval miss summary" in rendered
     assert "Rerank miss summary" in rendered
+
+
+def test_chunking_ablation_analysis_is_vietnamese_and_ranks_strategies() -> None:
+    configs = [
+        {
+            "config_name": "fixed_512_graph_sparse_rrf",
+            "experiment_id": "fixed",
+            "status": "completed",
+            "chunk_strategy_id": "chunk_fixed_512",
+            "metrics": {
+                "context_recall_avg": 0.4,
+                "citation_coverage_rate": 0.5,
+                "graph_hit_rate": 0.6,
+                "faithfulness_avg": 0.7,
+                "answer_relevancy_avg": 0.7,
+                "p95_latency_ms": 100.0,
+            },
+            "items": [],
+        },
+        {
+            "config_name": "parent_child_graph_sparse_rrf",
+            "experiment_id": "parent",
+            "status": "completed",
+            "chunk_strategy_id": "chunk_structure_parent_child",
+            "metrics": {
+                "context_recall_avg": 0.8,
+                "citation_coverage_rate": 0.9,
+                "graph_hit_rate": 0.7,
+                "faithfulness_avg": 0.8,
+                "answer_relevancy_avg": 0.8,
+                "p95_latency_ms": 200.0,
+            },
+            "items": [],
+        },
+    ]
+    report = {
+        "manifest_name": "w6_abl_03_chunking_strategy_v1",
+        "dataset_path": "dataset.jsonl",
+        "dataset_item_count": 2,
+        "config_count": 2,
+        "judge_backend": "gemini",
+        "started_at": "start",
+        "completed_at": "done",
+        "configs": configs,
+        "ablation_analysis": build_ablation_analysis({"configs": configs}),
+    }
+    analysis = build_chunking_ablation_analysis(report)
+    report["chunking_ablation_analysis"] = analysis
+    rendered = render_markdown_report(report)
+
+    assert analysis is not None
+    assert analysis["ranking_by_context_recall"][0]["chunk_strategy_id"] == "chunk_structure_parent_child"
+    assert analysis["preliminary_chunking_candidate"]["recommended_chunk_strategy_id"] == "chunk_structure_parent_child"
+    assert "Phân tích ablation chiến lược chunking" in rendered
+    assert "chunk_semantic_embedding_bge_m3" in rendered
+    assert "Ứng viên chunking sơ bộ" in rendered
