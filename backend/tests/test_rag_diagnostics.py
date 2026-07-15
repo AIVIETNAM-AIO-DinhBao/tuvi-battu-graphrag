@@ -121,7 +121,10 @@ def test_dense_retrieval_diagnostics_reports_gate_latency_and_selected_rate() ->
 
 def test_heuristic_question_family_and_complexity_for_live_chat_queries() -> None:
     assert infer_question_family("Cung Mệnh của lá số này nằm ở đâu?", [], {}) == "core_identity"
+    assert infer_question_family("Mệnh của tôi có những sao gì", [], {}) == "core_identity"
+    assert infer_question_complexity("Mệnh của tôi có những sao gì") == "Direct"
     assert infer_question_family("Cung Mệnh của tôi nói lên gì về bản thân?", [], {}) == "menh_house_interpretation"
+    assert infer_question_family("Luận giải về mệnh của tôi", [], {}) == "menh_house_interpretation"
     assert infer_question_family("Thân cư Thiên Di thì hậu vận thế nào?", [], {}) == "than_cu_interpretation"
     assert infer_question_family("Mệnh và Cục có hợp nhau không?", [], {}) == "menh_cuc_relation"
     assert infer_question_family("Cung Phu Thê có Triệt thì hôn nhân ra sao?", [], {}) == "special_state_interpretation"

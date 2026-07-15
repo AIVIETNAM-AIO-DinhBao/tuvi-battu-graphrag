@@ -1,11 +1,24 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import AnyUrl
+from pathlib import Path
 from typing import List
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = BACKEND_DIR.parent
 
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://test:test@localhost:5432/test"
+    GEMINI_API_KEYS: str = ""
     GEMINI_API_KEY: str = "test-key"
+    GEMINI_API_KEY_2: str = ""
+    GEMINI_API_KEY_3: str = ""
+    GEMINI_API_KEY_4: str = ""
+    GEMINI_API_KEY_5: str = ""
+    GEMINI_API_KEY_6: str = ""
+    GEMINI_API_KEY_7: str = ""
+    GEMINI_API_KEY_8: str = ""
 
     NEXT_PUBLIC_SUPABASE_URL: str = "http://localhost:54321"
     NEXT_PUBLIC_SUPABASE_ANON_KEY: str = "test-anon-key"
@@ -36,7 +49,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(ROOT_DIR / ".env", BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

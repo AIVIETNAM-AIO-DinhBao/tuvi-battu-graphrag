@@ -5,6 +5,22 @@ from typing import Any
 
 EXTRACTOR_VERSION = "w6_rag_03_v1"
 SPECIAL_STATE_TERMS = {"Tuần", "Triệt", "Tuần Không", "Triệt Không"}
+MAJOR_STAR_NAMES = {
+    "tử vi",
+    "thiên cơ",
+    "thái dương",
+    "vũ khúc",
+    "thiên đồng",
+    "liêm trinh",
+    "thiên phủ",
+    "thái âm",
+    "tham lang",
+    "cự môn",
+    "thiên tướng",
+    "thiên lương",
+    "thất sát",
+    "phá quân",
+}
 
 
 def extract_chart_facts(
@@ -108,8 +124,10 @@ def extract_houses_from_chart_repr(raw: dict[str, Any], summary: dict[str, Any])
                     "dai_han_age": item.get("dai_han_age") or item.get("dai_han") or item.get("daiHan"),
                     "tuan_khong": bool(item.get("tuan_khong") or item.get("tuan") or item.get("tuần")),
                     "triet_khong": bool(item.get("triet_khong") or item.get("triet") or item.get("triệt")),
-                    "major_stars": normalize_star_list(item.get("major_stars") or item.get("chinh_tinh") or item.get("chinhTinh")),
-                    "aux_stars": normalize_star_list(item.get("aux_stars") or item.get("phu_tinh") or item.get("phuTinh") or item.get("stars")),
+                    **split_star_groups(
+                        normalize_star_list(item.get("major_stars") or item.get("chinh_tinh") or item.get("chinhTinh")),
+                        normalize_star_list(item.get("aux_stars") or item.get("phu_tinh") or item.get("phuTinh") or item.get("stars")),
+                    ),
                 }
             )
         )
@@ -138,8 +156,7 @@ def extract_houses_from_palaces(raw: dict[str, Any]) -> list[dict[str, Any]]:
                     "earthly_branch": palace.get("earthly_branch") or palace.get("branch") or palace.get("dia_chi"),
                     "is_menh": (palace.get("name") or palace_name) == "Mệnh",
                     "is_than_resident": bool(palace.get("is_than_resident") or palace.get("cungThan")),
-                    "major_stars": [star for star in normalize_star_list(normalized_stars) if star.get("category") in (None, "Chính Tinh", "Chính tinh")],
-                    "aux_stars": [star for star in normalize_star_list(normalized_stars) if star.get("category") not in (None, "Chính Tinh", "Chính tinh")],
+                    **split_star_groups([], normalize_star_list(normalized_stars)),
                     "attributes": palace.get("attributes") if isinstance(palace.get("attributes"), dict) else None,
                 }
             )
@@ -164,8 +181,10 @@ def extract_houses_from_legacy(raw: dict[str, Any]) -> list[dict[str, Any]]:
                     "earthly_branch": item.get("earthly_branch") or item.get("diaChi") or item.get("chi"),
                     "is_menh": bool(item.get("is_menh") or item.get("cungMenh")),
                     "is_than_resident": bool(item.get("is_than_resident") or item.get("cungThan")),
-                    "major_stars": normalize_star_list(item.get("major_stars") or item.get("chinhTinh")),
-                    "aux_stars": normalize_star_list(item.get("aux_stars") or item.get("danh_sach_sao") or item.get("sao")),
+                    **split_star_groups(
+                        normalize_star_list(item.get("major_stars") or item.get("chinh_tinh") or item.get("chinhTinh")),
+                        normalize_star_list(item.get("aux_stars") or item.get("phu_tinh") or item.get("danh_sach_sao") or item.get("sao") or item.get("stars")),
+                    ),
                 }
             )
         )
@@ -194,6 +213,12 @@ def find_target_stars(houses: list[dict[str, Any]], query_entities: list[dict[st
     for entity in query_entities:
         if str(entity.get("entity_type") or "").casefold() in {"sao", "chinh_tinh", "phu_tinh", "star", "chính tinh", "phụ tinh"}:
             append_unique(targets, str(entity.get("canonical_name") or ""))
+    if retrieval_plan.get("chart_fact_intents") and not targets:
+        for house in houses:
+            if not should_include_house(house, list(retrieval_plan.get("target_houses") or []), []):
+                continue
+            for star in (house.get("major_stars") or []) + (house.get("aux_stars") or []):
+                append_unique(targets, str(star.get("name") or ""))
     return targets
 
 
@@ -313,6 +338,44 @@ def normalize_star_list(value: Any) -> list[dict[str, Any]]:
             if name:
                 stars.append(compact_dict({"name": name, "status": item.get("status") or item.get("brightness"), "category": item.get("category")}))
     return stars
+
+
+def split_star_groups(major_candidates: list[dict[str, Any]], aux_candidates: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """Normalize major/auxiliary star groups using the canonical 14 major stars.
+
+    Some upstream chart payloads provide a generic `stars` list or a wrong
+    category. In particular `Thái Dương` may arrive as an auxiliary star. The RAG
+    answer should never inherit that error, so this splitter promotes any of the
+    14 chính tinh to `major_stars` and removes duplicates from `aux_stars`.
+    """
+    major: list[dict[str, Any]] = []
+    aux: list[dict[str, Any]] = []
+    for star in [*major_candidates, *aux_candidates]:
+        name = str(star.get("name") or "").strip()
+        if not name:
+            continue
+        target = major if is_major_star(star) else aux
+        append_star_unique(target, star)
+    major_names = {normalize_text(star.get("name")) for star in major}
+    aux = [star for star in aux if normalize_text(star.get("name")) not in major_names]
+    return {"major_stars": major, "aux_stars": aux}
+
+
+def is_major_star(star: dict[str, Any]) -> bool:
+    category = normalize_text(star.get("category"))
+    name = normalize_text(star.get("name"))
+    if category in {"chính tinh", "chinh tinh", "major", "major star"}:
+        return True
+    if category in {"phụ tinh", "phu tinh", "aux", "auxiliary", "minor"} and name not in MAJOR_STAR_NAMES:
+        return False
+    return name in MAJOR_STAR_NAMES
+
+
+def append_star_unique(values: list[dict[str, Any]], star: dict[str, Any]) -> None:
+    name = normalize_text(star.get("name"))
+    if not name or any(normalize_text(existing.get("name")) == name for existing in values):
+        return
+    values.append(star)
 
 
 def format_star_names(stars: list[dict[str, Any]]) -> str:

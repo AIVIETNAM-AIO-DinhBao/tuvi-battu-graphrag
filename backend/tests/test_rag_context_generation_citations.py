@@ -7,6 +7,7 @@ from app.rag.config import ExperimentConfig, load_experiment_config
 from app.rag.context import assemble_context, order_candidates
 from app.rag.generation import (
     DeterministicGenerationClient,
+    GENERATION_BACKEND_FALLBACK_PREFIX,
     NO_CONTEXT_ANSWER,
     build_generation_prompt,
     generate_answer,
@@ -49,6 +50,11 @@ def candidate(
     }
 
 
+class FailingGenerationClient:
+    def generate(self, prompt: str, *, config: ExperimentConfig, state: dict[str, Any]) -> Any:
+        raise RuntimeError("test generation backend down")
+
+
 def test_context_assembly_balanced_uses_relevance_before_multipath_and_preserves_provenance() -> None:
     config = config_with(context_assembly_strategy="balanced")
     state = {
@@ -68,15 +74,45 @@ def test_context_assembly_balanced_uses_relevance_before_multipath_and_preserves
 
     final_context, chunks, summary = assemble_context(state, config)
 
-    assert chunks[0]["chunk_id"] == "dense-only"
-    assert chunks[0]["citation_marker"] == "S1"
-    assert chunks[0]["provenance"]["source_id"] == "TVKL"
+    assert chunks[0]["citation_marker"] == "CHART"
+    assert chunks[1]["chunk_id"] == "dense-only"
+    assert chunks[1]["citation_marker"] == "S1"
+    assert chunks[1]["provenance"]["source_id"] == "TVKL"
     assert "[CHART]" in final_context
     assert "[CHART_FACTS]" in final_context
     assert "[S1]" in final_context
     assert summary["selected_count"] == 2
     assert summary["has_chart_facts"] is True
     assert summary["role_aware_enabled"] is False
+
+
+def test_context_assembly_adds_chart_synthetic_source_before_corpus_sources() -> None:
+    config = config_with(context_assembly_strategy="balanced")
+    state = {
+        "chart_data": {"chart_type": "TUVI"},
+        "chart_facts": {
+            "chart_available": True,
+            "summary": {},
+            "house_facts": [
+                {
+                    "house_name": "Mệnh",
+                    "earthly_branch": "Ngọ",
+                    "major_stars": [{"name": "Thiên Lương"}, {"name": "Thái Dương"}],
+                    "aux_stars": [{"name": "Lộc Tồn"}],
+                }
+            ],
+            "target_houses": ["Mệnh"],
+            "target_stars": ["Thiên Lương", "Thái Dương", "Lộc Tồn"],
+        },
+        "ranked_candidates": [],
+    }
+
+    final_context, chunks, summary = assemble_context(state, config)
+
+    assert "[CHART_FACTS]" in final_context
+    assert chunks[0]["citation_marker"] == "CHART"
+    assert chunks[0]["source_id"] == "CHART"
+    assert summary["selected_count"] == 0
 
 
 def test_role_aware_context_assembly_covers_required_roles_before_global_fill() -> None:
@@ -191,9 +227,78 @@ def test_generation_allows_chart_only_context_without_corpus_sources() -> None:
     answer, metadata = generate_answer(state, config, generation_client=DeterministicGenerationClient())
 
     assert answer != NO_CONTEXT_ANSWER
-    assert "ngữ cảnh lá số" in answer
+    assert "Dưới đây là phần tóm tắt an toàn" in answer
+    assert "khối dữ kiện lá số" in answer
     assert metadata["fallback_reason"] is None
     assert metadata["generation_model"] == "deterministic-test"
+
+
+def test_generation_backend_error_returns_chart_aware_fallback_for_factual_chart_question() -> None:
+    config = config_with()
+    state = {
+        "query": "Mệnh của lá số này nằm ở cung nào?",
+        "final_context": "[CHART_FACTS]\n- Mệnh: Ngọ\n[CUNG Mệnh]\n- Chính tinh: Tử Vi",
+        "context_chunks": [],
+        "chart_facts": {
+            "chart_available": True,
+            "summary": {"menh_position": "Ngọ"},
+            "house_facts": [
+                {
+                    "house_name": "Mệnh",
+                    "earthly_branch": "Ngọ",
+                    "major_stars": [{"name": "Tử Vi"}],
+                    "aux_stars": [{"name": "Tả Phù"}],
+                }
+            ],
+        },
+    }
+
+    answer, metadata = generate_answer(state, config, generation_client=FailingGenerationClient())
+
+    assert answer.startswith(GENERATION_BACKEND_FALLBACK_PREFIX)
+    assert "Dữ kiện lá số đã trích xuất" in answer
+    assert "- Mệnh: Ngọ" in answer
+    assert "Cung Mệnh tại Ngọ" in answer
+    assert "chính tinh: Tử Vi" in answer
+    assert "Dựa trên nguồn Tử Vi đã truy xuất" not in answer
+    assert metadata["fallback_reason"] == "generation_backend_error"
+    assert metadata["error_type"] == "RuntimeError"
+    assert metadata["error_message"] == "test generation backend down"
+
+
+def test_generation_backend_error_keeps_source_markers_for_interpretive_or_multihop_question() -> None:
+    config = config_with()
+    state = {
+        "query": "Luận giải mệnh của lá số này",
+        "final_context": "[CHART_FACTS]\n- Mệnh: Ngọ\n\n[S1] Nguồn\nTử Vi thủ Mệnh cần xét miếu hãm.",
+        "context_chunks": [
+            {**candidate("one"), "citation_marker": "S1"},
+            {**candidate("two"), "citation_marker": "S2"},
+        ],
+        "chart_facts": {
+            "chart_available": True,
+            "summary": {"menh_position": "Ngọ", "cuc": "Hỏa lục cục"},
+            "house_facts": [
+                {
+                    "house_name": "Mệnh",
+                    "earthly_branch": "Ngọ",
+                    "major_stars": [{"name": "Tử Vi"}],
+                    "aux_stars": [{"name": "Thiên Phủ"}],
+                    "triet_khong": True,
+                }
+            ],
+        },
+    }
+
+    answer, metadata = generate_answer(state, config, generation_client=FailingGenerationClient())
+
+    assert GENERATION_BACKEND_FALLBACK_PREFIX in answer
+    assert "Cục: Hỏa lục cục" in answer
+    assert "Cung Mệnh tại Ngọ" in answer
+    assert "có Triệt" in answer
+    assert "Nguồn Tử Vi liên quan đã truy xuất: [S1], [S2]." in answer
+    assert "phần luận giải tổng hợp cần chạy lại" in answer
+    assert metadata["fallback_reason"] == "generation_backend_error"
 
 
 def test_generation_prompt_and_deterministic_client_use_citations() -> None:
@@ -243,3 +348,56 @@ def test_citation_mapping_without_markers_returns_context_sources_as_fallback() 
     assert len(sources) == 1
     assert sources[0]["used_in_answer"] is False
     assert metadata["citation_fallback"] is True
+
+
+def test_citation_mapping_supports_chart_facts_marker_without_corpus_fallback() -> None:
+    config = config_with()
+    state = {
+        "answer": "Cung Mệnh có Thiên Lương và Thái Dương [CHART_FACTS].",
+        "context_chunks": [
+            {
+                "citation_marker": "CHART",
+                "chunk_id": "chart_facts",
+                "chunk_strategy_id": "chunk_fixed_512",
+                "excerpt": "[CHART_FACTS] Dữ kiện lá số",
+                "provenance": {"source_id": "CHART"},
+                "retrieval_paths": ["chart"],
+                "source_id": "CHART",
+                "source_name": "Dữ kiện lá số",
+            },
+            {**candidate("one"), "citation_marker": "S1"},
+        ],
+    }
+
+    sources, metadata = map_citations(state, config)
+
+    assert [source["citation_marker"] for source in sources] == ["CHART"]
+    assert sources[0]["source_name"] == "Dữ kiện lá số"
+    assert metadata["citation_fallback"] is False
+    assert metadata["markers"] == ["CHART"]
+
+
+def test_citation_mapping_falls_back_when_model_hallucinates_unavailable_marker() -> None:
+    config = config_with()
+    state = {
+        "answer": "Dựa trên lá số, cung Mệnh có Tử Vi [S1].",
+        "context_chunks": [
+            {
+                "citation_marker": "CHART",
+                "chunk_id": "chart_facts",
+                "chunk_strategy_id": "chunk_fixed_512",
+                "excerpt": "[CHART_FACTS] Dữ kiện lá số",
+                "provenance": {"source_id": "CHART"},
+                "retrieval_paths": ["chart"],
+                "source_id": "CHART",
+                "source_name": "Dữ kiện lá số",
+            }
+        ],
+    }
+
+    sources, metadata = map_citations(state, config)
+
+    assert [source["citation_marker"] for source in sources] == ["CHART"]
+    assert sources[0]["used_in_answer"] is False
+    assert metadata["citation_fallback"] is True
+    assert metadata["unmatched_markers"] == ["S1"]

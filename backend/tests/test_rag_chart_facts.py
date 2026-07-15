@@ -52,6 +52,34 @@ def test_extract_chart_facts_from_palaces_v1_and_formats_context() -> None:
     assert "Tử Vi (Miếu)" in block
 
 
+def test_extract_chart_facts_promotes_thai_duong_to_major_star_even_if_payload_marks_aux() -> None:
+    chart_data = {
+        "chart_type": "TUVI",
+        "houses": [
+            {
+                "house_name": "Mệnh",
+                "earthly_branch": "Ngọ",
+                "major_stars": [{"name": "Thiên Lương", "status": "Vượng"}],
+                "aux_stars": [
+                    {"name": "Thái Dương", "status": "Vượng", "category": "Phụ Tinh"},
+                    {"name": "Lộc Tồn", "status": "Miếu"},
+                ],
+            }
+        ],
+    }
+
+    facts = extract_chart_facts(chart_data, [], {"target_houses": ["Mệnh"], "chart_fact_intents": ["house_facts", "star_facts"]})
+    block = build_chart_fact_context_block(facts)
+
+    major_names = [star["name"] for star in facts["house_facts"][0]["major_stars"]]
+    aux_names = [star["name"] for star in facts["house_facts"][0]["aux_stars"]]
+    assert "Thái Dương" in major_names
+    assert "Thiên Lương" in major_names
+    assert "Thái Dương" not in aux_names
+    assert "Chính tinh: Thiên Lương (Vượng), Thái Dương (Vượng)" in block
+    assert "Lộc Tồn (Miếu)" in block
+
+
 def test_extract_chart_facts_unknown_shape_is_defensive() -> None:
     facts = extract_chart_facts({"foo": "bar"}, [], {"target_houses": ["Mệnh"]})
 

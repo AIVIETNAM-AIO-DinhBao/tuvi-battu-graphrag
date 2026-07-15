@@ -428,13 +428,20 @@ def make_graph_retrieval_node(
     def graph_retrieval(state: RAGState) -> RAGState:
         config = state["experiment_config"]
         graph_config = config.graph_retrieval
-        if not config.graph_retrieval_enabled:
+        plan_paths = ((state.get("retrieval_plan") or {}).get("enabled_retrieval_paths") or {})
+        enabled_by_plan = plan_paths.get("graph", True) is not False
+        if not config.graph_retrieval_enabled or not enabled_by_plan:
             state["graph_candidates"] = []
             return append_trace_node(
                 state,
                 "graph_retrieval",
                 status="skipped",
-                detail={"enabled": False, "top_k": graph_config.top_k},
+                detail={
+                    "enabled": False,
+                    "enabled_by_config": config.graph_retrieval_enabled,
+                    "enabled_by_plan": enabled_by_plan,
+                    "top_k": graph_config.top_k,
+                },
             )
         if fallback_on_error and retrieval_backend_is_unavailable(state):
             state["graph_candidates"] = []
@@ -624,13 +631,20 @@ def make_sparse_retrieval_node(
     def sparse_retrieval(state: RAGState) -> RAGState:
         config = state["experiment_config"]
         sparse_config = config.sparse_retrieval
-        if not config.sparse_retrieval_enabled:
+        plan_paths = ((state.get("retrieval_plan") or {}).get("enabled_retrieval_paths") or {})
+        enabled_by_plan = plan_paths.get("sparse", True) is not False
+        if not config.sparse_retrieval_enabled or not enabled_by_plan:
             state["sparse_candidates"] = []
             return append_trace_node(
                 state,
                 "sparse_retrieval",
                 status="skipped",
-                detail={"enabled": False, "top_k": sparse_config.top_k},
+                detail={
+                    "enabled": False,
+                    "enabled_by_config": config.sparse_retrieval_enabled,
+                    "enabled_by_plan": enabled_by_plan,
+                    "top_k": sparse_config.top_k,
+                },
             )
         if fallback_on_error and retrieval_backend_is_unavailable(state):
             state["sparse_candidates"] = []

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.rag.house_ontology import HOUSE_NAMES, canonical_house_name, explicit_house_triad, normalize_text
 from app.rag.state import RAGState
 
 
@@ -20,21 +21,6 @@ QUESTION_FAMILIES = {
     "synthesis_judgement",
 }
 QUESTION_COMPLEXITIES = {"Direct", "One-hop", "Two-hop"}
-
-HOUSE_NAMES = [
-    "Mệnh",
-    "Phụ Mẫu",
-    "Phúc Đức",
-    "Điền Trạch",
-    "Quan Lộc",
-    "Nô Bộc",
-    "Thiên Di",
-    "Tật Ách",
-    "Tài Bạch",
-    "Tử Tức",
-    "Phu Thê",
-    "Huynh Đệ",
-]
 
 QUESTION_FAMILY_PLANS: dict[str, dict[str, Any]] = {
     "core_identity": {
@@ -124,6 +110,8 @@ def build_retrieval_plan(state: RAGState) -> dict[str, Any]:
     family, family_source = resolve_question_family_for_planner(state)
     complexity, complexity_source = resolve_question_complexity_for_planner(state, family)
     base = dict(QUESTION_FAMILY_PLANS.get(family) or QUESTION_FAMILY_PLANS["synthesis_judgement"])
+    query = str(state.get("rewritten_query") or state.get("normalized_query") or state.get("query") or "")
+    explicit_triad = explicit_house_triad(query)
     plan = {
         "planner_version": PLANNER_VERSION,
         "question_family": family,
@@ -132,7 +120,7 @@ def build_retrieval_plan(state: RAGState) -> dict[str, Any]:
         "question_complexity_source": complexity_source,
         **base,
         "target_houses": infer_target_houses(
-            str(state.get("rewritten_query") or state.get("normalized_query") or state.get("query") or ""),
+            query,
             state.get("query_entities") or [],
             state.get("chart_data") or {},
             family,
@@ -144,6 +132,13 @@ def build_retrieval_plan(state: RAGState) -> dict[str, Any]:
         ),
         "notes": [],
     }
+    if explicit_triad:
+        plan["target_houses"] = list(explicit_triad["houses"])
+        plan["explicit_house_triad"] = explicit_triad
+        plan["target_houses_source"] = "query_alias_parser"
+        plan["notes"].append("explicit_house_triad_detected_target_houses_locked")
+    else:
+        plan["target_houses_source"] = "planner_inference"
     if family == "unknown":
         plan["notes"].append("question_family_unknown_fallback_to_synthesis_shape")
     return plan
@@ -196,9 +191,9 @@ def infer_question_family(query: str, query_entities: list[dict[str, Any]], char
     if any(term in text for term in topic_houses):
         return "topic_house_plus_relations"
     if any(term in text for term in ("cung menh", "cung mệnh", "menh", "mệnh")):
-        if any(term in text for term in ("o dau", "ở đâu", "nam o", "nằm ở", "sao nao", "sao nào", "chinh tinh", "chính tinh")):
+        if any(term in text for term in ("o dau", "ở đâu", "nam o", "nằm ở", "sao gi", "sao gì", "sao nao", "sao nào", "nhung sao", "những sao", "co sao", "có sao", "chinh tinh", "chính tinh", "phu tinh", "phụ tinh")):
             return "core_identity"
-        if any(term in text for term in ("noi len gi", "nói lên gì", "y nghia", "ý nghĩa", "ban than", "bản thân")):
+        if any(term in text for term in ("luan giai", "luận giải", "noi len gi", "nói lên gì", "y nghia", "ý nghĩa", "ban than", "bản thân")):
             return "menh_house_interpretation"
     if "mệnh" in entity_names or "menh" in entity_names:
         return "menh_house_interpretation"
@@ -207,7 +202,7 @@ def infer_question_family(query: str, query_entities: list[dict[str, Any]], char
 
 def infer_question_complexity(query: str) -> str:
     text = normalize_text(query)
-    if any(term in text for term in ("o dau", "ở đâu", "nam o", "nằm ở", "sao nao", "sao nào", "chinh tinh", "chính tinh")):
+    if any(term in text for term in ("o dau", "ở đâu", "nam o", "nằm ở", "sao gi", "sao gì", "sao nao", "sao nào", "nhung sao", "những sao", "co sao", "có sao", "chinh tinh", "chính tinh", "phu tinh", "phụ tinh")):
         return "Direct"
     if any(term in text for term in ("tong quan", "tổng quan", "ket luan", "kết luận", "tot khong", "tốt không", "thuan loi", "thuận lợi", "trac tro", "trắc trở", "hon nhan", "hôn nhân", "cong danh", "công danh")):
         return "Two-hop"
@@ -218,6 +213,9 @@ def infer_question_complexity(query: str) -> str:
 
 def infer_target_houses(query: str, entities: list[dict[str, Any]], chart_data: dict[str, Any], family: str) -> list[str]:
     targets: list[str] = []
+    explicit_triad = explicit_house_triad(query)
+    if explicit_triad:
+        return list(explicit_triad["houses"])
     text = normalize_text(query)
     for house in HOUSE_NAMES:
         if normalize_text(house) in text:
@@ -247,18 +245,7 @@ def infer_target_stars(query: str, entities: list[dict[str, Any]], chart_data: d
     return stars
 
 
-def canonical_house_name(value: str) -> str | None:
-    normalized = normalize_text(value)
-    for house in HOUSE_NAMES:
-        if normalize_text(house) == normalized:
-            return house
-    return None
-
-
 def append_unique(values: list[str], value: str) -> None:
     if value and value not in values:
         values.append(value)
 
-
-def normalize_text(value: Any) -> str:
-    return " ".join(str(value or "").casefold().split())

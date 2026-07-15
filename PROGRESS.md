@@ -2620,3 +2620,198 @@ python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --j
 ```
 
 **Trạng thái cuối W6-ABL-03**: DONE cho chunking ablation v1. Có report và ranking strategy trên balanced golden subset, đủ 12 cặp source-strategy runtime trong Neo4j, cùng corpus/config/dataset subset cho 3 strategy. Supabase persistence được ghi nhận là blocker hạ tầng follow-up, không còn chặn claim DONE của task W6-ABL-03.
+
+---
+
+## W6-INT-01 - Integration test với production candidate config - 2026-07-15
+
+### Phạm vi đã cài đặt
+
+Đã cài đặt luồng integration test theo hướng hybrid đã duyệt:
+
+- tạo config candidate riêng cho W6 integration, không sửa `default_production.yaml` trước W7-CONFIG-01;
+- chạy automated smoke cho backend health, chart engine và RAG retrieval/context/citation;
+- dùng deterministic generation để không tiêu Gemini quota ở integration smoke, nhưng vẫn dùng Neo4j runtime thật và config candidate thật;
+- sinh report JSON/Markdown và checklist thủ công cho phần browser login/dashboard/chart detail/citation panel;
+- chạy frontend production build để xác nhận `/chart/[id]`, `/dashboard`, `/api/chat` vẫn compile.
+
+### File đã thêm
+
+#### Config candidate
+
+```text
+configs/w6_integration_candidate.yaml
+```
+
+Config này dùng candidate chất lượng từ W6-ABL-03:
+
+```text
+experiment_id=w6_int_01_candidate_semantic_bge_m3
+chunk_strategy_id=chunk_semantic_embedding_bge_m3
+dense_retrieval_enabled=false
+retrieval stack=Graph + Sparse + RRF + lexical reranker
+```
+
+Lý do không sửa `default_production.yaml`: task W7-CONFIG-01 mới là nơi lock production config cuối cùng. W6-INT-01 chỉ cần candidate tạm để kiểm end-to-end.
+
+#### Script smoke integration
+
+```text
+scripts/run_w6_int_01_smoke.py
+```
+
+Script kiểm các bước:
+
+1. `GET /health` bằng FastAPI `TestClient`.
+2. `POST /chart/tuvi` để tạo lá số Tử Vi thật bằng chart engine.
+3. Chạy RAG trực tiếp với:
+   - chart vừa tạo;
+   - Neo4j driver thật;
+   - `configs/w6_integration_candidate.yaml`;
+   - `DeterministicGenerationClient` để tránh gọi Gemini generation;
+   - `retrieval_fallback_on_error=true`.
+4. Kiểm 3 câu:
+   - factual/chart fact;
+   - interpretive/Mệnh;
+   - multi-hop/tam hợp/xung chiếu.
+5. Ghi bug P0/P1/P2 nếu có.
+
+### Report đã sinh
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_int_01/integration_report.json
+benchmark/tuvi_golden_dataset/reports/w6_int_01/integration_report.md
+benchmark/tuvi_golden_dataset/reports/w6_int_01/manual_checklist.md
+benchmark/tuvi_golden_dataset/reports/w6_int_01/smoke_stdout.log
+benchmark/tuvi_golden_dataset/reports/w6_int_01/smoke_stderr.log
+```
+
+### Lệnh đã chạy
+
+Validate config:
+
+```powershell
+.\.venv\Scripts\python.exe -c "import sys; sys.path.insert(0,'backend'); from app.rag.config import load_experiment_config; c=load_experiment_config('configs/w6_integration_candidate.yaml'); print(c.experiment_id, c.chunk_strategy_id, c.dense_retrieval_enabled, c.fusion_method)"
+```
+
+Kết quả:
+
+```text
+w6_int_01_candidate_semantic_bge_m3 chunk_semantic_embedding_bge_m3 False rrf
+```
+
+Unit/API regression smoke:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_health.py backend/tests/test_chat_route.py backend/tests/test_experiment_config.py -q
+```
+
+Kết quả:
+
+```text
+18 passed, 10 warnings
+```
+
+Integration smoke:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_w6_int_01_smoke.py --config configs/w6_integration_candidate.yaml --output-dir benchmark/tuvi_golden_dataset/reports/w6_int_01
+```
+
+Kết quả:
+
+```text
+status=pass
+bug_summary={'P0': 0, 'P1': 0, 'P2': 0}
+```
+
+Frontend build:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Kết quả:
+
+```text
+Compiled successfully
+/chart/[id] compiled successfully
+/dashboard compiled successfully
+/api/chat compiled successfully
+```
+
+### Kết quả automated integration smoke
+
+Tổng quan:
+
+```text
+status=pass
+P0=0
+P1=0
+P2=0
+duration_ms=43004.27
+config_hash=7f3d735a1468fe3edb17c300aff5bfa56ab6993035a83f39e30d2a04e94fa6e6
+```
+
+Health/chart:
+
+| Bước | Kết quả | Latency | Ghi chú |
+|---|---:|---:|---|
+| `health` | PASS | 13.29 ms | `GET /health` trả 200 |
+| `chart_creation` | PASS | 34.55 ms | `chart_type=TUVI`, `palace_count=12` |
+
+Chat/RAG:
+
+| ID | Loại | Pass | Sources | Citation | Complexity | Latency |
+|---|---|---:|---:|---:|---|---:|
+| `factual_chart_fact` | factual | PASS | 2 | true | One-hop | 10652.81 ms |
+| `interpretive_menh` | interpretive | PASS | 2 | true | Two-hop | 18553.89 ms |
+| `multi_hop_tam_hop_xung_chieu` | multi-hop | PASS | 2 | true | Two-hop | 13741.21 ms |
+
+Diễn giải:
+
+- Backend health pass.
+- Chart engine tạo được lá số Tử Vi có đủ 12 cung.
+- RAG dùng candidate `chunk_semantic_embedding_bge_m3` trả answer cho cả 3 loại câu.
+- Interpretive và multi-hop đều có source/citation.
+- Retrieval diagnostics có mặt trong response.
+- Không ghi nhận bug P0/P1/P2 trong automated smoke.
+
+### Checklist thủ công đã tạo
+
+File:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w6_int_01/manual_checklist.md
+```
+
+Checklist này dành cho phần browser thật:
+
+1. login;
+2. tạo lá số từ UI;
+3. redirect sang `/chart/[id]`;
+4. render `TuViBoard` đủ 12 cung;
+5. hỏi factual;
+6. hỏi interpretive;
+7. hỏi multi-hop;
+8. kiểm citation panel;
+9. kiểm loading/error state.
+
+Lưu ý quan trọng: repo hiện chưa có Playwright/Cypress setup chính thức, nên W6-INT-01 hiện được verify tự động ở backend/chart/RAG/build layer, còn browser login/UI cần kiểm thủ công theo checklist. Nếu muốn automation đầy đủ ở giai đoạn W7/W8, nên bổ sung Playwright riêng thay vì nhét scope đó vào W6-INT-01.
+
+### Bug P0/P1/P2
+
+Automated smoke:
+
+```text
+P0=0
+P1=0
+P2=0
+```
+
+Không ghi nhận blocker trong phần backend/chart/RAG/build. Phần browser manual chưa chạy bằng công cụ tự động; checklist đã được tạo để người kiểm thử điền kết quả.
+
+### Trạng thái W6-INT-01
+
+**Status**: COMPLETE ở mức cài đặt và automated local integration smoke. Backend health, chart creation, RAG factual/interpretive/multi-hop, citation/source presence và frontend production build đều pass. Manual browser checklist đã sẵn sàng để xác nhận login/dashboard/chart detail/citation panel trên trình duyệt thật.

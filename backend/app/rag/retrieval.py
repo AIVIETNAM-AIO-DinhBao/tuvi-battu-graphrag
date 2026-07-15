@@ -422,8 +422,7 @@ def graph_retrieval_tx(
                 entity_type: qe.entity_type,
                 domain: $domain
             })
-            CALL {
-                WITH seed
+            CALL (seed) {
                 MATCH (node:Chunk)-[:MENTIONS]->(seed)
                 WHERE node.domain = $domain
                   AND node.source_id IN $source_ids
@@ -466,8 +465,7 @@ def graph_retrieval_tx(
                 domain: $domain
             })-[rel]-(related:Entity)
             WHERE type(rel) IN $relation_types
-            CALL {
-                WITH related
+            CALL (related) {
                 MATCH (node:Chunk)-[:MENTIONS]->(related)
                 WHERE node.domain = $domain
                   AND node.source_id IN $source_ids

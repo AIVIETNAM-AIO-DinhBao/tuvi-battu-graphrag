@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 from app.rag.config import ExperimentConfig
+from app.rag.gemini_keys import get_primary_runtime_gemini_api_key, load_runtime_gemini_api_keys
 from app.rag.query_entities import normalize_lookup
 
 
@@ -35,16 +35,15 @@ class GeminiQueryRewriter:
         self.api_key = api_key
 
     def _api_key(self) -> str:
+        return get_primary_runtime_gemini_api_key("Gemini query rewrite", explicit_api_key=self.api_key)
+
+    def _api_keys(self) -> list[str]:
         if self.api_key:
-            return self.api_key
-        combined = os.getenv("GEMINI_API_KEYS") or ""
-        keys = [key.strip() for key in combined.split(",") if key.strip()]
-        if keys:
-            return keys[0]
-        key = os.getenv("GEMINI_API_KEY")
-        if key:
-            return key
-        raise RuntimeError("GEMINI_API_KEY or GEMINI_API_KEYS is required for Gemini query rewrite.")
+            return [self.api_key]
+        keys = load_runtime_gemini_api_keys()
+        if not keys:
+            self._api_key()
+        return keys
 
     def rewrite(self, query: str, *, chart_data: dict[str, Any], config: ExperimentConfig) -> RewriteResult:
         try:
@@ -53,27 +52,39 @@ class GeminiQueryRewriter:
             raise RuntimeError("google-generativeai is required for Gemini query rewrite.") from exc
 
         rewrite_config = config.query_rewrite
-        genai.configure(api_key=self._api_key())
-        model = genai.GenerativeModel(rewrite_config.model)
         prompt = build_rewrite_prompt(query, chart_data)
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": rewrite_config.temperature,
-                "max_output_tokens": rewrite_config.max_output_tokens,
-                "response_mime_type": "application/json",
-            },
-        )
-        raw_text = str(getattr(response, "text", "") or "")
-        payload = parse_rewrite_payload(raw_text)
-        rewritten_query = str(payload.get("rewritten_query") or "").strip()
-        return RewriteResult(
-            rewritten_query=rewritten_query,
-            changed=bool(payload.get("changed", rewritten_query != query)),
-            reason=str(payload.get("reason") or ""),
-            domain=str(payload.get("domain") or "TUVI"),
-            raw_response=raw_text,
-        )
+        last_exc: Exception | None = None
+        keys = self._api_keys()
+        for index, api_key in enumerate(keys, start=1):
+            try:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel(rewrite_config.model)
+                response = model.generate_content(
+                    prompt,
+                    generation_config={
+                        "temperature": rewrite_config.temperature,
+                        "max_output_tokens": rewrite_config.max_output_tokens,
+                        "response_mime_type": "application/json",
+                    },
+                )
+                raw_text = str(getattr(response, "text", "") or "")
+                payload = parse_rewrite_payload(raw_text)
+                rewritten_query = str(payload.get("rewritten_query") or "").strip()
+                return RewriteResult(
+                    rewritten_query=rewritten_query,
+                    changed=bool(payload.get("changed", rewritten_query != query)),
+                    reason=str(payload.get("reason") or ""),
+                    domain=str(payload.get("domain") or "TUVI"),
+                    raw_response=raw_text,
+                )
+            except Exception as exc:
+                last_exc = exc
+                if self.api_key or index >= len(keys):
+                    break
+                continue
+        if last_exc is not None:
+            raise RuntimeError(f"Gemini query rewrite failed after {len(keys)} runtime key(s): {last_exc}") from last_exc
+        raise RuntimeError("GEMINI_API_KEY or GEMINI_API_KEYS is required for Gemini query rewrite.")
 
 
 def build_rewrite_prompt(query: str, chart_data: dict[str, Any]) -> str:

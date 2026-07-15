@@ -7,13 +7,13 @@ from app.rag.config import ExperimentConfig
 from app.rag.state import RAGState
 
 
-CITATION_MARKER_RE = re.compile(r"\[(S\d+)\]")
+CITATION_MARKER_RE = re.compile(r"\[((?:S\d+)|CHART|CHART_FACTS)\]")
 
 
 def map_citations(state: RAGState, config: ExperimentConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     answer = state.get("answer") or ""
     context_chunks = [dict(chunk) for chunk in state.get("context_chunks") or []]
-    markers = list(dict.fromkeys(CITATION_MARKER_RE.findall(answer)))
+    markers = normalize_markers(CITATION_MARKER_RE.findall(answer))
     marker_set = set(markers)
 
     sources: list[dict[str, Any]] = []
@@ -22,14 +22,21 @@ def map_citations(state: RAGState, config: ExperimentConfig) -> tuple[list[dict[
         used = marker in marker_set if marker_set else False
         sources.append(make_source(chunk, config=config, used_in_answer=used))
 
+    unmatched_markers: list[str] = []
     if marker_set:
-        sources = [source for source in sources if source.get("used_in_answer")]
+        matched_sources = [source for source in sources if source.get("used_in_answer")]
+        matched_marker_set = {str(source.get("citation_marker") or "") for source in matched_sources}
+        unmatched_markers = [marker for marker in markers if marker not in matched_marker_set]
+        sources = matched_sources
+        if not sources and context_chunks:
+            sources = [make_source(chunk, config=config, used_in_answer=False) for chunk in context_chunks]
 
     metadata = {
-        "citation_fallback": not bool(marker_set) and bool(context_chunks),
+        "citation_fallback": (not bool(marker_set) and bool(context_chunks)) or (bool(marker_set) and bool(unmatched_markers) and bool(sources) and not any(source.get("used_in_answer") for source in sources)),
         "context_chunk_count": len(context_chunks),
         "marker_count": len(markers),
         "markers": markers,
+        "unmatched_markers": unmatched_markers,
         "source_count": len(sources),
     }
     return sources, metadata
@@ -52,6 +59,15 @@ def make_source(chunk: dict[str, Any], *, config: ExperimentConfig, used_in_answ
         "title": chunk.get("title"),
         "used_in_answer": used_in_answer,
     }
+
+
+def normalize_markers(markers: list[str]) -> list[str]:
+    result: list[str] = []
+    for marker in markers:
+        normalized = "CHART" if marker == "CHART_FACTS" else marker
+        if normalized not in result:
+            result.append(normalized)
+    return result
 
 
 def first_present(payload: dict[str, Any], *keys: str) -> Any:

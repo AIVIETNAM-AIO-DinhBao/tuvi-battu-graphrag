@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.clients import get_neo4j_driver, get_langfuse_client, get_supabase_client
 from app.config import settings
+from app.rag.gemini_keys import runtime_gemini_key_diagnostics
 from app.rag.generation import DeterministicGenerationClient
 from app.rag.graph import run_rag_dry_run
 from app.rag.nodes import default_chart_loader
@@ -77,6 +78,26 @@ def log_chat_retrieval_diagnostics(state: dict[str, Any]) -> None:
             ],
         )
 
+    if generation_metadata.get("fallback_reason") == "generation_backend_error":
+        logger.warning(
+            "RAG generation backend error during chat: chart_id=%s experiment_id=%s model=%s error_type=%s error=%s",
+            state.get("chart_id"),
+            state.get("experiment_id"),
+            generation_metadata.get("generation_model"),
+            generation_metadata.get("error_type"),
+            generation_metadata.get("error_message"),
+        )
+
+    if generation_metadata.get("fallback_reason") == "no_context" or source_count == 0:
+        logger.warning(
+            "RAG chat produced no cited context: chart_id=%s experiment_id=%s context_count=%s source_count=%s generation_fallback=%s",
+            state.get("chart_id"),
+            state.get("experiment_id"),
+            context_count,
+            source_count,
+            generation_metadata.get("fallback_reason"),
+        )
+
 
 def resilient_chart_loader(chart_id: str, user_id: str | None = None) -> dict[str, Any]:
     """Load chart from Supabase, but do not fail the whole chat if unavailable.
@@ -104,16 +125,6 @@ def resilient_chart_loader(chart_id: str, user_id: str | None = None) -> dict[st
                 "chart_load_error_type": type(exc).__name__,
             },
         }
-
-    if generation_metadata.get("fallback_reason") == "no_context" or source_count == 0:
-        logger.warning(
-            "RAG chat produced no cited context: chart_id=%s experiment_id=%s context_count=%s source_count=%s generation_fallback=%s",
-            state.get("chart_id"),
-            state.get("experiment_id"),
-            context_count,
-            source_count,
-            generation_metadata.get("fallback_reason"),
-        )
 
 
 @app.get("/health")
@@ -194,6 +205,8 @@ async def rag_runtime_debug():
         "graph_retrieval_enabled": config.graph_retrieval_enabled,
         "dense_retrieval_enabled": config.dense_retrieval_enabled,
         "sparse_retrieval_enabled": config.sparse_retrieval_enabled,
+        "generation_model": config.generation_model,
+        "gemini": runtime_gemini_key_diagnostics(),
         "neo4j": {
             "uri": neo4j_uri_safe,
             "username": settings.NEO4J_USERNAME,

@@ -98,20 +98,21 @@ def test_rag_dry_run_traverses_expected_nodes_and_preserves_query() -> None:
     assert state["reranked_candidates"] == []
     assert state["graded_candidates"] == []
     assert state["ranked_candidates"] == []
-    assert state["context_chunks"] == []
+    assert len(state["context_chunks"]) == 1
+    assert state["context_chunks"][0]["citation_marker"] == "CHART"
     assert state["context_summary"]["selected_count"] == 0
     assert "[CHART]" in state["final_context"]
     assert "[CHART_FACTS]" in state["final_context"]
     assert state["answer"]
     assert state["generation_metadata"]["fallback_reason"] is None
-    assert state["sources"] == []
-    assert state["citation_metadata"]["source_count"] == 0
+    assert state["sources"][0]["citation_marker"] == "CHART"
+    assert state["citation_metadata"]["source_count"] == 1
     assert state["retrieval_diagnostics"]["candidate_counts"]["graph"] == 0
     assert state["retrieval_diagnostics"]["question_complexity"] == "One-hop"
     assert state["retrieval_diagnostics"]["question_family"] == "menh_house_interpretation"
     assert state["retrieval_diagnostics"]["retrieval_plan_source"] == "generated_by_query_planner"
     assert state["retrieval_diagnostics"]["chart_facts"]["house_fact_count"] == 1
-    assert state["retrieval_diagnostics"]["selected_evidence_roles"] == ["generic"]
+    assert "chart_facts" in state["retrieval_diagnostics"]["selected_evidence_roles"]
 
     trace_nodes = [entry["node"] for entry in state["retrieval_trace"]["nodes"]]
     assert trace_nodes == DRY_RUN_NODE_ORDER

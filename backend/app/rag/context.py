@@ -29,13 +29,16 @@ def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, li
 
     context_chunks: list[dict[str, Any]] = []
     blocks: list[str] = []
+    chart_fact_block = build_chart_fact_context_block(state.get("chart_facts") or {})
+    if chart_fact_block.strip():
+        chart_chunk = make_chart_context_chunk(state, config=config)
+        context_chunks.append(chart_chunk)
     for index, candidate in enumerate(selected, start=1):
         chunk = make_context_chunk(candidate, index=index, config=config)
         context_chunks.append(chunk)
         blocks.append(format_context_block(chunk))
 
     chart_summary = summarize_chart_context(state.get("chart_data") or {})
-    chart_fact_block = build_chart_fact_context_block(state.get("chart_facts") or {})
     final_context = "\n\n".join([part for part in [chart_summary, chart_fact_block, *blocks] if part.strip()])
     role_summary = build_context_role_summary(
         context_chunks,
@@ -53,8 +56,8 @@ def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, li
         "chart_fact_target_stars": (state.get("chart_facts") or {}).get("target_stars") or [],
         "max_chunks": DEFAULT_MAX_CHUNKS,
         "max_context_chars": DEFAULT_MAX_CONTEXT_CHARS,
-        "selected_count": len(context_chunks),
-        "selected_chunk_ids": [chunk.get("chunk_id") for chunk in context_chunks],
+        "selected_count": len(selected),
+        "selected_chunk_ids": [chunk.get("chunk_id") for chunk in context_chunks if chunk.get("source_id") != "CHART"],
         "total_context_chars": len(final_context),
     }
     summary.update(role_summary)
@@ -65,8 +68,40 @@ def select_candidate_pool(state: RAGState) -> list[dict[str, Any]]:
     for key in ("ranked_candidates", "graded_candidates", "reranked_candidates", "fused_candidates"):
         candidates = [dict(candidate) for candidate in state.get(key) or []]
         if candidates:
-            return candidates
+            return backfill_required_roles(candidates, state)
     return []
+
+
+def backfill_required_roles(candidates: list[dict[str, Any]], state: RAGState) -> list[dict[str, Any]]:
+    """Preserve at least one candidate per required role after rerank/grade pruning.
+
+    Reranking and grading may cap/drop lower-scored role-specific candidates. For
+    one-hop/two-hop questions this causes role-aware context assembly to miss
+    required evidence even though the raw fused pool had it. We append the best
+    missing-role candidates from `fused_candidates` as a controlled backfill; the
+    context selector still enforces chunk/char budgets.
+    """
+    required_roles = required_evidence_roles_from_plan(state)
+    if not required_roles:
+        return candidates
+    covered = {role for candidate in candidates for role in candidate_roles(candidate)}
+    missing = [role for role in required_roles if role not in covered]
+    if not missing:
+        return candidates
+    output = list(candidates)
+    seen = {candidate_identity(candidate) for candidate in output}
+    fused = order_candidates([dict(candidate) for candidate in state.get("fused_candidates") or []], strategy="balanced")
+    for role in missing:
+        for candidate in fused:
+            key = candidate_identity(candidate)
+            if key in seen or role not in candidate_roles(candidate):
+                continue
+            backfilled = dict(candidate)
+            backfilled["role_backfilled"] = True
+            output.append(backfilled)
+            seen.add(key)
+            break
+    return output
 
 
 def order_candidates(candidates: list[dict[str, Any]], *, strategy: str) -> list[dict[str, Any]]:
@@ -204,6 +239,29 @@ def make_context_chunk(candidate: dict[str, Any], *, index: int, config: Experim
         "source_name": candidate.get("source_name"),
         "source_page": candidate.get("source_page"),
         "title": candidate.get("title"),
+    }
+
+
+def make_chart_context_chunk(state: RAGState, *, config: ExperimentConfig) -> dict[str, Any]:
+    chart_facts = state.get("chart_facts") or {}
+    return {
+        "citation_marker": "CHART",
+        "chunk_id": "chart_facts",
+        "chunk_hash": None,
+        "chunk_strategy_id": config.chunk_strategy_id,
+        "chunk_type": "chart_facts",
+        "domain": config.domain,
+        "excerpt": build_chart_fact_context_block(chart_facts),
+        "evidence_role": "chart_facts",
+        "evidence_roles": ["chart_facts", *required_evidence_roles_from_plan(state)],
+        "provenance": {"source_id": "CHART", "source_name": "Dữ kiện lá số", "source_type": "chart_facts"},
+        "retrieval_intent": "chart_facts",
+        "retrieval_paths": ["chart"],
+        "score": 1.0,
+        "source_id": "CHART",
+        "source_name": "Dữ kiện lá số",
+        "source_page": None,
+        "title": "Dữ kiện lá số đã trích xuất",
     }
 
 

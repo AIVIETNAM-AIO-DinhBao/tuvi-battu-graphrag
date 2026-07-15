@@ -550,7 +550,7 @@ def test_dry_run_retrieval_toggles_skip_independently(monkeypatch: pytest.Monkey
     assert trace_entry(state, "sparse_retrieval")["status"] == "skipped"
 
 
-def test_dry_run_retrieval_backend_failure_can_fallback_to_no_context_answer() -> None:
+def test_dry_run_retrieval_backend_failure_can_still_answer_from_chart_facts() -> None:
     config = config_with(dense_retrieval_enabled=True)
     driver = FailingDriver()
 
@@ -571,7 +571,8 @@ def test_dry_run_retrieval_backend_failure_can_fallback_to_no_context_answer() -
     assert state["dense_candidates"] == []
     assert state["sparse_candidates"] == []
     assert state["answer"]
-    assert state["generation_metadata"]["fallback_reason"] == "no_context"
+    assert state["generation_metadata"]["fallback_reason"] is None
+    assert state["context_chunks"][0]["citation_marker"] == "CHART"
     assert trace_entry(state, "graph_retrieval")["status"] == "fallback"
     assert trace_entry(state, "graph_retrieval")["fallback_reason"] == "retrieval_backend_unavailable"
     assert trace_entry(state, "dense_retrieval")["status"] == "fallback"

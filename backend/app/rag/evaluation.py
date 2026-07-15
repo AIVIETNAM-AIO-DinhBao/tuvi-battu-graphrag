@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -26,6 +25,7 @@ from app.rag.ablation import (
     load_ablation_manifest,
 )
 from app.rag.config import ExperimentConfig, config_hash
+from app.rag.gemini_keys import get_primary_runtime_gemini_api_key, load_runtime_gemini_api_keys
 from app.rag.generation import DeterministicGenerationClient
 from app.rag.graph import run_rag_dry_run
 from app.rag.rewrite import PassthroughQueryRewriter
@@ -198,16 +198,15 @@ class GeminiEvaluationJudge:
         self.max_output_tokens = max_output_tokens
 
     def _api_key(self) -> str:
+        return get_primary_runtime_gemini_api_key("W6 Gemini evaluation judge", explicit_api_key=self.api_key)
+
+    def _api_keys(self) -> list[str]:
         if self.api_key:
-            return self.api_key
-        combined = os.getenv("GEMINI_API_KEYS") or ""
-        keys = [key.strip() for key in combined.split(",") if key.strip()]
-        if keys:
-            return keys[0]
-        key = os.getenv("GEMINI_API_KEY")
-        if key:
-            return key
-        raise RuntimeError("GEMINI_API_KEY or GEMINI_API_KEYS is required for W6 Gemini evaluation judge.")
+            return [self.api_key]
+        keys = load_runtime_gemini_api_keys()
+        if not keys:
+            self._api_key()
+        return keys
 
     def evaluate(
         self,
@@ -222,15 +221,30 @@ class GeminiEvaluationJudge:
             raise RuntimeError("google-generativeai is required for W6 Gemini evaluation judge.") from exc
 
         prompt = build_gemini_judge_prompt(item=item, state=state, config=config)
-        genai.configure(api_key=self._api_key())
-        model = genai.GenerativeModel(self.model)
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": self.temperature,
-                "max_output_tokens": self.max_output_tokens,
-            },
-        )
+        last_exc: Exception | None = None
+        keys = self._api_keys()
+        response: Any | None = None
+        for index, api_key in enumerate(keys, start=1):
+            try:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel(self.model)
+                response = model.generate_content(
+                    prompt,
+                    generation_config={
+                        "temperature": self.temperature,
+                        "max_output_tokens": self.max_output_tokens,
+                    },
+                )
+                break
+            except Exception as exc:
+                last_exc = exc
+                if self.api_key or index >= len(keys):
+                    break
+                continue
+        if response is None:
+            if last_exc is not None:
+                raise RuntimeError(f"W6 Gemini evaluation judge failed after {len(keys)} runtime key(s): {last_exc}") from last_exc
+            raise RuntimeError("GEMINI_API_KEY or GEMINI_API_KEYS is required for W6 Gemini evaluation judge.")
         raw_text = str(getattr(response, "text", "") or "").strip()
         payload = extract_json_object(raw_text)
         reasons_payload = payload.get("reasons") if isinstance(payload.get("reasons"), dict) else {}

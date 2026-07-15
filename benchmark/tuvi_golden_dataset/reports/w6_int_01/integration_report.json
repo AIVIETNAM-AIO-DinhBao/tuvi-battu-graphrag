@@ -1,0 +1,435 @@
+{
+  "bug_summary": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0
+  },
+  "bugs": [],
+  "chart_input": {
+    "birth_date": "1998-03-18",
+    "birth_time": "07:30",
+    "gender": "male",
+    "label": "W6 INT 01 Test Chart",
+    "nam_xem_han": 2026
+  },
+  "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+  "completed_at": "2026-07-15T13:05:03.228709Z",
+  "config_hash": "7f3d735a1468fe3edb17c300aff5bfa56ab6993035a83f39e30d2a04e94fa6e6",
+  "config_path": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\configs\\w6_integration_candidate.yaml",
+  "dense_retrieval_enabled": false,
+  "duration_ms": 43004.27,
+  "experiment_id": "w6_int_01_candidate_semantic_bge_m3",
+  "interpretation_vi": "Luồng backend/chart/RAG smoke không có P0; tiếp tục kiểm checklist thủ công cho login/UI.",
+  "manual_browser_checklist": {
+    "path": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w6_int_01\\manual_checklist.md",
+    "reason": "Repo chưa có Playwright/Cypress; login Supabase Auth và UI dashboard/chart detail cần kiểm thủ công.",
+    "status": "pending_manual_verification"
+  },
+  "questions": [
+    {
+      "answer_chars": 272,
+      "candidate_counts": {
+        "context": 8,
+        "dense": 0,
+        "fused": 48,
+        "graph": 10,
+        "sparse": 38
+      },
+      "expected_complexity": "Direct",
+      "final_selected_retrieval_paths": [
+        "sparse"
+      ],
+      "generation_metadata": {
+        "fallback_reason": null,
+        "generation_model": "deterministic-test",
+        "prompt_chars": 8397,
+        "prompt_template_id": "tuvi_generation_v1",
+        "raw_response_present": false
+      },
+      "has_citation_marker_in_answer": true,
+      "id": "factual_chart_fact",
+      "kind": "factual",
+      "latency_ms": 10652.81,
+      "missing_evidence_roles": [
+        "star_definition"
+      ],
+      "passed": true,
+      "question": "Lá số này có Mệnh ở cung nào và có những sao chính nào?",
+      "question_complexity": "One-hop",
+      "question_family": "menh_house_interpretation",
+      "require_citation": false,
+      "require_source": false,
+      "sample_sources": [
+        {
+          "chunk_hash": "2e80a0ddace85f3abab646a6c15fae028251a582b007393efe04f0f744130aba",
+          "chunk_id": "TVHS_chunk_semantic_embedding_bge_m3_chunk_000401",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "citation_marker": "S1",
+          "confidence": 0.441655,
+          "excerpt": "- Thiên Tướng, Riêu, Y và Thiên Quan, Thiên Phúc: Bác sĩ rất mát tay, lương y chữa bệnh giỏi. - Cơ, Nguyệt, Đồng, Lương, Thiên Quan, Thiên Phúc: Lương y, người hảo tâm, phước thiện, hay làm công tác xã hội. - Tử, Tham đồng cung: Đi tu, cứu được nhiều người. 3. Ý NGHĨA Ở CÁC CUNG KHÁC Đóng ở bất luận cung nào, hai cung này đều mang lại sự lành, sự thiện cho cung đó, tốt nhất là ở cung Mệnh, Thân, Phúc, Di, Tật. a) Ở Quan hay Di, Mệnh: Hay giúp đỡ người khác và được nhiều kẻ khác giúp đỡ. b) Ở Tài: Hay dùng tiền bố thí, cúng dường, sử dụng tiền bạc vào mục đích lương thiện, xã hội. c) Ở Điền: Có khi hiến tiền, nhà cửa cho việc nghĩa. d) Ở Hạn: Được nâng đỡ, giúp đỡ trong công danh, tiền bạc. T",
+          "provenance": {
+            "char_end": 1383,
+            "char_start": 0,
+            "chunk_hash": "2e80a0ddace85f3abab646a6c15fae028251a582b007393efe04f0f744130aba",
+            "chunk_id": "TVHS_chunk_semantic_embedding_bge_m3_chunk_000401",
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "input_format": "clean_json",
+            "page_book": 215,
+            "page_pdf_end": 215,
+            "page_pdf_start": 215,
+            "section_id": "TVHS_P215_215_SEC210",
+            "source_id": "TVHS",
+            "source_name": "Tử Vi Hàm Số",
+            "source_page": 215
+          },
+          "retrieval_paths": [
+            "sparse"
+          ],
+          "score": 0.014925,
+          "source_id": "TVHS",
+          "source_name": "Tử Vi Hàm Số",
+          "source_page": 215,
+          "title": "TVHS_P215_215_SEC210",
+          "used_in_answer": true
+        },
+        {
+          "chunk_hash": "6eba6ac5443821c5fc81c59066879ba72aae39496973dda8818384d51421c9d8",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000014",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "citation_marker": "S2",
+          "confidence": 0.441644,
+          "excerpt": "Ngũ hành của các chi được quy định như sau: - Thìn hành Thổ. - Dậu hành Kim. - Mão hành Mộc. - Tuất hành Thổ. - Dần hành Mộc. - Sửu hành Thổ. - Tí hành Thủy. - Hợi hành Thủy. Cung có hành riêng, Mệnh có hành riêng. Tùy theo năm sinh ta tính được Mệnh thuộc hành Kim, Mộc, Thủy, Hỏa, hay Thổ. Để ngắn gọn ta gọi hành của Mệnh là Mệnh. Cục cũng có hành của Cục. Khi nói hành của cục là ý nói cục thuộc hành Kim, Mộc, Thủy, Hỏa hay Thổ. Để ngắn gọn, ta gọi hành của Cục là Cục. Ngũ hành có thể tương sinh như: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc… Ngũ hành có thể tương khắc như: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc. Nếu ta coi ngũ hà",
+          "provenance": {
+            "char_end": 1393,
+            "char_start": 0,
+            "chunk_hash": "6eba6ac5443821c5fc81c59066879ba72aae39496973dda8818384d51421c9d8",
+            "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000014",
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "input_format": "clean_json",
+            "page_book": null,
+            "page_pdf_end": 7,
+            "page_pdf_start": 7,
+            "section_id": "TVKL_P7_7_SEC07",
+            "source_id": "TVKL",
+            "source_name": "Tử Vi Khảo Luận",
+            "source_page": 7
+          },
+          "retrieval_paths": [
+            "sparse"
+          ],
+          "score": 0.014706,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 7,
+          "title": "TVKL_P7_7_SEC07",
+          "used_in_answer": true
+        }
+      ],
+      "selected_evidence_roles": [
+        "generic",
+        "house_scope",
+        "modifier_effect"
+      ],
+      "source_count": 2
+    },
+    {
+      "answer_chars": 288,
+      "candidate_counts": {
+        "context": 8,
+        "dense": 0,
+        "fused": 61,
+        "graph": 10,
+        "sparse": 51
+      },
+      "expected_complexity": "One-hop",
+      "final_selected_retrieval_paths": [
+        "sparse",
+        "graph"
+      ],
+      "generation_metadata": {
+        "fallback_reason": null,
+        "generation_model": "deterministic-test",
+        "prompt_chars": 8501,
+        "prompt_template_id": "tuvi_generation_v1",
+        "raw_response_present": false
+      },
+      "has_citation_marker_in_answer": true,
+      "id": "interpretive_menh",
+      "kind": "interpretive",
+      "latency_ms": 18553.89,
+      "missing_evidence_roles": [],
+      "passed": true,
+      "question": "Mệnh có các sao chính như vậy thì nên hiểu tính cách tổng quan thế nào?",
+      "question_complexity": "Two-hop",
+      "question_family": "synthesis_judgement",
+      "require_citation": true,
+      "require_source": true,
+      "sample_sources": [
+        {
+          "chunk_hash": "3eb9f9826b2c4d3cda2b1ae3d9d3c0884034eee2156e22517a96acbd471ba7c0",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000164",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "citation_marker": "S1",
+          "confidence": 0.42582,
+          "excerpt": "Mệnh: - Thiên đồng là chủ tể cung Phúc đức. - Mệnh có Thiên đồng là người khiêm tốn, ôn hòa, văn mặc tinh thông, nhiều ý chí nhưng không hung bạo. - Thiên đồng đắc địa là người thông minh nhưng không quả quyết, tuy vậy vẫn được hưởng giàu sang và phúc thọ song toàn. - Thiên đồng đắc địa lại gặp nhiều sao sáng sủa tốt đẹp như Xương, Khúc, Khôi, Việt, Tả, Hữu, Khoa, Quyền, Lộc chắc chắn phú quý tột bực, nhưng gặp nhiều sao mờ ám xấu xa như sát tinh, Hình, Kỵ thì bị lao tâm khổ tứ, sức khỏe suy kém. - Thiên đồng hãm địa tại Thìn, Tuất, Sửu, Mùi là người hay khoác lác, không cẩn ngôn. Phu thê: - Gia đạo tốt đẹp nếu Đồng Lương hay Đồng Âm đồng cung ở Tí. - Gia đạo kém nếu Đồng ở Mão hay đồng với",
+          "provenance": {
+            "char_end": 1347,
+            "char_start": 0,
+            "chunk_hash": "3eb9f9826b2c4d3cda2b1ae3d9d3c0884034eee2156e22517a96acbd471ba7c0",
+            "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000164",
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "input_format": "clean_json",
+            "page_book": null,
+            "page_pdf_end": 90,
+            "page_pdf_start": 90,
+            "section_id": "TVKL_P90_90_SEC90",
+            "source_id": "TVKL",
+            "source_name": "Tử Vi Khảo Luận",
+            "source_page": 90
+          },
+          "retrieval_paths": [
+            "sparse"
+          ],
+          "score": 0.016393,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 90,
+          "title": "TVKL_P90_90_SEC90",
+          "used_in_answer": true
+        },
+        {
+          "chunk_hash": "ecabdb2f863ee1e257ad3e3fe3d9ff679d2816e3de8b87049cc818dd27964824",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000217",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "citation_marker": "S2",
+          "confidence": 0.300781,
+          "excerpt": "Di: - Ở Tí Ngọ: được trọng nể, dễ kiếm tiền, nhưng đôi khi mắc nạn nguy hiểm. - Ở Dần Thân: tai nạn xe cộ. - Đồng cung với Tử vi: gặp quý nhân. - Đồng cung với Vũ Liêm: may ít rủi nhiều. Quan lộc: - Ở Thìn Tuất: văn võ kiêm toàn, có uy quyền. - Ở Tí Ngọ hay đồng cung với Tử vi: thành công trong võ nghiệp nhưng thất thường. - Ở Dần Thân hay đồng cung với Vũ khúc: quân nhân thường chật vật, chậm lên chức, buôn bán, hay làm kỹ nghệ thì khéo tay. Điền: - Rất xấu, có sản nghiệp cũng khó giữ, trừ khi đóng ở Thìn Tuất hay đồng cung với Tử vi. Phúc: - Rất xấu, họ hàng ly tán, mình tha hương lập nghiệp. - Ở Tí Ngọ: được phúc, sống lâu. - Ở Dần Thân: kém phúc, họ hàng sa sút. - Đồng cung với Vũ Liêm h",
+          "provenance": {
+            "char_end": 1295,
+            "char_start": 0,
+            "chunk_hash": "ecabdb2f863ee1e257ad3e3fe3d9ff679d2816e3de8b87049cc818dd27964824",
+            "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000217",
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "input_format": "clean_json",
+            "page_book": null,
+            "page_pdf_end": 117,
+            "page_pdf_start": 117,
+            "section_id": "TVKL_P117_117_SEC117",
+            "source_id": "TVKL",
+            "source_name": "Tử Vi Khảo Luận",
+            "source_page": 117
+          },
+          "retrieval_paths": [
+            "sparse"
+          ],
+          "score": 0.015625,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 117,
+          "title": "TVKL_P117_117_SEC117",
+          "used_in_answer": true
+        }
+      ],
+      "selected_evidence_roles": [
+        "generic",
+        "house_scope",
+        "modifier_effect",
+        "relation_rule",
+        "combination_pattern",
+        "star_definition"
+      ],
+      "source_count": 2
+    },
+    {
+      "answer_chars": 305,
+      "candidate_counts": {
+        "context": 8,
+        "dense": 0,
+        "fused": 62,
+        "graph": 19,
+        "sparse": 44
+      },
+      "expected_complexity": "Two-hop",
+      "final_selected_retrieval_paths": [
+        "sparse"
+      ],
+      "generation_metadata": {
+        "fallback_reason": null,
+        "generation_model": "deterministic-test",
+        "prompt_chars": 8425,
+        "prompt_template_id": "tuvi_generation_v1",
+        "raw_response_present": false
+      },
+      "has_citation_marker_in_answer": true,
+      "id": "multi_hop_tam_hop_xung_chieu",
+      "kind": "multi-hop",
+      "latency_ms": 13741.21,
+      "missing_evidence_roles": [
+        "star_definition"
+      ],
+      "passed": true,
+      "question": "Hãy xét Mệnh, tam hợp và xung chiếu để nhận định điểm mạnh điểm yếu chính của lá số này.",
+      "question_complexity": "Two-hop",
+      "question_family": "menh_tam_hop",
+      "require_citation": true,
+      "require_source": true,
+      "sample_sources": [
+        {
+          "chunk_hash": "490ed991fa97d64352e96e3ce4c5719a05ece36f96bfe41baf35d67f8e2adbc3",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000269",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "citation_marker": "S1",
+          "confidence": 0.280644,
+          "excerpt": "Đi với Đà Kỵ, Thái tuế: bị thị phi kiện cáo, tai bay vạ gió, cũng dễ tù. 8. Tuế phá Sao Hỏa Tượng trưng cho: ngang ngược, chống đối, nổi loạn, phá tán. Tính nết: Bướng bỉnh nên hay bị kẹt. Chú ý: Thái tuế đối nghịch với Tuế phá, nhưng Thái tuế làm chủ được tình hình còn Tuế phá thì chỉ biết chống đối. Tuế phá ở các cung: - Tuế, Riêu ở Mệnh: du đãng. - Tuế Phá ở Di: ưa châm chọc người khác. - Tuế phá là sao điển hình một người tính nết trẻ con hay phá làng phá xóm. Tam hợp: Tuế phá, Tang môn, Điếu khách của vòng Thái tuế biểu hiện cho một người có tài, nhưng không được dùng đúng chỗ, cho nên bất mãn. 9. Long đức - Phúc đức Là những sao nhỏ có tính chất cứu giải, trung thực, dễ thương. Long đứ",
+          "provenance": {
+            "char_end": 1393,
+            "char_start": 0,
+            "chunk_hash": "490ed991fa97d64352e96e3ce4c5719a05ece36f96bfe41baf35d67f8e2adbc3",
+            "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000269",
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "input_format": "clean_json",
+            "page_book": null,
+            "page_pdf_end": 149,
+            "page_pdf_start": 149,
+            "section_id": "TVKL_P149_149_SEC149",
+            "source_id": "TVKL",
+            "source_name": "Tử Vi Khảo Luận",
+            "source_page": 149
+          },
+          "retrieval_paths": [
+            "sparse"
+          ],
+          "score": 0.016393,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 149,
+          "title": "TVKL_P149_149_SEC149",
+          "used_in_answer": true
+        },
+        {
+          "chunk_hash": "d673073a67361cc29201affdef2f1fff308dbc0cf07736c196fc3dc10f6d1a0a",
+          "chunk_id": "TVHS_chunk_semantic_embedding_bge_m3_chunk_000076",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "citation_marker": "S2",
+          "confidence": 0.202536,
+          "excerpt": "mình với xã hội bên ngoài, chức vị, địa vị, uy tín của mình ngoài xã hội, cái gì xã hội có thể mang cho mình. − Cuộc sống ngoại hôn của đương sự. − Tai nạn bên ngoài gây cho mình, bệnh tật mắc phải. − Cái chết, cách chết của mình, tình trạng lúc chết, cụ thể là nguyên nhân chết, phương cách chết, chết lúc xa nhà hay trở về quê… Trực chiếu vào Mệnh, cung Di rất quan trọng vì gây được ảnh hưởng trực tiếp và mật thiết trên tính tình, tác phong của con người. Ba cung Phúc, Phu Thê và Mệnh đều liên lạc nhau mật thiết và bàn Di, thì sự quan trọng của cung này càng tăng. Con người lúc bấy giờ hòa mình vào xã hội bên ngoài và tìm hạnh phúc ở đó: đây là trường hợp của Việt kiều hải ngoại, những người",
+          "provenance": {
+            "char_end": 1549,
+            "char_start": 0,
+            "chunk_hash": "d673073a67361cc29201affdef2f1fff308dbc0cf07736c196fc3dc10f6d1a0a",
+            "chunk_id": "TVHS_chunk_semantic_embedding_bge_m3_chunk_000076",
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "input_format": "clean_json",
+            "page_book": 45,
+            "page_pdf_end": 45,
+            "page_pdf_start": 45,
+            "section_id": "TVHS_P45_45_SEC40",
+            "source_id": "TVHS",
+            "source_name": "Tử Vi Hàm Số",
+            "source_page": 45
+          },
+          "retrieval_paths": [
+            "sparse"
+          ],
+          "score": 0.015625,
+          "source_id": "TVHS",
+          "source_name": "Tử Vi Hàm Số",
+          "source_page": 45,
+          "title": "TVHS_P45_45_SEC40",
+          "used_in_answer": true
+        }
+      ],
+      "selected_evidence_roles": [
+        "generic",
+        "relation_rule",
+        "combination_pattern",
+        "house_scope"
+      ],
+      "source_count": 2
+    }
+  ],
+  "retrieval_stack": {
+    "dense": false,
+    "fusion_method": "rrf",
+    "graph": true,
+    "reranker_enabled": true,
+    "sparse": true
+  },
+  "started_at": "2026-07-15T13:04:20.224435Z",
+  "status": "pass",
+  "steps": {
+    "chart_creation": {
+      "chart_type": "TUVI",
+      "latency_ms": 34.55,
+      "metadata": {
+        "birth_date": "1998-03-18",
+        "birth_time": "07:30",
+        "calculated_at": "2026-07-15T13:04:20.274297Z",
+        "can_chi_nam_xem": "Bính Ngọ",
+        "destiny_info": {
+          "amDuongLy": "Nghịch lý",
+          "banMenh": "Thành Đầu Thổ",
+          "canChiMenh": "Quý Hợi",
+          "canLuong": "3 luong 8 chi",
+          "chuMenh": "Loc Ton",
+          "chuThan": "Thien Luong",
+          "cucMenh": "Thủy nhị cục",
+          "cucMenhSource": "ngu_ho_don_nap_am",
+          "cucNguHanh": "Thủy",
+          "cungMenh": 12,
+          "cungThan": 8,
+          "laiNhanCung": "Mệnh (Hợi)",
+          "menhCucTuongQuan": "Mệnh khắc Cục",
+          "menhNguHanh": "Thổ",
+          "thanCu": "Tài Bạch (Mùi)"
+        },
+        "gender": "male",
+        "label": "W6 INT 01 Test Chart",
+        "nam_xem_han": 2026,
+        "personal_info": {
+          "amDuong": "Dương Nam",
+          "birthHour": {
+            "dia_chi": "Thìn",
+            "index": 5,
+            "range": "07h-09h"
+          },
+          "canChi": {
+            "day": null,
+            "hour": null,
+            "month": null,
+            "year": "Mậu Dần"
+          },
+          "diaChi": "Dần",
+          "gender": "Nam",
+          "lunarDate": {
+            "day": 20,
+            "leap_month": false,
+            "month": 1,
+            "source": "calculated",
+            "year": 1998
+          },
+          "solarDate": {
+            "day": 18,
+            "is_input_calendar": true,
+            "month": 3,
+            "year": 1998
+          },
+          "thienCan": "Mậu",
+          "timeZone": 7
+        }
+      },
+      "palace_count": 12,
+      "passed": true,
+      "status_code": 200
+    },
+    "health": {
+      "latency_ms": 13.29,
+      "passed": true,
+      "payload": {
+        "status": "ok"
+      },
+      "status_code": 200
+    }
+  },
+  "task_id": "W6-INT-01"
+}
