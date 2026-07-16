@@ -112,7 +112,7 @@ def build_chart_aware_fallback_answer(state: RAGState, *, backend_unavailable: b
         lines.append("")
         lines.append("Dữ kiện lá số đã trích xuất:")
         lines.extend(chart_lines)
-    elif "[CHART_FACTS]" in final_context:
+    elif "[CHART_FACTS]" in final_context or "[CHART]" in final_context:
         lines.append("")
         lines.append("Hệ thống có khối dữ kiện lá số trong context, nhưng chưa chuẩn hóa đủ để tóm tắt tự động.")
 
@@ -172,6 +172,14 @@ def chart_fact_answer_lines(chart_facts: dict[str, Any]) -> list[str]:
         if house.get("is_than_resident"):
             details.append("Thân cư tại cung này")
         lines.append(prefix + ("; " + "; ".join(details) if details else ""))
+    for relation in chart_facts.get("relations") or []:
+        if not isinstance(relation, dict):
+            continue
+        if relation.get("type") == "tam_hop" and relation.get("houses"):
+            name = relation.get("name") or "-".join(str(value) for value in relation.get("houses") or [])
+            houses = ", ".join(str(value) for value in relation.get("houses") or [])
+            status = "đã nhận diện trong lá số" if relation.get("available") else "chưa đủ quy tắc để xác nhận đầy đủ"
+            lines.append(f"- Tam hợp {name}: {houses}; {status}")
     return lines
 
 
@@ -212,7 +220,8 @@ def build_generation_prompt(state: RAGState, config: ExperimentConfig) -> str:
         "Dựa vào CONTEXT và lá số được cung cấp; không bịa nguồn, không suy diễn ngoài dữ liệu.\n"
         "Nếu CONTEXT không đủ, hãy nói rõ chưa đủ dữ liệu trong nguồn hiện có.\n"
         "Khi dùng thông tin từ nguồn sách, ghi citation dạng [S1], [S2]. "
-        "Khi dùng dữ kiện lá số trong khối [CHART_FACTS], ghi citation [CHART]. "
+        "Khi dùng dữ kiện lá số trong khối [CHART], ghi citation [CHART]. "
+        "Không viết marker [CHART_FACTS]; chỉ dùng [CHART] cho dữ kiện lá số. "
         "Không tự tạo marker [S1] nếu CONTEXT không có block [S1].\n\n"
         f"prompt_template_id: {config.prompt_template_id}\n"
         f"chunk_strategy_id: {config.chunk_strategy_id}\n"

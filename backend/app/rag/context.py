@@ -14,7 +14,8 @@ EXCERPT_CHARS = 700
 
 def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     candidates = select_candidate_pool(state)
-    ordered = order_candidates(candidates, strategy=config.context_assembly_strategy)
+    filtered_candidates, relevance_summary = filter_candidates_for_chart_relevance(candidates, state)
+    ordered = order_candidates(filtered_candidates, strategy=config.context_assembly_strategy)
     required_roles = required_evidence_roles_from_plan(state)
     role_aware_enabled = bool(required_roles)
     if role_aware_enabled:
@@ -47,6 +48,7 @@ def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, li
     )
     summary = {
         "candidate_pool_count": len(candidates),
+        "chart_relevance_filter": relevance_summary,
         "context_assembly_strategy": config.context_assembly_strategy,
         "chart_context_priority": "before_corpus_chunks",
         "has_chart_summary": bool(chart_summary.strip()),
@@ -70,6 +72,123 @@ def select_candidate_pool(state: RAGState) -> list[dict[str, Any]]:
         if candidates:
             return backfill_required_roles(candidates, state)
     return []
+
+
+def filter_candidates_for_chart_relevance(candidates: list[dict[str, Any]], state: RAGState) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Prefer corpus chunks that mention chart-target houses/stars.
+
+    This is a conservative quality gate for live chat. It does not require every
+    chunk to mention all targets, but when enough chunks overlap the chart facts,
+    it removes low-signal generic chunks that caused answers to cite unrelated
+    material, for example Thất Sát when the chart Mệnh has Thái Dương/Thiên Lương.
+    """
+    if not candidates:
+        return candidates, {"enabled": False, "reason": "no_candidates"}
+    target_terms = chart_relevance_terms(state)
+    strong_terms = [term for term in target_terms if term.get("kind") == "star"]
+    if not target_terms:
+        return candidates, {"enabled": False, "reason": "no_chart_target_terms"}
+    scored: list[dict[str, Any]] = []
+    for candidate in candidates:
+        item = dict(candidate)
+        hits = candidate_relevance_hits(item, target_terms)
+        item["chart_relevance_hits"] = hits
+        item["chart_relevance_hit_count"] = len(hits)
+        scored.append(item)
+    relevant = [item for item in scored if is_chart_relevant_candidate(item, strong_terms=strong_terms)]
+    role_aware = bool(required_evidence_roles_from_plan(state))
+    # Với role-aware questions, vẫn cho phép backfill theo role nếu chưa đủ nguồn
+    # liên quan; còn nếu đã đủ 3 nguồn liên quan thì loại generic chunks.
+    minimum_relevant = 2 if not role_aware else 3
+    if len(relevant) < minimum_relevant:
+        return scored, {
+            "enabled": True,
+            "mode": "annotate_only",
+            "reason": "not_enough_relevant_candidates",
+            "target_terms": [term["value"] for term in target_terms],
+            "relevant_count": len(relevant),
+            "input_count": len(candidates),
+            "output_count": len(scored),
+        }
+    identities = {candidate_identity(item) for item in relevant}
+    # Giữ thêm backfill role nếu role bắt buộc chưa được covered bởi relevant set.
+    covered_roles = {role for item in relevant for role in candidate_roles(item)}
+    required_roles = required_evidence_roles_from_plan(state)
+    output = list(relevant)
+    if required_roles:
+        for role in required_roles:
+            if role in covered_roles:
+                continue
+            for item in scored:
+                key = candidate_identity(item)
+                if key in identities or role not in candidate_roles(item):
+                    continue
+                item = dict(item)
+                item["chart_relevance_backfill_reason"] = f"missing_required_role:{role}"
+                output.append(item)
+                identities.add(key)
+                break
+    return output, {
+        "enabled": True,
+        "mode": "filter",
+        "target_terms": [term["value"] for term in target_terms],
+        "relevant_count": len(relevant),
+        "input_count": len(candidates),
+        "output_count": len(output),
+    }
+
+
+def chart_relevance_terms(state: RAGState) -> list[dict[str, str]]:
+    chart_facts = state.get("chart_facts") or {}
+    terms: list[dict[str, str]] = []
+    for value in chart_facts.get("target_houses") or []:
+        append_relevance_term(terms, str(value), kind="house")
+    for value in chart_facts.get("target_stars") or []:
+        append_relevance_term(terms, str(value), kind="star")
+    for house in chart_facts.get("house_facts") or []:
+        if not isinstance(house, dict):
+            continue
+        append_relevance_term(terms, str(house.get("house_name") or ""), kind="house")
+        for star in (house.get("major_stars") or []) + (house.get("aux_stars") or []):
+            if isinstance(star, dict):
+                append_relevance_term(terms, str(star.get("name") or ""), kind="star")
+    return [term for term in terms if normalize_text(term.get("value"))]
+
+
+def candidate_relevance_hits(candidate: dict[str, Any], target_terms: list[dict[str, str]]) -> list[dict[str, str]]:
+    haystack = normalize_text(
+        " ".join(
+            [
+                str(candidate.get("text") or ""),
+                str(candidate.get("excerpt") or ""),
+                str(candidate.get("title") or ""),
+                " ".join(str(value) for value in candidate.get("matched_entities") or []),
+            ]
+        )
+    )
+    hits: list[dict[str, str]] = []
+    for term in target_terms:
+        normalized = normalize_text(term.get("value"))
+        if normalized and normalized in haystack:
+            append_relevance_term(hits, term.get("value") or "", kind=term.get("kind") or "term")
+    return hits
+
+
+def is_chart_relevant_candidate(candidate: dict[str, Any], *, strong_terms: list[dict[str, str]]) -> bool:
+    hits = candidate.get("chart_relevance_hits") or []
+    if any(hit.get("kind") == "star" for hit in hits if isinstance(hit, dict)):
+        return True
+    roles = set(candidate_roles(candidate))
+    if roles & {"house_scope", "relation_rule", "combination_pattern"} and hits:
+        return True
+    # Nếu không có sao mục tiêu nào, house-only vẫn là tín hiệu tốt nhất.
+    return bool(hits) and not strong_terms
+
+
+def append_relevance_term(values: list[dict[str, str]], value: str, *, kind: str) -> None:
+    text = str(value or "").strip()
+    if text and not any(normalize_text(item.get("value")) == normalize_text(text) and item.get("kind") == kind for item in values):
+        values.append({"value": text, "kind": kind})
 
 
 def backfill_required_roles(candidates: list[dict[str, Any]], state: RAGState) -> list[dict[str, Any]]:
@@ -420,3 +539,13 @@ def unique_strings(values: list[Any]) -> list[str]:
         if text and text not in result:
             result.append(text)
     return result
+
+
+def append_unique(values: list[str], value: str) -> None:
+    text = str(value or "").strip()
+    if text and text not in values:
+        values.append(text)
+
+
+def normalize_text(value: Any) -> str:
+    return " ".join(str(value or "").casefold().split())

@@ -79,7 +79,7 @@ def test_context_assembly_balanced_uses_relevance_before_multipath_and_preserves
     assert chunks[1]["citation_marker"] == "S1"
     assert chunks[1]["provenance"]["source_id"] == "TVKL"
     assert "[CHART]" in final_context
-    assert "[CHART_FACTS]" in final_context
+    assert "[CHART]" in final_context
     assert "[S1]" in final_context
     assert summary["selected_count"] == 2
     assert summary["has_chart_facts"] is True
@@ -109,7 +109,8 @@ def test_context_assembly_adds_chart_synthetic_source_before_corpus_sources() ->
 
     final_context, chunks, summary = assemble_context(state, config)
 
-    assert "[CHART_FACTS]" in final_context
+    assert "[CHART]" in final_context
+    assert "[CHART_FACTS]" not in final_context
     assert chunks[0]["citation_marker"] == "CHART"
     assert chunks[0]["source_id"] == "CHART"
     assert summary["selected_count"] == 0
@@ -193,6 +194,38 @@ def test_context_block_renders_role_metadata_for_generation_prompt() -> None:
     assert chunks[0]["evidence_roles"] == ["generic", "star_definition"]
     assert "evidence_roles: generic, star_definition" in final_context
     assert "retrieval_intent: define_star" in final_context
+
+
+def test_context_assembly_filters_low_signal_chunks_when_chart_relevance_is_available() -> None:
+    config = config_with(context_assembly_strategy="balanced")
+    state = {
+        "chart_facts": {
+            "chart_available": True,
+            "summary": {},
+            "house_facts": [
+                {
+                    "house_name": "Mệnh",
+                    "major_stars": [{"name": "Thái Dương"}, {"name": "Thiên Lương"}],
+                    "aux_stars": [{"name": "Lộc Tồn"}, {"name": "Tuế Phá"}],
+                }
+            ],
+            "target_houses": ["Mệnh"],
+            "target_stars": ["Thái Dương", "Thiên Lương", "Lộc Tồn", "Tuế Phá"],
+        },
+        "ranked_candidates": [
+            candidate("unrelated-thatsat", score=0.99, text="Thất Sát ở Mệnh chủ uy quyền nhưng nóng nảy."),
+            candidate("thai-duong", score=0.8, text="Thái Dương tại Mệnh chủ sáng sủa, quang minh."),
+            candidate("thien-luong", score=0.7, text="Thiên Lương tại Mệnh chủ nhân hậu và phúc thiện."),
+        ],
+    }
+
+    _final_context, chunks, summary = assemble_context(state, config)
+
+    selected_ids = [chunk["chunk_id"] for chunk in chunks if chunk.get("source_id") != "CHART"]
+    assert selected_ids == ["thai-duong", "thien-luong"]
+    assert summary["chart_relevance_filter"]["mode"] == "filter"
+    assert summary["chart_relevance_filter"]["input_count"] == 3
+    assert summary["chart_relevance_filter"]["output_count"] == 2
 
 
 def test_context_assembly_strategy_ordering_can_change_order() -> None:

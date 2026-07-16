@@ -47,7 +47,7 @@ def test_extract_chart_facts_from_palaces_v1_and_formats_context() -> None:
 
     assert facts["chart_schema_detected"] == "palaces_v1"
     assert facts["house_facts"][0]["major_stars"][0]["name"] == "Tử Vi"
-    assert "[CHART_FACTS]" in block
+    assert "[CHART]" in block
     assert "[CUNG Mệnh]" in block
     assert "Tử Vi (Miếu)" in block
 
@@ -87,3 +87,39 @@ def test_extract_chart_facts_unknown_shape_is_defensive() -> None:
     assert facts["chart_schema_detected"] == "unknown"
     assert facts["house_facts"] == []
     assert "chart_schema_unknown" in facts["warnings"]
+
+
+def test_extract_chart_facts_locks_explicit_house_triad_and_formats_relation() -> None:
+    chart_data = {
+        "chart_type": "TUVI",
+        "houses": [
+            {"house_name": "Phúc Đức", "major_stars": [{"name": "Thiên Cơ"}]},
+            {"house_name": "Phu Thê", "major_stars": [{"name": "Thiên Đồng"}, {"name": "Cự Môn"}]},
+            {"house_name": "Thiên Di", "aux_stars": [{"name": "Thái Tuế"}]},
+            {"house_name": "Phụ Mẫu", "major_stars": [{"name": "Thất Sát"}]},
+        ],
+    }
+    retrieval_plan = {
+        "target_houses": ["Phúc Đức", "Phu Thê", "Thiên Di"],
+        "target_houses_source": "query_alias_parser",
+        "chart_fact_intents": ["tam_hop", "house_facts", "star_facts"],
+        "explicit_house_triad": {
+            "type": "house_triad",
+            "name": "Phúc-Phối-Di",
+            "houses": ["Phúc Đức", "Phu Thê", "Thiên Di"],
+            "available": True,
+            "source": "tuvi_house_ontology",
+            "explicit": True,
+            "recognized_standard_triad": True,
+        },
+    }
+    noisy_entities = [{"canonical_name": "Phụ Mẫu", "entity_type": "Cung"}]
+
+    facts = extract_chart_facts(chart_data, noisy_entities, retrieval_plan)
+    block = build_chart_fact_context_block(facts)
+
+    assert facts["target_houses"] == ["Phúc Đức", "Phu Thê", "Thiên Di"]
+    assert [house["house_name"] for house in facts["house_facts"]] == ["Phúc Đức", "Phu Thê", "Thiên Di"]
+    assert facts["relations"][0]["name"] == "Phúc-Phối-Di"
+    assert "Tam hợp Phúc-Phối-Di" in block
+    assert "[CUNG Phụ Mẫu]" not in block

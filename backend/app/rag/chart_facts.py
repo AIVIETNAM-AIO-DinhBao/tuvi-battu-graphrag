@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.rag.house_ontology import canonical_house_name, find_house_triad, triads_for_target_houses
+
 
 EXTRACTOR_VERSION = "w6_rag_03_v1"
 SPECIAL_STATE_TERMS = {"Tuần", "Triệt", "Tuần Không", "Triệt Không"}
@@ -197,10 +199,20 @@ def find_target_houses(
     query_entities: list[dict[str, Any]],
     retrieval_plan: dict[str, Any],
 ) -> list[str]:
-    targets: list[str] = [str(value) for value in retrieval_plan.get("target_houses") or [] if str(value).strip()]
+    targets: list[str] = []
+    for value in retrieval_plan.get("target_houses") or []:
+        canonical = canonical_house_name(str(value)) or str(value).strip()
+        append_unique(targets, canonical)
+    # Nếu planner đã khóa bộ cung từ câu hỏi tam hợp tường minh, không trộn thêm
+    # entity nhiễu. Trường hợp người dùng hỏi "tam hợp Phúc-Phối-Di" từng bị
+    # runtime entity extraction thêm nhầm Phụ Mẫu; khóa ở đây giúp chart facts và
+    # context chỉ bám đúng ba cung người dùng nêu.
+    if retrieval_plan.get("explicit_house_triad") or retrieval_plan.get("target_houses_source") == "query_alias_parser":
+        return targets
     for entity in query_entities:
         if str(entity.get("entity_type") or "").casefold() == "cung":
-            append_unique(targets, str(entity.get("canonical_name") or ""))
+            canonical = canonical_house_name(str(entity.get("canonical_name") or "")) or str(entity.get("canonical_name") or "")
+            append_unique(targets, canonical)
     if "Mệnh" in targets:
         menh_house = next((house for house in houses if house.get("is_menh")), None)
         if menh_house and menh_house.get("house_name"):
@@ -243,7 +255,7 @@ def build_house_fact(house: dict[str, Any], normalized_chart: dict[str, Any]) ->
 def build_chart_fact_context_block(chart_facts: dict[str, Any]) -> str:
     if not isinstance(chart_facts, dict) or not chart_facts.get("chart_available"):
         return ""
-    lines = ["[CHART_FACTS] Dữ kiện lá số đã trích xuất"]
+    lines = ["[CHART] Dữ kiện lá số đã trích xuất"]
     summary = chart_facts.get("summary") or {}
     labels = {
         "menh_position": "Mệnh",
@@ -268,6 +280,11 @@ def build_chart_fact_context_block(chart_facts: dict[str, Any]) -> str:
             lines.append(f"- Phụ tinh: {aux}")
         lines.append(f"- Tuần/Triệt: {format_tuan_triet(house)}")
         lines.append(f"- Thân cư tại cung này: {'có' if house.get('is_than_resident') else 'không'}")
+    relation_lines = format_relation_lines(chart_facts.get("relations") or [])
+    if relation_lines:
+        lines.append("")
+        lines.append("[LIÊN HỆ CUNG]")
+        lines.extend(relation_lines)
     return "\n".join(lines).strip()
 
 
@@ -285,19 +302,54 @@ def should_include_house(house: dict[str, Any], target_houses: list[str], target
 
 def build_relation_placeholders(retrieval_plan: dict[str, Any], target_houses: list[str]) -> list[dict[str, Any]]:
     intents = set(retrieval_plan.get("chart_fact_intents") or [])
-    relations = []
-    for relation_type in ("tam_hop", "xung_chieu"):
-        if relation_type in intents:
+    relations: list[dict[str, Any]] = []
+    if "tam_hop" in intents:
+        explicit = retrieval_plan.get("explicit_house_triad") if isinstance(retrieval_plan.get("explicit_house_triad"), dict) else None
+        if explicit:
+            relations.append({**explicit, "type": "tam_hop"})
+        else:
+            known = find_house_triad(target_houses)
+            if known:
+                relations.append({"type": "tam_hop", **known})
+            else:
+                relations.extend({"type": "tam_hop", **triad} for triad in triads_for_target_houses(target_houses))
+        if not relations:
             relations.append(
                 {
-                    "type": relation_type,
+                    "type": "tam_hop",
                     "anchor_house": target_houses[0] if target_houses else None,
                     "houses": target_houses,
                     "available": False,
-                    "reason": "relation_algorithm_not_enabled",
+                    "reason": "tam_hop_not_identified_from_target_houses",
                 }
             )
+    if "xung_chieu" in intents:
+        relations.append(
+            {
+                "type": "xung_chieu",
+                "anchor_house": target_houses[0] if target_houses else None,
+                "houses": target_houses,
+                "available": False,
+                "reason": "xung_chieu_algorithm_not_enabled",
+            }
+        )
     return relations
+
+
+def format_relation_lines(relations: list[dict[str, Any]]) -> list[str]:
+    lines: list[str] = []
+    for relation in relations:
+        if not isinstance(relation, dict):
+            continue
+        relation_type = str(relation.get("type") or "").strip()
+        houses = [str(value) for value in relation.get("houses") or [] if str(value).strip()]
+        if relation_type == "tam_hop" and houses:
+            status = "đã nhận diện" if relation.get("available") else f"chưa đủ thuật toán ({relation.get('reason')})"
+            name = relation.get("name") or "-".join(houses)
+            lines.append(f"- Tam hợp {name}: {', '.join(houses)}; trạng thái: {status}")
+        elif relation_type:
+            lines.append(f"- {relation_type}: {', '.join(houses) if houses else 'chưa xác định'}")
+    return lines
 
 
 def verify_fact_claims(house_facts: list[dict[str, Any]], target_houses: list[str], target_stars: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:

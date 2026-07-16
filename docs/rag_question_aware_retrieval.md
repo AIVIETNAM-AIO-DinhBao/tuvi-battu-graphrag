@@ -260,6 +260,36 @@ has_chart_facts
 
 This avoids a failure mode where the top-ranked chunks all support the same role while another required role is missing.
 
+### 9.1 Chốt lại sau kiểm thử chat thật ngày 2026-07-16
+
+Sau khi kiểm thử ba nhóm câu hỏi trong giao diện thật, có hai lỗi chất lượng được phát hiện:
+
+1. Câu factual về lá số đã đúng hơn, nhưng citation fallback còn kéo nhiều nguồn sách không cần thiết cho câu hỏi chỉ cần dữ kiện lá số.
+2. Câu interpretive và multi-hop đôi khi giữ chunk có chữ “Mệnh” nhưng nói về sao không có trong lá số, ví dụ chunk về Thất Sát trong khi cung Mệnh thực tế có Thái Dương và Thiên Lương.
+3. Câu “tam hợp Phúc-Phối-Di” từng bị entity extraction thêm nhầm cung Phụ Mẫu vào chart facts.
+
+Các sửa đổi đã thêm:
+
+- Khối dữ kiện lá số giờ dùng marker chính thức `[CHART]`, không dùng `[CHART_FACTS]` trong context mới. Citation mapper vẫn hiểu `[CHART_FACTS]` như alias cũ để không vỡ dữ liệu hoặc câu trả lời cũ.
+- `chart_facts` khóa `target_houses` khi planner đã nhận diện tam hợp tường minh từ câu hỏi, ví dụ `Phúc-Phối-Di`; entity nhiễu không được tự thêm cung khác.
+- `chart_facts` ghi quan hệ tam hợp đã nhận diện vào phần `[LIÊN HỆ CUNG]`, ví dụ `Tam hợp Phúc-Phối-Di: Phúc Đức, Phu Thê, Thiên Di`.
+- Context assembly có thêm `chart_relevance_filter`: khi đã có đủ candidate chạm tới sao/cung trong lá số, hệ thống loại bớt chunk chỉ liên quan hời hợt. House-only hit vẫn được giữ cho vai trò `house_scope`, `relation_rule`, `combination_pattern`, nhưng với câu luận sao thì ưu tiên chunk có sao thật trong lá số.
+- Prompt generation yêu cầu model chỉ dùng `[CHART]` cho dữ kiện lá số, tránh sinh marker lỗi dạng `[[CHART]_FACTS]`.
+
+Các test liên quan:
+
+```powershell
+cd backend
+python -m pytest tests/test_rag_chart_facts.py tests/test_rag_context_generation_citations.py tests/test_rag_planner.py tests/test_rag_dry_run.py -q
+python -m pytest tests/test_rag_diagnostics.py tests/test_rag_role_retrieval.py tests/test_rag_retrieval.py tests/test_rag_ranking.py -q
+```
+
+Kỳ vọng sau sửa:
+
+- Factual chart QA nên trả lời từ `[CHART]` là chính, không cần kéo nhiều nguồn sách nếu câu hỏi chỉ hỏi sao/cung nằm trong lá số.
+- Interpretive QA vẫn dùng nguồn sách, nhưng nguồn được chọn nên bám hơn vào sao/cung có thật trong chart facts.
+- Multi-hop về tam hợp cung phải giữ đúng bộ cung người dùng hỏi; không được tự thêm cung thứ tư do entity extraction nhiễu.
+
 ---
 
 ## 10. Diagnostics and evaluation aggregation / Diagnostics và aggregation

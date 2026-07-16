@@ -2425,6 +2425,80 @@ python scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --j
 
 ---
 
+## Hotfix chất lượng RAG sau kiểm thử live W6-RAG-05/W6-RAG-06 - 2026-07-16
+
+### Bối cảnh
+Sau khi W6-RAG-05 đã cài đặt xong, kiểm thử chat thật cho thấy pipeline đã chạy được end-to-end nhưng còn ba vấn đề chất lượng:
+
+- Câu factual như “Cung Mệnh của lá số này nằm ở đâu và có sao nào?” đã lấy đúng chart facts, nhưng context/citation còn dễ kéo thêm nguồn sách không cần thiết.
+- Câu luận Mệnh có thể giữ chunk về sao không có trong lá số, ví dụ chunk Thất Sát trong khi Mệnh thực tế có Thiên Lương/Thái Dương.
+- Câu “tam hợp Phúc-Phối-Di” có lúc bị entity extraction thêm nhầm cung Phụ Mẫu vào `target_houses`/chart facts.
+
+### Thay đổi đã làm
+
+1. `backend/app/rag/chart_facts.py`
+   - Khóa `target_houses` khi planner đã nhận diện tam hợp tường minh từ câu hỏi.
+   - Canonical hóa tên cung từ retrieval plan/query entities.
+   - Sinh relation tam hợp thật từ `explicit_house_triad` hoặc ontology cung thay vì placeholder chung.
+   - Render quan hệ vào block `[LIÊN HỆ CUNG]`.
+   - Đổi header chart facts context từ `[CHART_FACTS]` sang `[CHART]` để tránh model sinh marker lỗi kiểu `[[CHART]_FACTS]`.
+
+2. `backend/app/rag/context.py`
+   - Thêm `chart_relevance_filter` trước bước order/select context.
+   - Khi đã có đủ candidate chạm tới sao/cung trong lá số, loại bớt chunks lệch trọng tâm.
+   - Ưu tiên sao thật trong lá số; house-only hit vẫn được giữ cho role `house_scope`, `relation_rule`, `combination_pattern`.
+   - Ghi metadata `context_summary.chart_relevance_filter` để debug.
+
+3. `backend/app/rag/generation.py`
+   - Prompt yêu cầu chỉ dùng `[CHART]` cho dữ kiện lá số.
+   - Fallback vẫn tương thích context cũ có `[CHART_FACTS]`.
+   - Fallback answer có thể tóm tắt relation tam hợp đã nhận diện.
+
+4. Tests cập nhật/thêm mới
+   - `backend/tests/test_rag_chart_facts.py`
+   - `backend/tests/test_rag_context_generation_citations.py`
+   - `backend/tests/test_rag_dry_run.py`
+
+5. Tài liệu cập nhật
+   - `docs/rag_question_aware_retrieval.md`
+
+### Verification
+
+Đã chạy pass:
+
+```powershell
+cd backend
+python -m pytest tests/test_rag_chart_facts.py tests/test_rag_context_generation_citations.py tests/test_rag_planner.py tests/test_rag_dry_run.py -q
+```
+
+Kết quả:
+
+```text
+36 passed, 1 warning
+```
+
+Đã chạy thêm regression retrieval/ranking:
+
+```powershell
+cd backend
+python -m pytest tests/test_rag_diagnostics.py tests/test_rag_role_retrieval.py tests/test_rag_retrieval.py tests/test_rag_ranking.py -q
+```
+
+Kết quả:
+
+```text
+33 passed, 1 warning
+```
+
+### Trạng thái
+Hotfix chất lượng context/chart facts đã hoàn tất ở mức unit/regression test. Bước tiếp theo nên kiểm thử lại 3 câu live trong UI hoặc API:
+
+1. factual chart QA về cung Mệnh;
+2. luận giải cung Mệnh có Thiên Lương/Thái Dương;
+3. tam hợp Phúc-Phối-Di.
+
+---
+
 ## Chốt W6-ABL-03 - Claim DONE theo balanced golden subset - 2026-07-15
 
 ### Quyết định chốt
