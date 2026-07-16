@@ -1056,7 +1056,7 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 
 **Deliverable:** Final evaluation report.
 **Depends on:** W6-EVAL-02, W8-EVAL-PREP-01, W8-EVAL-PREP-02, W8-EVAL-PREFLIGHT-01
-**Done when:** Report có đủ metric và pass/fail rõ.
+**Done when:** Full-100 và resume verification hoàn tất; report có đủ metric và verdict execution/quality/performance/human rõ. Task có thể COMPLETE với `PRODUCTION_HOLD` nếu evaluation hợp lệ nhưng target hoặc human gate chưa pass.
 
 ### W8-ABL-01 - Đóng gói báo cáo ablation cuối cùng
 

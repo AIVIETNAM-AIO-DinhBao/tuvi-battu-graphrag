@@ -1,0 +1,10 @@
+{
+  "adjudication_completed": false,
+  "all_100_lightweight_review_required": true,
+  "control_sample_count": 20,
+  "critical_defect_count": null,
+  "detailed_queue_count": 49,
+  "reviewer_1_completed": false,
+  "reviewer_2_completed": false,
+  "status": "HUMAN_PENDING"
+}

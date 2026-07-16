@@ -1,0 +1,11 @@
+{
+  "current_config": "default_production",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 0,
+  "expected_pair_count": 100,
+  "failed_pair_count": 0,
+  "processed_pair_count": 100,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 100,
+  "updated_at": "2026-07-16T19:16:10.641116Z"
+}

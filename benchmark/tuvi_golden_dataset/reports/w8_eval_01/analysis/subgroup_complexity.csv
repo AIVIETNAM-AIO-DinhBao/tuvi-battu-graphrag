@@ -1,0 +1,4 @@
+﻿group,item_count,chart_only_count,corpus_grounded_item_count,faithfulness_avg,answer_relevancy_avg,context_recall_avg,chart_context_grounding_avg,graph_hit_rate,citation_coverage_rate,p50_latency_ms,p95_latency_ms,retrieval_p50_ms,retrieval_p95_ms,generation_p95_ms,judge_p95_ms,evaluation_total_p95_ms,max_latency_ms,max_retrieval_latency_ms,attempt_gt1_count
+Direct,10,9,1,1.0,0.89,0.8,0.8889,0.0,0.75,999.5,1794.08,0.12,0.16,1762.42,1684.85,3277.6,1800.79,0.17,0
+One-hop,46,0,46,0.8239,0.6652,0.5978,,0.9783,0.9783,14383.42,25135.03,12851.67,23408.4,2271.12,1934.92,26504.59,57301.76,55525.55,0
+Two-hop,44,0,44,0.85,0.7364,0.6439,,0.9773,0.983,16003.17,29074.94,13590.13,26311.37,3007.2,2069.35,30659.87,76027.26,73722.17,0

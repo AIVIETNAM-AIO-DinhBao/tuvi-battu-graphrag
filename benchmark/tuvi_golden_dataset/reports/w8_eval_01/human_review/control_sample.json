@@ -1,0 +1,52 @@
+{
+  "chart_coverage": [
+    "CHART-001",
+    "CHART-003",
+    "CHART-004",
+    "CHART-005",
+    "CHART-006",
+    "CHART-007",
+    "CHART-008",
+    "CHART-009",
+    "CHART-010"
+  ],
+  "complexity_coverage": [
+    "Direct",
+    "One-hop",
+    "Two-hop"
+  ],
+  "family_coverage": [
+    "core_identity",
+    "menh_cuc_relation",
+    "menh_house_interpretation",
+    "menh_tam_hop",
+    "menh_xung_chieu",
+    "special_state_interpretation",
+    "synthesis_judgement",
+    "than_cu_interpretation",
+    "topic_house_plus_relations"
+  ],
+  "item_ids": [
+    "TVQA-037",
+    "TVQA-050",
+    "TVQA-085",
+    "TVQA-023",
+    "TVQA-076",
+    "TVQA-001",
+    "TVQA-074",
+    "TVQA-002",
+    "TVQA-036",
+    "TVQA-040",
+    "TVQA-073",
+    "TVQA-092",
+    "TVQA-059",
+    "TVQA-081",
+    "TVQA-009",
+    "TVQA-004",
+    "TVQA-064",
+    "TVQA-071",
+    "TVQA-025",
+    "TVQA-033"
+  ],
+  "selection": "first 20 non-triggered items by SHA-256(item_id)"
+}

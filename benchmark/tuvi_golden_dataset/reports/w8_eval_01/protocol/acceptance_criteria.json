@@ -1,0 +1,52 @@
+{
+  "task_id": "W8-EVAL-01",
+  "frozen_before_run": true,
+  "scope": {
+    "config_path": "configs/default_production.yaml",
+    "dataset_path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
+    "expected_item_count": 100,
+    "generation_model": "gemini-3.1-flash-lite-preview",
+    "judge_model": "gemini-3.1-flash-lite-preview"
+  },
+  "identity": {
+    "git_sha": "c32771fefb5bc14686660a43ab0bd3ba4d79d4b7",
+    "production_config_hash": "c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96",
+    "dataset_sha256": "90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c",
+    "evaluator_sha256": "9ae528d893159c4092c3129523da8d69a7a79a6ab5c32a132791158287eda314"
+  },
+  "run_validity": {
+    "expected_pair_count": 100,
+    "required_completed_pair_count": 100,
+    "maximum_failed_pair_count": 0,
+    "maximum_generation_backend_fallback_count": 0,
+    "maximum_retrieval_backend_fallback_count": 0,
+    "maximum_judge_failure_count": 0,
+    "maximum_citation_fallback_count": 0,
+    "required_answer_present_rate": 1.0,
+    "required_corpus_source_coverage_rate": 1.0,
+    "required_resume_executed_pair_count": 0,
+    "required_resume_resumed_pair_count": 100
+  },
+  "quality_thresholds": {
+    "faithfulness_avg_min": 0.8,
+    "answer_relevancy_avg_min": 0.75,
+    "context_recall_avg_min": 0.7,
+    "graph_hit_rate_min": 0.65,
+    "citation_coverage_rate_min": 0.9
+  },
+  "performance_thresholds_ms": {
+    "rag_p95_max": 8000,
+    "retrieval_p95_max": 3000
+  },
+  "denominator_policy": {
+    "faithfulness_and_relevancy": "all 100 completed items",
+    "retrieval_and_citation": "items where chart_only=false; expected 91 from non-empty gold_context_spans",
+    "chart_context_grounding": "items where chart_only=true; expected 9 from empty gold_context_spans",
+    "note": "Direct complexity and chart_only are not equivalent categories. Actual report classifications are authoritative and must reconcile to the dataset."
+  },
+  "verdicts": {
+    "overall_pass": "RUN_VALID + QUALITY_PASS + PERFORMANCE_PASS + HUMAN_PASS",
+    "hold": "valid run with quality, performance, or human gate not passing",
+    "invalid": "incomplete, identity-mismatched, or infrastructure-contaminated run"
+  }
+}

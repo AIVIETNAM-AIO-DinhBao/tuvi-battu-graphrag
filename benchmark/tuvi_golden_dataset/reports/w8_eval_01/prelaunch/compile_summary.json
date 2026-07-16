@@ -1,0 +1,6 @@
+﻿{
+    "command":  ".venv/Scripts/python.exe -m compileall -q backend/app scripts/run_eval.py",
+    "exit_code":  0,
+    "duration_seconds":  0.14,
+    "passed":  true
+}

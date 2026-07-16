@@ -1,0 +1,18 @@
+﻿{
+    "status":  "failed",
+    "worker_pid":  4308,
+    "evaluator_pid":  10500,
+    "heartbeat_at":  "2026-07-16T19:13:39.2724791Z",
+    "exit_code":  null,
+    "checkpoint":  {
+                       "current_config":  "default_production",
+                       "current_item":  "TVQA-100",
+                       "executed_pair_count":  100,
+                       "expected_pair_count":  100,
+                       "failed_pair_count":  0,
+                       "processed_pair_count":  100,
+                       "remaining_pair_count":  0,
+                       "resumed_pair_count":  0,
+                       "updated_at":  "2026-07-16T19:13:34.072155Z"
+                   }
+}

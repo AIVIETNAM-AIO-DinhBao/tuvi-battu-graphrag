@@ -3354,3 +3354,73 @@ resumed_pair_count=0
 - Full-100 không được khởi động trong task này.
 
 **Status**: COMPLETE / GO - mọi hard preflight gate đã pass; có thể chuyển sang W8-EVAL-01 sau khi revalidate identity ngay trước full run.
+
+---
+
+## W8-EVAL-01 Production Full-100 - 2026-07-17
+
+### Scope và identity
+
+- Chạy đúng một locked production config `default_production_v2` trên toàn bộ `TVQA-001..TVQA-100`.
+- Git SHA: `c32771fefb5bc14686660a43ab0bd3ba4d79d4b7`.
+- Config hash: `c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96`.
+- Dataset SHA-256: `90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c`.
+- Evaluator SHA-256: `9ae528d893159c4092c3129523da8d69a7a79a6ab5c32a132791158287eda314`.
+- Generation và judge: `gemini-3.1-flash-lite-preview`; live Neo4j + Gemini; Supabase persistence skip do blocker `PGRST205`.
+- Protocol và target được freeze trước run theo `SPECIFICATIONS.md`: Faithfulness 0.80, Relevancy 0.75, Context Recall 0.70, Graph Hit 0.65, Citation Coverage 0.90, RAG p95 8s, retrieval p95 3s.
+
+### Prelaunch gates
+
+- Backend regression: `387 passed, 11 warnings`; compile pass.
+- Gemini exact model: 4/4 keys pass, primary pass.
+- Neo4j coverage: 12/12 source-strategy pairs.
+- Semantic BGE-M3 smoke: 2/2 queries pass; mỗi query có 5 dense và 5 sparse hits.
+
+### Execution và resume
+
+```text
+expected_pair_count=100
+completed_pair_count=100
+failed_pair_count=0
+executed_pair_count=100
+resumed_pair_count=0
+```
+
+- 100 unique item IDs, đủ `TVQA-001..100`.
+- Generation fallback = 0, retrieval fallback = 0, judge failure = 0, no-context = 0, citation fallback = 0.
+- Resume verification trực tiếp trả exit code 0 với `executed_pair_count=0`, `resumed_pair_count=100` và toàn bộ result từ checkpoint.
+- Detached PowerShell worker không đọc được exit code của venv launcher nên monitor ghi exit code null/failed; đây chỉ là wrapper telemetry limitation. Canonical report `status=completed`, checkpoint 100/100 và direct resume exit 0 xác nhận run hợp lệ.
+
+### Final automatic metrics
+
+| Metric | Result | Target | Verdict |
+|---|---:|---:|---|
+| Faithfulness | 0.853 | >= 0.80 | PASS |
+| Answer Relevancy | 0.719 | >= 0.75 | FAIL |
+| Context Recall | 0.6223 | >= 0.70 | FAIL |
+| Graph Hit Rate | 0.967 | >= 0.65 | PASS |
+| Citation Coverage | 0.978 | >= 0.90 | PASS |
+| RAG p95 | 26530.42 ms | <= 8000 ms | FAIL |
+| Retrieval p95 | 24467.90 ms | <= 3000 ms | FAIL |
+
+- Chart Context Grounding: `0.8889`; Corpus Source Coverage: `1.0`.
+- Generation p95: `2835.35 ms`; judge p95: `2023.82 ms`; evaluation-total p95: `27926.93 ms`.
+- `dai_van_interpretation` là family yếu nhất: Relevancy `0.34`, Context Recall `0.27`, RAG p95 `39779.29 ms`.
+- Human review queue tự động có 49 item và control sample 20 item; human review/adjudication chưa được người thật ký hoàn tất.
+
+### Artifacts và verdict
+
+- Artifact root: `benchmark/tuvi_golden_dataset/reports/w8_eval_01/`.
+- Canonical report: `evaluation/report_final.md`.
+- Có raw report/checkpoint, resume report, per-item exports, subgroup complexity/family/chart/topic, latency outliers, review queue, frozen criteria, secret scan và SHA-256 manifest.
+- Secret scan: 0 findings.
+
+```text
+RUN_VALID
+QUALITY_FAIL
+PERFORMANCE_FAIL
+HUMAN_PENDING
+OVERALL=PRODUCTION_HOLD
+```
+
+**Status**: COMPLETE / PRODUCTION_HOLD - full evaluation đã hoàn tất và có kết luận rõ. Config hiện tại chưa được claim production-pass; cần human adjudication và remediation Answer Relevancy, Context Recall, retrieval latency trước khi đánh giá lại một config có identity mới.

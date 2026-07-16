@@ -1,0 +1,26 @@
+{
+  "human_verdict": "HUMAN_PENDING",
+  "overall_verdict": "PRODUCTION_HOLD",
+  "performance_checks": {
+    "rag_p95": false,
+    "retrieval_p95": false
+  },
+  "performance_verdict": "PERFORMANCE_FAIL",
+  "quality_checks": {
+    "answer_relevancy_avg": false,
+    "citation_coverage_rate": true,
+    "context_recall_avg": false,
+    "faithfulness_avg": true,
+    "graph_hit_rate": true
+  },
+  "quality_verdict": "QUALITY_FAIL",
+  "resume_execution_summary": {
+    "completed_pair_count": 100,
+    "executed_pair_count": 0,
+    "expected_pair_count": 100,
+    "failed_pair_count": 0,
+    "resumed_pair_count": 100
+  },
+  "run_verdict": "RUN_VALID",
+  "wrapper_telemetry_note": "The detached PowerShell worker could not read the venv launcher exit code and wrote a null exit code/failed monitor status. Canonical evaluator evidence is report.status=completed, 100/100 checkpoint, zero failures, no remaining process, and direct resume CLI exit code 0."
+}

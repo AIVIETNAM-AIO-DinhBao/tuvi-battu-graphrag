@@ -1,0 +1,7 @@
+﻿{
+    "worker_pid":  4308,
+    "pid":  10500,
+    "started_at":  "2026-07-16T18:45:21.9920628Z",
+    "status":  "failed",
+    "command":  "scripts/run_eval.py --config configs/default_production.yaml --dataset [release] --judge-backend gemini --skip-persistence --checkpoint-dir [full100/checkpoint] --output-dir [full100] --max-item-attempts 2 --retry-base-seconds 2"
+}

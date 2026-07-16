@@ -1,0 +1,11 @@
+{
+  "canonical_evidence": [
+    "production_full100/evaluation_report.json",
+    "production_full100/checkpoint/checkpoint_summary.json",
+    "resume_verification/evaluation_report.json",
+    "resume_verification/exit_code.txt"
+  ],
+  "classification": "monitor_wrapper_telemetry_limitation",
+  "detail": "The detached PowerShell worker observed a null venv launcher exit code and wrote failed status. Canonical evaluation_report.json is completed, checkpoint is 100/100 with zero failures, no evaluator remains, and direct resume verification exited 0 with 100/100 resumed.",
+  "scientific_run_affected": false
+}

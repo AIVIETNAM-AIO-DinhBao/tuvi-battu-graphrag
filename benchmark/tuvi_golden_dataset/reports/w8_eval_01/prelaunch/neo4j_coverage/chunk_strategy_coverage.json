@@ -1,0 +1,98 @@
+{
+  "chunks_dir": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\chunks",
+  "completed": true,
+  "created_at": "2026-07-16T18:42:46.915091Z",
+  "expected_pair_count": 12,
+  "interpretation_vi": "Đủ 12 cặp source-strategy cho W6-ABL-03.",
+  "missing_pair_count": 0,
+  "missing_pairs": [],
+  "mode": "neo4j",
+  "observed_pair_count": 12,
+  "pairs": [
+    {
+      "chunk_count": 347,
+      "chunk_strategy_id": "chunk_fixed_512",
+      "source_id": "TVKL",
+      "status": "present"
+    },
+    {
+      "chunk_count": 266,
+      "chunk_strategy_id": "chunk_fixed_512",
+      "source_id": "TVNL",
+      "status": "present"
+    },
+    {
+      "chunk_count": 287,
+      "chunk_strategy_id": "chunk_fixed_512",
+      "source_id": "TVHS",
+      "status": "present"
+    },
+    {
+      "chunk_count": 258,
+      "chunk_strategy_id": "chunk_fixed_512",
+      "source_id": "TVGM",
+      "status": "present"
+    },
+    {
+      "chunk_count": 1330,
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "source_id": "TVKL",
+      "status": "present"
+    },
+    {
+      "chunk_count": 1110,
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "source_id": "TVNL",
+      "status": "present"
+    },
+    {
+      "chunk_count": 1138,
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "source_id": "TVHS",
+      "status": "present"
+    },
+    {
+      "chunk_count": 924,
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "source_id": "TVGM",
+      "status": "present"
+    },
+    {
+      "chunk_count": 511,
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "source_id": "TVKL",
+      "status": "present"
+    },
+    {
+      "chunk_count": 363,
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "source_id": "TVNL",
+      "status": "present"
+    },
+    {
+      "chunk_count": 439,
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "source_id": "TVHS",
+      "status": "present"
+    },
+    {
+      "chunk_count": 377,
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "source_id": "TVGM",
+      "status": "present"
+    }
+  ],
+  "sources": [
+    "TVKL",
+    "TVNL",
+    "TVHS",
+    "TVGM"
+  ],
+  "strategies": [
+    "chunk_fixed_512",
+    "chunk_structure_parent_child",
+    "chunk_semantic_embedding_bge_m3"
+  ],
+  "strategy_note_vi": "PLAN.md ghi chunk_semantic_embedding; runtime hiện dùng chunk_semantic_embedding_bge_m3.",
+  "task_id": "W6-ABL-03"
+}

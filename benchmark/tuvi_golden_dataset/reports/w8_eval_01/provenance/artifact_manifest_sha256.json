@@ -1,0 +1,286 @@
+{
+  "artifacts": [
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/acceptance_results.json",
+      "sha256": "8c3e992591bdebce3a0eccce1e16de246dc4d9dc65aa528d0d7efee75fdfebc1",
+      "size_bytes": 979
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/latency_outliers.csv",
+      "sha256": "dd41def5885ba559b96d33c62cae1414422d162663294a1ee0b9d88e32e9c4df",
+      "size_bytes": 7659
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/per_item_results.csv",
+      "sha256": "150c6d724ee50bf0a4202d1dacb5a6253f5c08c2cad9fdba5fe789477b2dfc0a",
+      "size_bytes": 17397
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/per_item_results.jsonl",
+      "sha256": "e10f6e8b70c3526cee8aee1a47967ddca43a1374d586ec0474ecfd00e1c06115",
+      "size_bytes": 70456
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/subgroup_chart.csv",
+      "sha256": "2d74b7df049a6f126c5906fad518dd8eeb2b1e38b326d3bb121a3f446853b168",
+      "size_bytes": 1644
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/subgroup_complexity.csv",
+      "sha256": "514753e29139a9d772f01f2027a8da505b8bfcc8d3eb8a3a653bbd66c922431f",
+      "size_bytes": 734
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/subgroup_family.csv",
+      "sha256": "d3efdf40e9a70e4d998d314e6d4dfad5e9a9fd12a5bf8f17fd38559f3501c89f",
+      "size_bytes": 1693
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/subgroup_metrics.json",
+      "sha256": "b96ae0f4d601fcbb8e5d32e1e29e39da6fb24b9cadfbf566ac43ae19fc17f86d",
+      "size_bytes": 29875
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/subgroup_topic.csv",
+      "sha256": "6c496414056728d7ec7cdb9e072ba40e7d180bdcef0d8ef717878158dec2b017",
+      "size_bytes": 2625
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/analysis/verified_metrics.json",
+      "sha256": "3058ad7824eda0a954637741b6ec90bac231c3240af0368a9d8108063a742481",
+      "size_bytes": 2424
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/human_review/control_sample.json",
+      "sha256": "131cf947a3730bd5acbe798a35557cde21eaf6f038c8a77866cc3dd67bd57d64",
+      "size_bytes": 992
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/human_review/human_review_summary.json",
+      "sha256": "794df3aa39fdd4189ec0aaac71216ff449842eab4c8f5e8fd00c494b584ad2cf",
+      "size_bytes": 283
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/human_review/review_queue.jsonl",
+      "sha256": "9eadffc39caa18082b04245731b02221bf002a87ac65f32c122d53a12825b7c5",
+      "size_bytes": 10385
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/human_review/rubric.md",
+      "sha256": "28a826afdea36c192866d83b76c643506b73e38adf33dc80bead59672222cbea",
+      "size_bytes": 459
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/backend_tests.log",
+      "sha256": "a7f8e28ab152212d79d6dd674edaf822fb15b550022887312ed8a32be01d9ca1",
+      "size_bytes": 11650
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/compile_summary.json",
+      "sha256": "38631b34a1976c0fef1fd61f1c8eb6efad73f3b7cc33ca3a325805edf8749999",
+      "size_bytes": 178
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/environment.json",
+      "sha256": "970a468d7bf3f3b96253db26ebe02fc66f8d39de30152267a5653d1f54a8fc71",
+      "size_bytes": 423
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/gemini_key_probe.json",
+      "sha256": "2c3ca242d10cc3650f69866c9f09089484ccc7b63817ade290ade25b53c69aa8",
+      "size_bytes": 4535
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/gemini_key_probe_stderr.log",
+      "sha256": "ca09889a79e2c0f2295b314469af9ed7432b08a09571f352259e707a8968e96c",
+      "size_bytes": 1736
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/neo4j_coverage/chunk_strategy_coverage.json",
+      "sha256": "9a04238ed7bf426fe0de7f837fc62d75befa798fc862dca800b3d1d331342e94",
+      "size_bytes": 2623
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/neo4j_coverage/chunk_strategy_coverage.md",
+      "sha256": "12da551499110d31a0083d70fe03690b0fbd49fd7086d5f7e9691bcb9032cdae",
+      "size_bytes": 1566
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/neo4j_coverage_stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/neo4j_coverage_stdout.log",
+      "sha256": "a9ffd86627fad2d8d397e6d1315a9dacead57fd456628d998646c2415f494af1",
+      "size_bytes": 470
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/regression_summary.json",
+      "sha256": "67160ae1692bbc12e3e8647752b4f65c766476af1e8e73b55a381744a32fe41e",
+      "size_bytes": 176
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/repository_identity.json",
+      "sha256": "47b75a39538dce9c07d48ca02c4ad55d0e92ddbb03787bf994321967d3c843ec",
+      "size_bytes": 2297
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/semantic_retrieval_process.json",
+      "sha256": "9f51fe4144cba49fff836a7f6eb948a87b2ac73063746dbb5bd14c5f2d1c5835",
+      "size_bytes": 110
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/semantic_retrieval_smoke.json",
+      "sha256": "acb2a399a517fee96af53da6c7111faa6e9addc0b2472e85f3502df029e36180",
+      "size_bytes": 17138
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/semantic_retrieval_smoke_stderr.log",
+      "sha256": "4732b190680b3364264703810b2b0cbd249be4b4662315239ab819731256d3ed",
+      "size_bytes": 2292
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/prelaunch/semantic_retrieval_smoke_stdout.log",
+      "sha256": "ce3fcbf582ba6b10b291fce3d744a3df00552327602914f9e6400c69bf5f26ac",
+      "size_bytes": 17140
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/checkpoint/checkpoint_summary.json",
+      "sha256": "f2c77027ef10d0c4e296edbfec49b8d976cee5ac98855a31959eb97b938a1775",
+      "size_bytes": 295
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/checkpoint/evaluation_checkpoint.json",
+      "sha256": "f98693054c3dd17486315a73f80c1c46ee4bf227626e40d4c4c6a24456324cdb",
+      "size_bytes": 1437476
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/evaluation_report.json",
+      "sha256": "7b996bc698f61a2a8601b6e65eba7d35a7ee4502c39c1d6405a456e0b3cc8626",
+      "size_bytes": 1518679
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/evaluation_report.md",
+      "sha256": "f2faa983955232d823fe608dcbb935ed980b2b75d9256240690bff3afcca5b47",
+      "size_bytes": 16901
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/exit_code.txt",
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "size_bytes": 2
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/monitor_status.json",
+      "sha256": "5572668a6c50b24bac3d53b8e3f9abf1458e650301ef661410420d726a10cf00",
+      "size_bytes": 712
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/process.json",
+      "sha256": "f5ae22e7abd2d97a4d50b9d54a06e32d5d9ccc12f306bb118f48e8f4e68cfaa3",
+      "size_bytes": 381
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/stderr.log",
+      "sha256": "350faf787333d39248631cd52b69d07733a1e2a2f55a26a7367f564a69bfe996",
+      "size_bytes": 1206
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/stdout.log",
+      "sha256": "ae0e93553fb725e72b2e5a832300e7c0890f023ac0eab61186b0aa047c148b09",
+      "size_bytes": 2348
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/worker_stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/production_full100/worker_stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/protocol/acceptance_criteria.json",
+      "sha256": "16632ece221f842bec445e8103686613eabb2d91a53c6a70931b63484d2ba1da",
+      "size_bytes": 2244
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/protocol/method_protocol.md",
+      "sha256": "9e04b58373c69a9a2a00347466749c41a93c793b48e88218a0e81bb66aff63a3",
+      "size_bytes": 1933
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/provenance/command_log.jsonl",
+      "sha256": "ba80d7a3d2451d1fc76c120371ad36ed58ead1463ea7cf9d3a412ea87d59acc1",
+      "size_bytes": 1625
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/provenance/secret_scan.json",
+      "sha256": "7974521524f0de28515cbfe583d9632b8c72c2f399712ecccdbbc2744fe2e33f",
+      "size_bytes": 148
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/provenance/worker_telemetry_note.json",
+      "sha256": "d95e4ba2f9c3113344b34b45aea03850818bfe28528ac572ce6b798e55bb5ab7",
+      "size_bytes": 625
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/README_PROGRESS.md",
+      "sha256": "cf071e10d1f9a1be94b4c01a6e8b4dff84681c517f87de305ef033d5b386a106",
+      "size_bytes": 1300
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/report_final.json",
+      "sha256": "70fbce5f72fa290a09a1cdf0bb2248c31f00091de452bcf735ebf2fd575c3389",
+      "size_bytes": 7930
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/report_final.md",
+      "sha256": "18515846feee47aa26d199878222fb3145c7ca89708bea10dccac238e9d7fd1a",
+      "size_bytes": 4530
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/resume_verification/evaluation_report.json",
+      "sha256": "a22c96b275de043f014712b962827691694d62b698c922cc370474220c6c2874",
+      "size_bytes": 1518890
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/resume_verification/evaluation_report.md",
+      "sha256": "40ca2c04df2f8098a61c2acaa8914f001c24f7524aa5e0ff7efc22ee1c1151e5",
+      "size_bytes": 16901
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/resume_verification/exit_code.txt",
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+      "size_bytes": 3
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/resume_verification/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/resume_verification/stdout.log",
+      "sha256": "a41a8e911f628b7a9b2e0320383ab50182d7877e00476e2af486595d928a7c4b",
+      "size_bytes": 4700
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/run_full100_worker.ps1",
+      "sha256": "00e5116778a051e8441103526b260f4e49ebd278e51334dbc6b22cfd3429acca",
+      "size_bytes": 3420
+    },
+    {
+      "path": "benchmark/tuvi_golden_dataset/reports/w8_eval_01/watch_progress.ps1",
+      "sha256": "12b42be5cf30b1fb1ea10764b7bdd39a78ddc9fee5b91b0be7917b3ff4f5e952",
+      "size_bytes": 3034
+    }
+  ],
+  "count": 56,
+  "generated_at": "2026-07-16T19:19:49.675530+00:00"
+}
