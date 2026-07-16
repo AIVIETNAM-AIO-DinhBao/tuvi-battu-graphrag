@@ -2889,3 +2889,172 @@ Không ghi nhận blocker trong phần backend/chart/RAG/build. Phần browser m
 ### Trạng thái W6-INT-01
 
 **Status**: COMPLETE ở mức cài đặt và automated local integration smoke. Backend health, chart creation, RAG factual/interpretive/multi-hop, citation/source presence và frontend production build đều pass. Manual browser checklist đã sẵn sàng để xác nhận login/dashboard/chart detail/citation panel trên trình duyệt thật.
+
+
+---
+
+## W7-ABL-01 - Generation model và prompt template ablation partial-10 - 2026-07-16
+
+### Phạm vi đã cài đặt
+
+Đã triển khai ablation generation/prompt theo đúng phạm vi partial 10 câu đã chốt:
+
+- giữ retrieval config cố định theo W6 integration candidate để cô lập biến generation;
+- dùng `chunk_semantic_embedding_bge_m3` + Graph + Sparse + RRF + lexical reranker;
+- tắt dense retrieval để không trộn biến dense vào generation ablation;
+- so sánh 3 prompt template trên cùng model `gemini-3.1-flash-lite-preview`;
+- chạy Gemini judge partial 10 câu balanced;
+- skip Supabase persistence vì blocker `experiment_runs` schema cache vẫn là caveat hạ tầng.
+
+### File đã thêm hoặc chỉnh sửa
+
+Prompt registry:
+
+```text
+backend/app/rag/prompt_templates.py
+backend/app/rag/generation.py
+```
+
+Config/manifest W7:
+
+```text
+configs/w7_generation_baseline_v1_flash_lite.yaml
+configs/w7_generation_grounded_v2_flash_lite.yaml
+configs/w7_generation_structured_v3_flash_lite.yaml
+configs/w7_abl_01_generation_prompt_matrix.yaml
+```
+
+Evaluation/report analysis:
+
+```text
+backend/app/rag/evaluation.py
+```
+
+Tests:
+
+```text
+backend/tests/test_experiment_config.py
+backend/tests/test_rag_context_generation_citations.py
+backend/tests/test_rag_evaluation.py
+```
+
+### Prompt templates được so sánh
+
+| Config | Prompt template | Generation model | Retrieval control |
+|---|---|---|---|
+| `baseline_v1_flash_lite` | `tuvi_generation_v1` | `gemini-3.1-flash-lite-preview` | semantic BGE-M3 + Graph/Sparse/RRF/reranker, dense off |
+| `grounded_v2_flash_lite` | `tuvi_generation_grounded_v2` | `gemini-3.1-flash-lite-preview` | semantic BGE-M3 + Graph/Sparse/RRF/reranker, dense off |
+| `structured_v3_flash_lite` | `tuvi_generation_structured_v3` | `gemini-3.1-flash-lite-preview` | semantic BGE-M3 + Graph/Sparse/RRF/reranker, dense off |
+
+### Lệnh đã chạy
+
+Unit/config/evaluation tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_rag_context_generation_citations.py backend/tests/test_rag_evaluation.py backend/tests/test_experiment_config.py -q
+```
+
+Kết quả:
+
+```text
+46 passed
+```
+
+RAG/chart regression sau khi thêm prompt registry:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_rag_chart_facts.py backend/tests/test_rag_context_generation_citations.py backend/tests/test_rag_planner.py backend/tests/test_rag_dry_run.py -q
+```
+
+Kết quả:
+
+```text
+37 passed, 1 warning
+```
+
+Static smoke W7:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w7_abl_01_generation_prompt_matrix.yaml --offline-smoke --limit 3 --skip-persistence
+```
+
+Gemini limit-1 probe:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w7_abl_01_generation_prompt_matrix.yaml --judge-backend gemini --limit 1 --skip-persistence --output-dir benchmark/tuvi_golden_dataset/reports/w7_abl_01_limit1_probe
+```
+
+Official partial-10 Gemini run:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w7_abl_01_generation_prompt_matrix.yaml --judge-backend gemini --limit 10 --skip-persistence
+```
+
+Ghi chú vận hành: trong terminal/tool hiện tại, lệnh foreground dài hơn timeout wrapper nên partial-10 được chạy nền qua `cmd /B`. Các log thử nghiệm retry/popen/cmd cũ đã được dọn; chỉ giữ lại report chính và log run thành công.
+
+### Report đã sinh
+
+```text
+benchmark/tuvi_golden_dataset/reports/w7_abl_01/evaluation_report.json
+benchmark/tuvi_golden_dataset/reports/w7_abl_01/evaluation_report.md
+benchmark/tuvi_golden_dataset/reports/w7_abl_01/gemini_partial_cmd3_stdout.log
+benchmark/tuvi_golden_dataset/reports/w7_abl_01/gemini_partial_cmd3_stderr.log
+```
+
+Probe riêng:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w7_abl_01_limit1_probe/evaluation_report.json
+benchmark/tuvi_golden_dataset/reports/w7_abl_01_limit1_probe/evaluation_report.md
+```
+
+### Kết quả Gemini partial-10
+
+Tổng quan:
+
+```text
+manifest_name=w7_abl_01_generation_prompt_v1
+judge_backend=gemini
+dataset_item_count=10
+config_count=3
+statuses=3/3 completed
+```
+
+Metric chính:
+
+| Config | Prompt | Faithfulness | Answer Relevancy | Context Recall | Citation Coverage | p95 latency |
+|---|---|---:|---:|---:|---:|---:|
+| `baseline_v1_flash_lite` | `tuvi_generation_v1` | 0.92 | 0.79 | 0.7000 | 1.00 | 25911.78 ms |
+| `grounded_v2_flash_lite` | `tuvi_generation_grounded_v2` | 0.92 | 0.76 | 0.6444 | 1.00 | 30187.57 ms |
+| `structured_v3_flash_lite` | `tuvi_generation_structured_v3` | 0.67 | 0.52 | 0.3222 | 1.00 | 28321.40 ms |
+
+### Candidate được chọn
+
+Ứng viên generation/prompt sơ bộ cho W7-CONFIG-01:
+
+```text
+prompt_template_id=tuvi_generation_v1
+generation_model=gemini-3.1-flash-lite-preview
+config=baseline_v1_flash_lite
+```
+
+Lý do:
+
+- Faithfulness đồng hạng cao nhất với grounded v2: `0.92`.
+- Answer Relevancy cao nhất: `0.79`.
+- Context Recall cao nhất: `0.7000`.
+- Citation Coverage đạt `1.00`.
+- p95 latency thấp nhất trong 3 config: `25911.78 ms`.
+
+`grounded_v2_flash_lite` vẫn là candidate phụ nếu team ưu tiên prompt chặt hơn về policy, nhưng partial-10 cho thấy baseline v1 cân bằng chất lượng/latency tốt hơn. `structured_v3_flash_lite` không nên promote vì Faithfulness, Answer Relevancy và Context Recall thấp rõ.
+
+### Caveats
+
+- Đây là partial-10 Gemini judge, chưa phải full dataset/final evaluation.
+- Supabase persistence vẫn skip do blocker `experiment_runs` chưa visible trong live schema cache.
+- Runtime/test vẫn có warning `google.generativeai` deprecated; chưa block functional nhưng nên migrate sang `google.genai` ở technical debt.
+- Report title hiện vẫn ghi `W6 Evaluation report` do runner dùng chung W6-EVAL framework; nội dung manifest/report là W7-ABL-01 và có section riêng `Phân tích ablation generation prompt/model`.
+
+### Trạng thái W7-ABL-01
+
+**Status**: COMPLETE theo phạm vi partial-10 đã chốt. Có implementation prompt registry, config/manifest W7, tests pass, static smoke pass, Gemini limit-1 probe pass, Gemini partial-10 pass, report JSON/Markdown và candidate prompt/model sơ bộ cho `W7-CONFIG-01`.

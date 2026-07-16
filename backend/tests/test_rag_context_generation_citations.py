@@ -350,6 +350,30 @@ def test_generation_prompt_and_deterministic_client_use_citations() -> None:
     assert metadata["generation_model"] == "deterministic-test"
 
 
+def test_generation_prompt_templates_keep_chart_marker_policy() -> None:
+    state = {
+        "query": "Thế tam hợp Phúc-Phối-Di thì sao?",
+        "final_context": "[CHART]\n- Phúc Đức, Phu Thê, Thiên Di\n\n[S1] Nguồn\nTam hợp cần đủ dữ kiện.",
+        "context_chunks": [{"citation_marker": "S1"}],
+    }
+
+    prompts = {
+        template_id: build_generation_prompt(state, config_with(prompt_template_id=template_id))
+        for template_id in (
+            "tuvi_generation_v1",
+            "tuvi_generation_grounded_v2",
+            "tuvi_generation_structured_v3",
+        )
+    }
+
+    for template_id, prompt in prompts.items():
+        assert f"prompt_template_id: {template_id}" in prompt
+        assert "[CHART]" in prompt
+        assert "[[CHART]_FACTS]" not in prompt
+    assert "Dữ kiện lá số" in prompts["tuvi_generation_structured_v3"]
+    assert "corpus thiếu quy tắc" in prompts["tuvi_generation_grounded_v2"]
+
+
 def test_citation_mapping_filters_explicit_markers_and_preserves_source_fields() -> None:
     config = config_with()
     state = {

@@ -13,6 +13,7 @@ from app.rag.evaluation import (
     aggregate_grouped_metrics,
     build_ablation_analysis,
     build_chunking_ablation_analysis,
+    build_generation_prompt_ablation_analysis,
     build_single_config_manifest,
     extract_json_object,
     render_markdown_report,
@@ -26,6 +27,7 @@ DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "default_production.yaml"
 W6_BASELINE_MANIFEST = ROOT_DIR / "configs" / "w6_eval_baseline.yaml"
 W6_ABL_02_MANIFEST = ROOT_DIR / "configs" / "w6_abl_02_retrieval_matrix.yaml"
 W6_ABL_03_MANIFEST = ROOT_DIR / "configs" / "w6_abl_03_chunking_matrix.yaml"
+W7_ABL_01_MANIFEST = ROOT_DIR / "configs" / "w7_abl_01_generation_prompt_matrix.yaml"
 
 
 def fake_state(item: AblationDatasetItem, config: ExperimentConfig) -> dict[str, Any]:
@@ -275,6 +277,31 @@ def test_w6_abl_03_manifest_loads_chunking_matrix_with_single_variable() -> None
         assert config.context_assembly_strategy == "balanced"
 
 
+def test_w7_abl_01_manifest_loads_generation_prompt_matrix_with_retrieval_control() -> None:
+    manifest = load_ablation_manifest(W7_ABL_01_MANIFEST)
+    configs = {spec.name: spec.build_config() for spec in manifest.configs}
+
+    assert manifest.name == "w7_abl_01_generation_prompt_v1"
+    assert manifest.dataset_path == RELEASE_DATASET_PATH
+    assert manifest.output_dir == ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "reports" / "w7_abl_01"
+    assert set(configs) == {"baseline_v1_flash_lite", "grounded_v2_flash_lite", "structured_v3_flash_lite"}
+    assert {config.prompt_template_id for config in configs.values()} == {
+        "tuvi_generation_v1",
+        "tuvi_generation_grounded_v2",
+        "tuvi_generation_structured_v3",
+    }
+    assert {config.generation_model for config in configs.values()} == {"gemini-3.1-flash-lite-preview"}
+    assert len({config.experiment_id for config in configs.values()}) == 3
+    for config in configs.values():
+        assert config.chunk_strategy_id == "chunk_semantic_embedding_bge_m3"
+        assert config.graph_retrieval_enabled is True
+        assert config.dense_retrieval_enabled is False
+        assert config.sparse_retrieval_enabled is True
+        assert config.fusion_method == "rrf"
+        assert config.reranker_enabled is True
+        assert config.context_assembly_strategy == "balanced"
+
+
 def test_evaluation_runner_writes_reports_and_experiment_rows(tmp_path: Path) -> None:
     manifest = build_single_config_manifest(
         dataset_path=RELEASE_DATASET_PATH,
@@ -462,3 +489,57 @@ def test_chunking_ablation_analysis_is_vietnamese_and_ranks_strategies() -> None
     assert "Phân tích ablation chiến lược chunking" in rendered
     assert "chunk_semantic_embedding_bge_m3" in rendered
     assert "Ứng viên chunking sơ bộ" in rendered
+
+
+def test_generation_prompt_ablation_analysis_ranks_prompt_templates() -> None:
+    configs = [
+        {
+            "config_name": "baseline_v1_flash_lite",
+            "experiment_id": "baseline",
+            "status": "completed",
+            "prompt_template_id": "tuvi_generation_v1",
+            "generation_model": "gemini-3.1-flash-lite-preview",
+            "metrics": {
+                "faithfulness_avg": 0.7,
+                "answer_relevancy_avg": 0.7,
+                "citation_coverage_rate": 0.6,
+                "chart_context_grounding_avg": 0.8,
+                "p95_latency_ms": 100.0,
+            },
+            "items": [],
+        },
+        {
+            "config_name": "grounded_v2_flash_lite",
+            "experiment_id": "grounded",
+            "status": "completed",
+            "prompt_template_id": "tuvi_generation_grounded_v2",
+            "generation_model": "gemini-3.1-flash-lite-preview",
+            "metrics": {
+                "faithfulness_avg": 0.9,
+                "answer_relevancy_avg": 0.85,
+                "citation_coverage_rate": 0.8,
+                "chart_context_grounding_avg": 0.8,
+                "p95_latency_ms": 200.0,
+            },
+            "items": [],
+        },
+    ]
+    report = {
+        "manifest_name": "w7_abl_01_generation_prompt_v1",
+        "dataset_path": "dataset.jsonl",
+        "dataset_item_count": 2,
+        "config_count": 2,
+        "judge_backend": "gemini",
+        "started_at": "start",
+        "completed_at": "done",
+        "configs": configs,
+    }
+    analysis = build_generation_prompt_ablation_analysis(report)
+    report["generation_prompt_ablation_analysis"] = analysis
+    rendered = render_markdown_report(report)
+
+    assert analysis is not None
+    assert analysis["ranking_by_faithfulness"][0]["prompt_template_id"] == "tuvi_generation_grounded_v2"
+    assert analysis["preliminary_generation_candidate"]["recommended_prompt_template_id"] == "tuvi_generation_grounded_v2"
+    assert "Phân tích ablation generation prompt/model" in rendered
+    assert "tuvi_generation_grounded_v2" in rendered

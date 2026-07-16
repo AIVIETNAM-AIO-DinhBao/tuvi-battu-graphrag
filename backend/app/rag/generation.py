@@ -5,6 +5,7 @@ from typing import Any, Protocol
 
 from app.rag.config import ExperimentConfig
 from app.rag.gemini_keys import get_primary_runtime_gemini_api_key, load_runtime_gemini_api_keys
+from app.rag.prompt_templates import build_prompt_from_template
 from app.rag.state import RAGState
 
 
@@ -58,6 +59,7 @@ class GeminiGenerationClient:
                         "temperature": 0.2,
                         "max_output_tokens": 1024,
                     },
+                    request_options={"timeout": 20},
                 )
                 raw_text = str(getattr(response, "text", "") or "").strip()
                 return GenerationResult(answer=raw_text or NO_CONTEXT_ANSWER, model=config.generation_model, raw_response=raw_text)
@@ -213,22 +215,7 @@ def citation_markers(context_chunks: list[Any], *, limit: int) -> list[str]:
 
 
 def build_generation_prompt(state: RAGState, config: ExperimentConfig) -> str:
-    query = state.get("rewritten_query") or state.get("normalized_query") or state.get("query") or ""
-    final_context = state.get("final_context") or ""
-    return (
-        "Bạn là trợ lý luận giải Tử Vi. Chỉ trả lời trong domain TUVI.\n"
-        "Dựa vào CONTEXT và lá số được cung cấp; không bịa nguồn, không suy diễn ngoài dữ liệu.\n"
-        "Nếu CONTEXT không đủ, hãy nói rõ chưa đủ dữ liệu trong nguồn hiện có.\n"
-        "Khi dùng thông tin từ nguồn sách, ghi citation dạng [S1], [S2]. "
-        "Khi dùng dữ kiện lá số trong khối [CHART], ghi citation [CHART]. "
-        "Không viết marker [CHART_FACTS]; chỉ dùng [CHART] cho dữ kiện lá số. "
-        "Không tự tạo marker [S1] nếu CONTEXT không có block [S1].\n\n"
-        f"prompt_template_id: {config.prompt_template_id}\n"
-        f"chunk_strategy_id: {config.chunk_strategy_id}\n"
-        f"QUESTION: {query}\n\n"
-        f"CONTEXT:\n{final_context}\n\n"
-        "Trả lời tiếng Việt, ngắn gọn, có citation nếu có nguồn."
-    )
+    return build_prompt_from_template(state, config)
 
 
 def generate_answer(

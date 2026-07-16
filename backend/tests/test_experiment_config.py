@@ -15,6 +15,11 @@ from app.rag.config import (
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "default_production.yaml"
 W6_PLANNER_GATED_DENSE_CONFIG_PATH = ROOT_DIR / "configs" / "w6_planner_gated_dense.yaml"
+W7_GENERATION_CONFIG_PATHS = [
+    ROOT_DIR / "configs" / "w7_generation_baseline_v1_flash_lite.yaml",
+    ROOT_DIR / "configs" / "w7_generation_grounded_v2_flash_lite.yaml",
+    ROOT_DIR / "configs" / "w7_generation_structured_v3_flash_lite.yaml",
+]
 EXPERIMENT_RUNS_MIGRATION = ROOT_DIR / "infra" / "supabase" / "migrations" / "20260709_experiment_runs.sql"
 
 
@@ -71,6 +76,25 @@ def test_w6_planner_gated_dense_config_loads_for_ablation() -> None:
     assert dense_config.dense_retrieval.embedding_slot == "bge_m3"
     assert dense_config.dense_retrieval.vector_index == "chunkVectorBgeM3"
     assert dense_config.context_assembly_strategy == default_config.context_assembly_strategy
+
+
+def test_w7_generation_prompt_configs_load_with_fixed_retrieval_stack() -> None:
+    configs = [load_experiment_config(path) for path in W7_GENERATION_CONFIG_PATHS]
+
+    assert {config.prompt_template_id for config in configs} == {
+        "tuvi_generation_v1",
+        "tuvi_generation_grounded_v2",
+        "tuvi_generation_structured_v3",
+    }
+    assert {config.generation_model for config in configs} == {"gemini-3.1-flash-lite-preview"}
+    assert len({config_hash(config) for config in configs}) == 3
+    for config in configs:
+        assert config.chunk_strategy_id == "chunk_semantic_embedding_bge_m3"
+        assert config.graph_retrieval_enabled is True
+        assert config.dense_retrieval_enabled is False
+        assert config.sparse_retrieval_enabled is True
+        assert config.fusion_method == "rrf"
+        assert config.reranker_enabled is True
 
 
 def test_missing_required_field_fails_clearly() -> None:

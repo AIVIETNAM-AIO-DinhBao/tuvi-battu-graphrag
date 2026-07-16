@@ -234,6 +234,7 @@ class GeminiEvaluationJudge:
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_output_tokens,
                     },
+                    request_options={"timeout": 20},
                 )
                 break
             except Exception as exc:
@@ -466,6 +467,8 @@ class EvaluationRunner:
                     "reranker_enabled": config.reranker_enabled,
                     "document_grading_enabled": config.document_grading_enabled,
                     "context_assembly_strategy": config.context_assembly_strategy,
+                    "prompt_template_id": config.prompt_template_id,
+                    "generation_model": config.generation_model,
                     "run_id": run_id,
                     "status": status,
                     "started_at": config_started,
@@ -494,6 +497,9 @@ class EvaluationRunner:
         chunking_analysis = build_chunking_ablation_analysis(report)
         if chunking_analysis:
             report["chunking_ablation_analysis"] = chunking_analysis
+        generation_analysis = build_generation_prompt_ablation_analysis(report)
+        if generation_analysis:
+            report["generation_prompt_ablation_analysis"] = generation_analysis
         if self.write_reports:
             write_evaluation_reports(report, effective_output_dir)
         return report
@@ -1051,6 +1057,90 @@ def build_chunking_ablation_analysis(report: dict[str, Any]) -> dict[str, Any] |
     }
 
 
+def choose_generation_prompt_candidate(configs: list[dict[str, Any]]) -> dict[str, Any]:
+    completed = [config for config in configs if config.get("status") == "completed" and config.get("prompt_template_id")]
+    if not completed:
+        return {
+            "recommended_prompt_template_id": None,
+            "recommended_generation_model": None,
+            "recommended_config_name": None,
+            "reasoning_vi": ["Chưa có cấu hình generation/prompt nào hoàn tất để chọn ứng viên."],
+        }
+
+    def score(config: dict[str, Any]) -> float:
+        metrics = config.get("metrics") or {}
+        quality = (
+            float(metrics.get("faithfulness_avg") or 0) * 0.4
+            + float(metrics.get("answer_relevancy_avg") or 0) * 0.3
+            + float(metrics.get("citation_coverage_rate") or 0) * 0.2
+            + float(metrics.get("chart_context_grounding_avg") or 0) * 0.1
+        )
+        latency = float(metrics.get("p95_latency_ms") or 0)
+        latency_penalty = min(latency / 30_000, 0.2) if latency else 0.0
+        return quality - latency_penalty
+
+    best = max(completed, key=score)
+    metrics = best.get("metrics") or {}
+    return {
+        "recommended_prompt_template_id": best.get("prompt_template_id"),
+        "recommended_generation_model": best.get("generation_model"),
+        "recommended_config_name": best.get("config_name"),
+        "score": round(score(best), 4),
+        "reasoning_vi": [
+            "Đây là gợi ý sơ bộ cho W7-ABL-01 dựa trên partial run, không phải quyết định production cuối cùng.",
+            "Điểm ưu tiên Faithfulness, Answer Relevancy, Citation Coverage và Chart Context Grounding; p95 latency bị phạt nhẹ.",
+            f"Ứng viên hiện tại là prompt `{best.get('prompt_template_id')}` với model `{best.get('generation_model')}` qua config `{best.get('config_name')}`: faithfulness_avg={metrics.get('faithfulness_avg')}, answer_relevancy_avg={metrics.get('answer_relevancy_avg')}, citation_coverage_rate={metrics.get('citation_coverage_rate')}, p95_latency_ms={metrics.get('p95_latency_ms')}.",
+            "W7-CONFIG-01 sẽ tổng hợp thêm evidence retrieval/chunking/latency trước khi lock default_production.yaml.",
+        ],
+    }
+
+
+def rank_generation_prompts_by_metric(
+    configs: list[dict[str, Any]],
+    metric_name: str,
+    *,
+    higher_is_better: bool = True,
+) -> list[dict[str, Any]]:
+    ranked: list[dict[str, Any]] = []
+    for config in configs:
+        prompt_template_id = config.get("prompt_template_id")
+        value = metric_value(config, metric_name)
+        if not prompt_template_id or value is None:
+            continue
+        ranked.append(
+            {
+                "prompt_template_id": prompt_template_id,
+                "generation_model": config.get("generation_model"),
+                "config_name": config.get("config_name"),
+                "experiment_id": config.get("experiment_id"),
+                "metric": metric_name,
+                "value": value,
+            }
+        )
+    return sorted(ranked, key=lambda item: item["value"], reverse=higher_is_better)
+
+
+def build_generation_prompt_ablation_analysis(report: dict[str, Any]) -> dict[str, Any] | None:
+    configs = list(report.get("configs") or [])
+    manifest_name = str(report.get("manifest_name") or "")
+    prompt_ids = sorted({str(config.get("prompt_template_id")) for config in configs if config.get("prompt_template_id")})
+    if "w7_abl_01" not in manifest_name and len(prompt_ids) < 2:
+        return None
+    return {
+        "analysis_language": "vi",
+        "scope_vi": "So sánh prompt template và generation model, giữ retrieval config cố định để cô lập ảnh hưởng generation.",
+        "retrieval_control_vi": "Retrieval stack cố định theo W6 integration candidate: chunk_semantic_embedding_bge_m3, Graph + Sparse + RRF + lexical reranker, dense off.",
+        "partial_run_policy_vi": "Run chính của task này là Gemini judge partial 10 câu balanced; full/expanded run sẽ để W7-CONFIG-01/W8 hoặc khi quota cho phép.",
+        "prompt_template_ids": prompt_ids,
+        "generation_models": sorted({str(config.get("generation_model")) for config in configs if config.get("generation_model")}),
+        "ranking_by_faithfulness": rank_generation_prompts_by_metric(configs, "faithfulness_avg"),
+        "ranking_by_answer_relevancy": rank_generation_prompts_by_metric(configs, "answer_relevancy_avg"),
+        "ranking_by_citation_coverage": rank_generation_prompts_by_metric(configs, "citation_coverage_rate"),
+        "ranking_by_p95_latency": rank_generation_prompts_by_metric(configs, "p95_latency_ms", higher_is_better=False),
+        "preliminary_generation_candidate": choose_generation_prompt_candidate(configs),
+    }
+
+
 def write_evaluation_reports(report: dict[str, Any], output_dir: Path | str) -> None:
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -1116,6 +1206,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
 
     append_ablation_analysis(lines, report)
     append_chunking_ablation_analysis(lines, report)
+    append_generation_prompt_ablation_analysis(lines, report)
 
     lines.extend(["", "## Metrics by question complexity", ""])
     append_grouped_metrics_table(lines, report, group_key="by_question_complexity")
@@ -1251,6 +1342,49 @@ def append_chunking_ablation_analysis(lines: list[str], report: dict[str, Any]) 
             )
 
 
+def append_generation_prompt_ablation_analysis(lines: list[str], report: dict[str, Any]) -> None:
+    analysis = report.get("generation_prompt_ablation_analysis") or {}
+    if not analysis:
+        return
+    candidate = analysis.get("preliminary_generation_candidate") or {}
+    lines.extend(
+        [
+            "",
+            "## Phân tích ablation generation prompt/model",
+            "",
+            f"- Phạm vi: {analysis.get('scope_vi')}",
+            f"- Retrieval control: {analysis.get('retrieval_control_vi')}",
+            f"- Chính sách run: {analysis.get('partial_run_policy_vi')}",
+            f"- Prompt templates: `{', '.join(analysis.get('prompt_template_ids') or [])}`",
+            f"- Generation models: `{', '.join(analysis.get('generation_models') or [])}`",
+            f"- Ứng viên generation sơ bộ: prompt `{candidate.get('recommended_prompt_template_id')}` với model `{candidate.get('recommended_generation_model')}` qua config `{candidate.get('recommended_config_name')}`",
+        ]
+    )
+    for reason in candidate.get("reasoning_vi") or []:
+        lines.append(f"  - {reason}")
+
+    ranking_specs = [
+        ("ranking_by_faithfulness", "Xếp hạng theo Faithfulness"),
+        ("ranking_by_answer_relevancy", "Xếp hạng theo Answer Relevancy"),
+        ("ranking_by_citation_coverage", "Xếp hạng theo Citation Coverage"),
+        ("ranking_by_p95_latency", "Xếp hạng theo p95 latency"),
+    ]
+    for key, title in ranking_specs:
+        lines.extend(
+            [
+                "",
+                f"### {title}",
+                "",
+                "| Hạng | Prompt template | Model | Config | Giá trị |",
+                "|---:|---|---|---|---:|",
+            ]
+        )
+        for index, item in enumerate(analysis.get(key) or [], start=1):
+            lines.append(
+                f"| {index} | {item.get('prompt_template_id')} | {item.get('generation_model')} | {item.get('config_name')} | {item.get('value')} |"
+            )
+
+
 def append_grouped_metrics_table(lines: list[str], report: dict[str, Any], *, group_key: str) -> None:
     lines.extend(
         [
@@ -1314,6 +1448,7 @@ __all__ = [
     "SupabaseExperimentRunStore",
     "aggregate_evaluation_metrics",
     "aggregate_grouped_metrics",
+    "build_generation_prompt_ablation_analysis",
     "build_single_config_manifest",
     "load_ablation_manifest",
     "make_evaluation_judge",
