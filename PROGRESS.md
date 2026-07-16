@@ -3058,3 +3058,122 @@ Lý do:
 ### Trạng thái W7-ABL-01
 
 **Status**: COMPLETE theo phạm vi partial-10 đã chốt. Có implementation prompt registry, config/manifest W7, tests pass, static smoke pass, Gemini limit-1 probe pass, Gemini partial-10 pass, report JSON/Markdown và candidate prompt/model sơ bộ cho `W7-CONFIG-01`.
+
+---
+
+## W7-CONFIG-01 Production Config Locked by Evidence - 2026-07-16
+
+### Trạng thái
+
+`configs/default_production.yaml` đã được lock làm production default vận hành cho W7:
+
+```text
+experiment_id=default_production_v2
+chunk_strategy_id=chunk_semantic_embedding_bge_m3
+retrieval=Graph + Sparse + RRF
+reranker=lexical-overlap-v1 enabled, top_k=10
+dense_retrieval_enabled=false
+query_rewrite_enabled=false
+prompt_template_id=tuvi_generation_v1
+generation_model=gemini-3.1-flash-lite-preview
+context_assembly_strategy=balanced
+cache_disabled=true
+```
+
+Config hash đã lock bằng `backend/app/rag/config.py::config_hash` trên Pydantic-normalized payload. Giá trị `Path` được canonicalize sang POSIX form để cùng config giữ cùng hash trên Windows/Render Linux:
+
+```text
+c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96
+```
+
+### Evidence và rationale
+
+Decision report đầy đủ:
+
+```text
+benchmark/tuvi_golden_dataset/reports/w7_config_01/production_config_decision.md
+```
+
+Evidence chính:
+
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_03/evaluation_report.md`
+  - Gemini partial-10 balanced.
+  - Semantic BGE-M3 đạt Faithfulness `0.85`, Answer Relevancy `0.74`, Citation Coverage `1.0`, Graph Hit `1.0` và 2 retrieval miss.
+  - Fixed-512 nhỉnh hơn Context Recall (`0.5556` so với `0.5444`); parent-child nhanh hơn rõ ở p95. Vì W7 đang quality-first, semantic BGE-M3 được chọn nhưng latency vẫn là follow-up bắt buộc.
+- `benchmark/tuvi_golden_dataset/reports/w7_abl_01/evaluation_report.md`
+  - Gemini partial-10 balanced.
+  - `tuvi_generation_v1` đạt Faithfulness `0.92`, Answer Relevancy `0.79`, Context Recall `0.7000`, Citation Coverage `1.0`, và p95 thấp nhất trong ba prompt (`25911.78 ms`).
+- `benchmark/tuvi_golden_dataset/reports/w6_abl_02/evaluation_report.md`
+  - Chỉ là static smoke 2 item, nên không được dùng để tuyên bố retrieval/fusion/reranker winner.
+  - Graph + Sparse + RRF + lexical reranker được giữ như control stack đã chạy ổn trong W6-ABL-03, W7-ABL-01 và W6-INT-01, không phải vì W6-ABL-02 đã chứng minh chính thức.
+
+### Files cập nhật
+
+- `configs/default_production.yaml`
+- `benchmark/tuvi_golden_dataset/reports/w7_config_01/production_config_decision.md`
+- `backend/tests/test_experiment_config.py`
+- `backend/tests/test_rag_dry_run.py`
+- `PROGRESS.md`
+
+Hai test file được đồng bộ vì trước đó hardcode contract `default_production_v1`/`chunk_fixed_512`. Test config hiện kiểm rõ toàn bộ các lựa chọn production đã lock.
+
+### Verification
+
+Config load/hash:
+
+```text
+experiment_id=default_production_v2
+chunk_strategy_id=chunk_semantic_embedding_bge_m3
+config_hash=c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96
+result=locked-config-ok
+```
+
+Config tests:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_experiment_config.py -q -p no:cacheprovider
+```
+
+Kết quả: `18 passed`.
+
+RAG regression tests:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_rag_context_generation_citations.py backend/tests/test_rag_evaluation.py backend/tests/test_rag_chart_facts.py backend/tests/test_rag_planner.py backend/tests/test_rag_dry_run.py -q -p no:cacheprovider
+```
+
+Kết quả: `49 passed, 1 warning`. Warning là SDK `google.generativeai` đã hết support và cần migrate riêng sang `google.genai`.
+
+Offline config/runner smoke:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts/run_eval.py --config configs/default_production.yaml --offline-smoke --limit 3 --skip-persistence --no-report-files
+```
+
+Kết quả: single config hoàn tất `3/3`, `failed_count=0`, `judge_backend=static-smoke`. Run này chỉ xác nhận config/runner plumbing, không được tính là benchmark chất lượng.
+
+### Chưa chạy full benchmark
+
+Chưa chạy full 100-item golden dataset cho `default_production_v2`. Production config này được lock từ evidence Gemini partial-10 cân bằng của W6-ABL-03 và W7-ABL-01 để unblock W7 deploy/observability. Full final evaluation vẫn thuộc `W8-EVAL-01` hoặc một pre-release run riêng khi quota/capacity cho phép.
+
+Các experiment/measurement còn deferred:
+
+- full official Gemini retrieval/fusion/reranker matrix;
+- full 100-item production config evaluation;
+- dense retrieval promotion study;
+- query rewrite ablation;
+- alternative generation-model comparison;
+- W7-OBS-02 production p95 trên 20 query mix;
+- persisted official runs trong Supabase.
+
+### Caveats và blockers
+
+- Supabase live vẫn trả `PGRST205`: `Could not find the table 'public.experiment_runs' in the schema cache`. Cần apply `infra/supabase/migrations/20260709_experiment_runs.sql` và reload PostgREST schema cache trước persisted final run.
+- Latency partial hiện chưa đạt target production trong PLAN; cần đo lại đúng môi trường deploy ở W7-OBS-02 và tối ưu top-k/context budget nếu cần.
+- Runtime/evaluation còn dùng deprecated `google.generativeai`.
+- Live Neo4j logs trước đó có warning `CALL subquery without a variable scope clause is deprecated`.
+
+**Status**: COMPLETE cho phạm vi W7 operational config lock. `default_production_v2` và hash đã được xác nhận bằng test/smoke; full-dataset scientific evaluation và production p95 vẫn là follow-up bắt buộc, không được xem là đã hoàn thành trong task này.

@@ -21,6 +21,7 @@ W7_GENERATION_CONFIG_PATHS = [
     ROOT_DIR / "configs" / "w7_generation_structured_v3_flash_lite.yaml",
 ]
 EXPERIMENT_RUNS_MIGRATION = ROOT_DIR / "infra" / "supabase" / "migrations" / "20260709_experiment_runs.sql"
+LOCKED_DEFAULT_CONFIG_HASH = "c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96"
 
 
 def default_payload() -> dict:
@@ -28,13 +29,14 @@ def default_payload() -> dict:
     return config.model_dump(mode="json")
 
 
-def test_default_production_config_loads_with_w3_acceptance_defaults() -> None:
+def test_default_production_config_loads_with_w7_evidence_locked_defaults() -> None:
     config = load_experiment_config(DEFAULT_CONFIG_PATH)
 
-    assert config.experiment_id == "default_production_v1"
+    assert config.experiment_id == "default_production_v2"
+    assert config.name == "Default production config - W7 evidence locked"
     assert config.branch == "gemini-call"
     assert config.domain == "TUVI"
-    assert config.chunk_strategy_id == "chunk_fixed_512"
+    assert config.chunk_strategy_id == "chunk_semantic_embedding_bge_m3"
     assert config.embedding.slot == "bge_m3"
     assert config.embedding.model == "BAAI/bge-m3"
     assert config.embedding.vector_index == "chunkVectorBgeM3"
@@ -53,6 +55,18 @@ def test_default_production_config_loads_with_w3_acceptance_defaults() -> None:
     assert config.sparse_retrieval.top_k == 8
     assert config.sparse_retrieval.fulltext_index == "chunkFulltext"
     assert config.sparse_retrieval.sanitization_mode == "or_terms"
+    assert config.query_rewrite_enabled is False
+    assert config.graph_retrieval_enabled is True
+    assert config.dense_retrieval_enabled is False
+    assert config.sparse_retrieval_enabled is True
+    assert config.fusion_method == "rrf"
+    assert config.reranker_enabled is True
+    assert config.reranker_config.model == "lexical-overlap-v1"
+    assert config.reranker_config.top_k == 10
+    assert config.prompt_template_id == "tuvi_generation_v1"
+    assert config.generation_model == "gemini-3.1-flash-lite-preview"
+    assert config.context_assembly_strategy == "balanced"
+    assert config.cache_disabled is True
     assert set(config.accepted_chunk_strategy_ids) == {
         "chunk_fixed_512",
         "chunk_structure_parent_child",
@@ -64,6 +78,12 @@ def test_config_hash_is_stable_for_same_config() -> None:
     config = load_experiment_config(DEFAULT_CONFIG_PATH)
 
     assert config_hash(config) == config_hash(ExperimentConfig.model_validate(config.model_dump(mode="json")))
+
+
+def test_default_production_config_hash_matches_w7_lock() -> None:
+    config = load_experiment_config(DEFAULT_CONFIG_PATH)
+
+    assert config_hash(config) == LOCKED_DEFAULT_CONFIG_HASH
 
 
 def test_w6_planner_gated_dense_config_loads_for_ablation() -> None:

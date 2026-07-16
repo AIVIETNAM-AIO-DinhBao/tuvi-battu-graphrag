@@ -82,7 +82,7 @@ def test_rag_dry_run_traverses_expected_nodes_and_preserves_query() -> None:
     assert state["chart_id"] == "chart-1"
     assert state["chart_type"] == "TUVI"
     assert state["domain_filter"] == "TUVI"
-    assert state["experiment_id"] == "default_production_v1"
+    assert state["experiment_id"] == "default_production_v2"
     assert isinstance(state["experiment_config"], ExperimentConfig)
     assert state["experiment_config"].branch == "gemini-call"
     assert state["experiment_config"].embedding.slot == "bge_m3"

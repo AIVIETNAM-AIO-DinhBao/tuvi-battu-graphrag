@@ -307,7 +307,18 @@ def load_experiment_config(path: Path | str | None = None) -> ExperimentConfig:
     return ExperimentConfig.model_validate(payload)
 
 
+def _canonicalize_hash_value(value: object) -> object:
+    """Normalize config values so hashes are stable across operating systems."""
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, dict):
+        return {key: _canonicalize_hash_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_canonicalize_hash_value(item) for item in value]
+    return value
+
+
 def config_hash(config: ExperimentConfig) -> str:
-    payload = config.model_dump(mode="json", exclude_none=True)
+    payload = _canonicalize_hash_value(config.model_dump(mode="python", exclude_none=True))
     serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

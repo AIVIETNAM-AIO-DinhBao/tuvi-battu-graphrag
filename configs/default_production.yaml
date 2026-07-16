@@ -1,5 +1,5 @@
-experiment_id: default_production_v1
-name: Default production candidate
+experiment_id: default_production_v2
+name: Default production config - W7 evidence locked
 branch: gemini-call
 domain: TUVI
 source_ids:
@@ -7,7 +7,7 @@ source_ids:
   - TVNL
   - TVHS
   - TVGM
-chunk_strategy_id: chunk_fixed_512
+chunk_strategy_id: chunk_semantic_embedding_bge_m3
 accepted_chunk_strategy_ids:
   - chunk_fixed_512
   - chunk_structure_parent_child
