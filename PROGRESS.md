@@ -3177,3 +3177,118 @@ Các experiment/measurement còn deferred:
 - Live Neo4j logs trước đó có warning `CALL subquery without a variable scope clause is deprecated`.
 
 **Status**: COMPLETE cho phạm vi W7 operational config lock. `default_production_v2` và hash đã được xác nhận bằng test/smoke; full-dataset scientific evaluation và production p95 vẫn là follow-up bắt buộc, không được xem là đã hoàn thành trong task này.
+
+---
+
+## W8-EVAL-PREP-01 Evaluation Runner Hardening - 2026-07-16
+
+### Implementation
+
+- Thêm atomic checkpoint/provenance module: `backend/app/rag/evaluation_checkpoint.py`.
+- Checkpoint identity khóa dataset SHA-256, ordered item IDs, effective config hashes, judge backend/model, generation models, manifest/evaluator fingerprints và Git SHA/dirty state.
+- `scripts/run_eval.py` hỗ trợ:
+  - `--checkpoint-dir`;
+  - `--resume`;
+  - `--retry-failed`;
+  - `--max-item-attempts`;
+  - `--retry-base-seconds`.
+- Checkpoint tồn tại nhưng không truyền `--resume` bị từ chối để tránh reuse ngoài ý muốn.
+- Resume chỉ hoạt động khi toàn bộ run identity khớp; mismatch trả exit code `2`.
+- Evaluation pair có bounded retry và attempt metadata.
+- `generation_backend_error` được xem là failed infrastructure pair và không gọi judge; `no_context` vẫn là retrieval outcome hợp lệ để judge.
+- Config có item failed mang status `failed`; report có status `completed`, `partial` hoặc `failed`; CLI trả exit code `1` nếu còn failed pairs.
+- Thêm timing cho graph/dense/sparse retrieval, fusion, rerank, document grading, context assembly và generation.
+- Report có RAG, retrieval, generation, judge, evaluation-total p50/p95, execution completeness, fallback summary và provenance.
+- `checkpoint_summary.json` được ghi atomically sau từng pair.
+
+### Files
+
+- `backend/app/rag/evaluation_checkpoint.py`
+- `backend/app/rag/evaluation.py`
+- `backend/app/rag/nodes.py`
+- `scripts/run_eval.py`
+- `backend/tests/test_evaluation_checkpoint.py`
+- `backend/tests/test_evaluation_runner_resilience.py`
+- `backend/tests/test_run_eval_cli.py`
+- `backend/tests/test_rag_retrieval.py`
+- `backend/tests/test_rag_diagnostics.py`
+
+### Verification
+
+- Checkpoint/resilience/matrix/evaluation/retrieval/diagnostics/config/CLI focused suite: `80 passed`.
+- Related RAG regression suite: `42 passed`.
+- Full backend suite sau mọi thay đổi: `387 passed, 11 warnings`.
+- Python compile check: `compileall=pass`.
+- Focused RAG suites có warning `google.generativeai` đã hết support. Full backend suite còn các Starlette/Pydantic deprecation warning đã tồn tại; tất cả đều không block functional tests.
+- CLI invalid `--resume` không có checkpoint dir trả exit code `2`.
+
+**Status**: COMPLETE - runner đã đủ checkpoint/resume, provenance, retry, failure semantics và latency telemetry để chuyển sang live preflight/full benchmark.
+
+---
+
+## W8-EVAL-PREP-02 Retrieval Matrix V2 - 2026-07-16
+
+### Matrix đã chuẩn hóa
+
+Tạo `configs/w8_abl_01_retrieval_matrix_v2.yaml` gồm 10 config:
+
+1. `baseline_graph_sparse_rrf`
+2. `graph_only_rrf`
+3. `sparse_only_rrf`
+4. `dense_only_rrf`
+5. `dense_sparse_rrf`
+6. `graph_dense_rrf`
+7. `all_paths_planner_dense_rrf`
+8. `baseline_no_reranker`
+9. `baseline_weighted_sum`
+10. `baseline_graph_first`
+
+Control giữ cố định cho cả 10 config:
+
+```text
+chunk_strategy_id=chunk_semantic_embedding_bge_m3
+prompt_template_id=tuvi_generation_v1
+generation_model=gemini-3.1-flash-lite-preview
+query_rewrite_enabled=false
+context_assembly_strategy=balanced
+document_grading_enabled=true
+cache_disabled=true
+```
+
+Dense variants kế thừa `default_production.yaml`, không còn dùng fixed-512. Duplicate `graph_sparse_rrf` đã bị loại. `baseline_graph_first` chỉ đổi `fusion_method`, không đổi context assembly.
+
+### Verification
+
+- Matrix load: `10` configs.
+- Unique effective config hashes: `10`.
+- Unique behavior signatures khi bỏ `experiment_id`/`name`: `10`.
+- Chunk strategies: chỉ `chunk_semantic_embedding_bge_m3`.
+- Matrix/timing focused suite: `23 passed`.
+- Offline smoke:
+
+```text
+expected_pair_count=20
+completed_pair_count=20
+failed_pair_count=0
+executed_pair_count=20
+resumed_pair_count=0
+```
+
+- Resume smoke cùng checkpoint:
+
+```text
+expected_pair_count=20
+completed_pair_count=20
+failed_pair_count=0
+executed_pair_count=0
+resumed_pair_count=20
+```
+
+- `retrieval_p95_ms` đã có giá trị cho cả 10 config trong offline report.
+- Artifacts:
+  - `benchmark/tuvi_golden_dataset/reports/w8_eval_prep_02_smoke/`
+  - `benchmark/tuvi_golden_dataset/reports/w8_eval_prep_02_smoke_resume/`
+- Không phát hiện secret trong checkpoint/report artifacts.
+- Các smoke trên dùng `judge_backend=static-smoke` và deterministic dependencies; chỉ chứng minh runner/matrix/timing/resume plumbing, không phải quality benchmark. Official metrics vẫn phải chạy live Neo4j + Gemini ở W8-EVAL-PREFLIGHT-01/W8-EVAL-01.
+
+**Status**: COMPLETE - retrieval/fusion/reranker matrix v2 đã fair, không duplicate/confound, offline 10x2 và resume 20/20 pass. Bước tiếp theo là W8-EVAL-PREFLIGHT-01 với live Neo4j/Gemini.

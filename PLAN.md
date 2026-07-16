@@ -996,6 +996,37 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 **Depends on:** W7-CONFIG-01
 **Done when:** Một thành viên khác chạy được evaluation nhỏ theo docs.
 
+### W8-EVAL-PREP-01 - Harden evaluation runner cho full benchmark
+
+**When:** Tuần 8, trước W8-EVAL-01
+**Môi trường:** Local
+
+**What to do:**
+- Thêm atomic checkpoint theo config-item pair và resume có provenance validation.
+- Ghi dataset/config/manifest/evaluator/Git/model identity để không trộn các run khác nhau.
+- Thêm bounded retry, failure/fallback classification và CLI exit code theo completeness.
+- Đo riêng RAG, retrieval, generation, judge và evaluation-total latency.
+- Ghi progress, failure/fallback summary và provenance vào JSON/Markdown report.
+
+**Deliverable:** Evaluation runner resume-safe và có timing/provenance đầy đủ.
+**Depends on:** W7-CONFIG-01
+**Done when:** Offline pair run + resume pass; provenance mismatch bị reject; failed item làm run non-zero; retrieval p95 có giá trị; regression tests pass.
+
+### W8-EVAL-PREP-02 - Chuẩn hóa retrieval/fusion/reranker matrix v2
+
+**When:** Tuần 8, trước W8-EVAL-01
+**Môi trường:** Local
+
+**What to do:**
+- Tạo matrix v2 gồm 10 config retrieval/fusion/reranker độc lập.
+- Giữ semantic BGE-M3 chunking, prompt v1, Gemini Flash Lite, balanced context, query rewrite off cố định.
+- Loại duplicate graph+sparse và không trộn graph-first fusion với graph-first context assembly.
+- Giữ dense planner-gated nhưng dùng cùng chunk strategy với non-dense variants.
+
+**Deliverable:** `configs/w8_abl_01_retrieval_matrix_v2.yaml`.
+**Depends on:** W8-EVAL-PREP-01, W7-CONFIG-01
+**Done when:** 10 unique behavior/config signatures; offline 10x2 smoke pass; resume 20/20 pass; historical W6 artifacts không bị thay đổi.
+
 ### W8-EVAL-01 - Chạy evaluation cuối cùng
 
 **When:** Tuần 8, ngày 2-3
@@ -1007,7 +1038,7 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 - Tạo `evaluation/report_final.md`.
 
 **Deliverable:** Final evaluation report.
-**Depends on:** W6-EVAL-02, W7-DEPLOY-01
+**Depends on:** W6-EVAL-02, W8-EVAL-PREP-01, W8-EVAL-PREP-02
 **Done when:** Report có đủ metric và pass/fail rõ.
 
 ### W8-ABL-01 - Đóng gói báo cáo ablation cuối cùng

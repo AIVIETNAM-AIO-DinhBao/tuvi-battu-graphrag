@@ -77,6 +77,11 @@ def append_trace_node(
     return state
 
 
+def elapsed_ms(started: float) -> float:
+    """Return a stable, JSON-serializable node duration in milliseconds."""
+    return round((time.perf_counter() - started) * 1000, 2)
+
+
 def default_chart_loader(chart_id: str, user_id: str | None = None) -> dict[str, Any]:
     client = get_supabase_client()
     query = (
@@ -426,6 +431,7 @@ def make_graph_retrieval_node(
     fallback_on_error: bool = False,
 ) -> Callable[[RAGState], RAGState]:
     def graph_retrieval(state: RAGState) -> RAGState:
+        started = time.perf_counter()
         config = state["experiment_config"]
         graph_config = config.graph_retrieval
         plan_paths = ((state.get("retrieval_plan") or {}).get("enabled_retrieval_paths") or {})
@@ -437,6 +443,7 @@ def make_graph_retrieval_node(
                 "graph_retrieval",
                 status="skipped",
                 detail={
+                    "duration_ms": elapsed_ms(started),
                     "enabled": False,
                     "enabled_by_config": config.graph_retrieval_enabled,
                     "enabled_by_plan": enabled_by_plan,
@@ -454,6 +461,7 @@ def make_graph_retrieval_node(
                     enabled=True,
                     top_k=graph_config.top_k,
                     chunk_strategy_id=config.chunk_strategy_id,
+                    duration_ms=elapsed_ms(started),
                     source_ids=config.source_ids,
                 ),
             )
@@ -477,6 +485,7 @@ def make_graph_retrieval_node(
                     enabled=True,
                     top_k=graph_config.top_k,
                     chunk_strategy_id=config.chunk_strategy_id,
+                    duration_ms=elapsed_ms(started),
                     source_ids=config.source_ids,
                 ),
             )
@@ -490,6 +499,7 @@ def make_graph_retrieval_node(
                 "candidate_count": len(candidates),
                 "candidate_count_by_role": candidate_counts_by_role(candidates),
                 "chunk_strategy_id": config.chunk_strategy_id,
+                "duration_ms": elapsed_ms(started),
                 "enabled": True,
                 "graph_mode_requested": graph_metadata.get("requested_mode"),
                 "graph_mode_effective": graph_metadata.get("effective_mode"),
@@ -514,6 +524,7 @@ def make_dense_retrieval_node(
     fallback_on_error: bool = False,
 ) -> Callable[[RAGState], RAGState]:
     def dense_retrieval(state: RAGState) -> RAGState:
+        started = time.perf_counter()
         config = state["experiment_config"]
         dense_config = config.dense_retrieval
         decision = dense_retrieval_decision(state, config)
@@ -521,6 +532,7 @@ def make_dense_retrieval_node(
             "candidate_count": 0,
             "candidate_k": dense_config.candidate_k,
             "chunk_strategy_id": config.chunk_strategy_id,
+            "duration_ms": elapsed_ms(started),
             "embedding_slot": dense_config.embedding_slot,
             "enabled": False,
             "source_ids": config.source_ids,
@@ -550,14 +562,13 @@ def make_dense_retrieval_node(
                     top_k=dense_config.top_k,
                     candidate_k=dense_config.candidate_k,
                     chunk_strategy_id=config.chunk_strategy_id,
+                    duration_ms=elapsed_ms(started),
                     embedding_slot=dense_config.embedding_slot,
                     source_ids=config.source_ids,
                     vector_index=dense_config.vector_index,
                     **decision_extra,
                 ),
             )
-
-        started = time.perf_counter()
         embedding_service = None
         try:
             embedding_service = dense_embedding_service or get_dense_query_embedding_service()
@@ -571,7 +582,7 @@ def make_dense_retrieval_node(
                 ),
             )
         except Exception as exc:
-            duration_ms = round((time.perf_counter() - started) * 1000, 2)
+            duration_ms = elapsed_ms(started)
             if not fallback_on_error:
                 raise
             mark_retrieval_backend_unavailable(state, exc)
@@ -594,7 +605,7 @@ def make_dense_retrieval_node(
                     **decision_extra,
                 ),
             )
-        duration_ms = round((time.perf_counter() - started) * 1000, 2)
+        duration_ms = elapsed_ms(started)
         state["dense_candidates"] = candidates
         cache_stats = {}
         if embedding_service is not None:
@@ -629,6 +640,7 @@ def make_sparse_retrieval_node(
     fallback_on_error: bool = False,
 ) -> Callable[[RAGState], RAGState]:
     def sparse_retrieval(state: RAGState) -> RAGState:
+        started = time.perf_counter()
         config = state["experiment_config"]
         sparse_config = config.sparse_retrieval
         plan_paths = ((state.get("retrieval_plan") or {}).get("enabled_retrieval_paths") or {})
@@ -640,6 +652,7 @@ def make_sparse_retrieval_node(
                 "sparse_retrieval",
                 status="skipped",
                 detail={
+                    "duration_ms": elapsed_ms(started),
                     "enabled": False,
                     "enabled_by_config": config.sparse_retrieval_enabled,
                     "enabled_by_plan": enabled_by_plan,
@@ -657,6 +670,7 @@ def make_sparse_retrieval_node(
                     enabled=True,
                     top_k=sparse_config.top_k,
                     chunk_strategy_id=config.chunk_strategy_id,
+                    duration_ms=elapsed_ms(started),
                     fulltext_index=sparse_config.fulltext_index,
                     source_ids=config.source_ids,
                 ),
@@ -681,6 +695,7 @@ def make_sparse_retrieval_node(
                     enabled=True,
                     top_k=sparse_config.top_k,
                     chunk_strategy_id=config.chunk_strategy_id,
+                    duration_ms=elapsed_ms(started),
                     fulltext_index=sparse_config.fulltext_index,
                     source_ids=config.source_ids,
                 ),
@@ -694,6 +709,7 @@ def make_sparse_retrieval_node(
                 "candidate_count": len(candidates),
                 "candidate_count_by_role": candidate_counts_by_role(candidates),
                 "chunk_strategy_id": config.chunk_strategy_id,
+                "duration_ms": elapsed_ms(started),
                 "enabled": True,
                 "fulltext_index": sparse_config.fulltext_index,
                 "role_query_count": len(role_queries),
@@ -708,6 +724,7 @@ def make_sparse_retrieval_node(
 
 
 def fusion_node(state: RAGState) -> RAGState:
+    started = time.perf_counter()
     config = state["experiment_config"]
     fused_candidates = fuse_retrieval_candidates(state, config)
     state["fused_candidates"] = fused_candidates
@@ -715,6 +732,7 @@ def fusion_node(state: RAGState) -> RAGState:
         state,
         "fusion",
         detail={
+            "duration_ms": elapsed_ms(started),
             "fusion_method": config.fusion_method,
             "input_counts": count_candidates_by_path(state),
             "output_count": len(fused_candidates),
@@ -725,6 +743,7 @@ def fusion_node(state: RAGState) -> RAGState:
 
 def make_rerank_node(candidate_reranker: CandidateReranker | None = None) -> Callable[[RAGState], RAGState]:
     def rerank(state: RAGState) -> RAGState:
+        started = time.perf_counter()
         config = state["experiment_config"]
         reranked_candidates = apply_reranking(state, config, candidate_reranker=candidate_reranker)
         state["reranked_candidates"] = reranked_candidates
@@ -733,6 +752,7 @@ def make_rerank_node(candidate_reranker: CandidateReranker | None = None) -> Cal
             "rerank",
             status="completed" if config.reranker_enabled else "skipped",
             detail={
+                "duration_ms": elapsed_ms(started),
                 "enabled": config.reranker_enabled,
                 "input_count": len(state.get("fused_candidates") or []),
                 "model": config.reranker_config.model,
@@ -746,6 +766,7 @@ def make_rerank_node(candidate_reranker: CandidateReranker | None = None) -> Cal
 
 
 def document_grading_node(state: RAGState) -> RAGState:
+    started = time.perf_counter()
     config = state["experiment_config"]
     graded_candidates = apply_document_grading(state, config)
     state["graded_candidates"] = graded_candidates
@@ -755,6 +776,7 @@ def document_grading_node(state: RAGState) -> RAGState:
         "document_grading",
         status="completed" if config.document_grading_enabled else "skipped",
         detail={
+            "duration_ms": elapsed_ms(started),
             "dropped_count": len(state.get("reranked_candidates") or []) - len(graded_candidates),
             "enabled": config.document_grading_enabled,
             "input_count": len(state.get("reranked_candidates") or []),
@@ -765,6 +787,7 @@ def document_grading_node(state: RAGState) -> RAGState:
 
 
 def context_assembly_node(state: RAGState) -> RAGState:
+    started = time.perf_counter()
     config = state["experiment_config"]
     final_context, context_chunks, context_summary = assemble_context(state, config)
     state["final_context"] = final_context
@@ -773,12 +796,13 @@ def context_assembly_node(state: RAGState) -> RAGState:
     return append_trace_node(
         state,
         "context_assembly",
-        detail=context_summary,
+        detail={**context_summary, "duration_ms": elapsed_ms(started)},
     )
 
 
 def make_generation_node(generation_client: GenerationClient | None = None) -> Callable[[RAGState], RAGState]:
     def generation(state: RAGState) -> RAGState:
+        started = time.perf_counter()
         config = state["experiment_config"]
         answer, metadata = generate_answer(state, config, generation_client=generation_client)
         state["answer"] = answer
@@ -788,7 +812,7 @@ def make_generation_node(generation_client: GenerationClient | None = None) -> C
             state,
             "generation",
             status=status,
-            detail=metadata,
+            detail={**metadata, "duration_ms": elapsed_ms(started)},
         )
 
     return generation

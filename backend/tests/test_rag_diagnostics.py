@@ -1,7 +1,28 @@
 from __future__ import annotations
 
+import app.rag.nodes as rag_nodes
 from app.rag.config import load_experiment_config
 from app.rag.diagnostics import build_retrieval_diagnostics, infer_question_complexity, infer_question_family
+
+
+def test_dense_retrieval_diagnostics_preserves_skipped_node_duration() -> None:
+    config = load_experiment_config()
+    state = {
+        "experiment_config": config,
+        "normalized_query": "Cung Mệnh",
+        "retrieval_plan": {
+            "enabled_retrieval_paths": {"dense": False},
+            "dense_gate": {"enabled": False},
+        },
+        "retrieval_trace": {"nodes": []},
+    }
+
+    rag_nodes.make_dense_retrieval_node()(state)
+    dense = build_retrieval_diagnostics(state)["dense_retrieval"]
+
+    assert dense["status"] == "skipped"
+    assert isinstance(dense["duration_ms"], (int, float))
+    assert dense["duration_ms"] >= 0
 
 
 def test_build_retrieval_diagnostics_summarizes_counts_paths_and_entities() -> None:

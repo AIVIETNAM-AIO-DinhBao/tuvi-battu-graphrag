@@ -25,6 +25,7 @@ from app.rag.ablation import (
     load_ablation_manifest,
 )
 from app.rag.config import ExperimentConfig, config_hash
+from app.rag.evaluation_checkpoint import EvaluationCheckpointStore, atomic_write_json
 from app.rag.gemini_keys import get_primary_runtime_gemini_api_key, load_runtime_gemini_api_keys
 from app.rag.generation import DeterministicGenerationClient
 from app.rag.graph import run_rag_dry_run
@@ -42,6 +43,7 @@ RETRIEVAL_NODE_NAMES = {
     "fusion",
     "rerank",
     "document_grading",
+    "context_assembly",
 }
 
 
@@ -409,6 +411,11 @@ class EvaluationRunner:
     judge: EvaluationJudge = field(default_factory=GeminiEvaluationJudge)
     fail_fast: bool = False
     write_reports: bool = True
+    max_item_attempts: int = 1
+    retry_base_seconds: float = 0.0
+    sleep_fn: Callable[[float], None] = time.sleep
+    checkpoint_store: EvaluationCheckpointStore | None = None
+    retry_failed: bool = False
 
     def run(
         self,
@@ -421,6 +428,9 @@ class EvaluationRunner:
         effective_output_dir = output_dir or manifest.output_dir
         started_at = utc_now()
         config_results: list[dict[str, Any]] = []
+        executed_pair_count = 0
+        resumed_pair_count = 0
+        processed_failed_pair_count = 0
 
         for spec in manifest.configs:
             config = spec.build_config()
@@ -430,7 +440,45 @@ class EvaluationRunner:
             config_error: str | None = None
             try:
                 for item in items:
-                    item_results.append(self._run_item(item, config))
+                    cached_results = (
+                        self.checkpoint_store.item_results(spec.name, item_ids=[item.id])
+                        if self.checkpoint_store is not None
+                        else []
+                    )
+                    cached_result = cached_results[0] if cached_results else None
+                    should_resume = cached_result is not None and (
+                        cached_result.get("status") == "completed" or not self.retry_failed
+                    )
+                    if should_resume:
+                        result = dict(cached_result)
+                        result["result_source"] = "checkpoint"
+                        resumed_pair_count += 1
+                    else:
+                        result = self._run_item(item, config)
+                        executed_pair_count += 1
+                        if self.checkpoint_store is not None:
+                            self.checkpoint_store.record_item(spec.name, item.id, result)
+                    item_results.append(result)
+                    if result.get("status") != "completed":
+                        processed_failed_pair_count += 1
+                    if self.checkpoint_store is not None:
+                        completed_so_far = executed_pair_count + resumed_pair_count
+                        atomic_write_json(
+                            self.checkpoint_store.path.with_name("checkpoint_summary.json"),
+                            {
+                                "expected_pair_count": len(items) * len(manifest.configs),
+                                "processed_pair_count": completed_so_far,
+                                "executed_pair_count": executed_pair_count,
+                                "resumed_pair_count": resumed_pair_count,
+                                "failed_pair_count": processed_failed_pair_count,
+                                "remaining_pair_count": len(items) * len(manifest.configs) - completed_so_far,
+                                "current_config": spec.name,
+                                "current_item": item.id,
+                                "updated_at": utc_now(),
+                            },
+                        )
+                    if self.fail_fast and result.get("status") != "completed":
+                        raise RuntimeError(result.get("error") or f"Evaluation failed for {item.id}.")
             except Exception as exc:
                 config_error = f"{type(exc).__name__}: {exc}"
                 if self.fail_fast:
@@ -448,7 +496,10 @@ class EvaluationRunner:
                 item_results=item_results,
                 grouped_metrics=grouped_metrics,
             )
-            if config_error:
+            failed_items = [item for item in item_results if item.get("status") != "completed"]
+            if config_error or failed_items:
+                if not config_error:
+                    config_error = f"{len(failed_items)} of {len(items)} evaluation item(s) failed."
                 self.run_store.fail_run(run_id, metrics=metrics, trace=trace, error=config_error)
                 status = "failed"
             else:
@@ -493,6 +544,24 @@ class EvaluationRunner:
             "metric_definitions": metric_definitions(self.judge.backend),
             "configs": config_results,
         }
+        failed_pair_count = sum(
+            int((config.get("metrics") or {}).get("failed_count") or 0) for config in config_results
+        )
+        expected_pair_count = len(items) * len(manifest.configs)
+        completed_pair_count = expected_pair_count - failed_pair_count
+        report["status"] = (
+            "completed" if failed_pair_count == 0 else ("partial" if completed_pair_count > 0 else "failed")
+        )
+        report["execution_summary"] = {
+            "expected_pair_count": expected_pair_count,
+            "completed_pair_count": completed_pair_count,
+            "failed_pair_count": failed_pair_count,
+            "executed_pair_count": executed_pair_count,
+            "resumed_pair_count": resumed_pair_count,
+        }
+        if self.checkpoint_store is not None:
+            report["checkpoint_path"] = str(self.checkpoint_store.path)
+            report["run_identity"] = self.checkpoint_store.run_identity
         report["ablation_analysis"] = build_ablation_analysis(report)
         chunking_analysis = build_chunking_ablation_analysis(report)
         if chunking_analysis:
@@ -505,18 +574,51 @@ class EvaluationRunner:
         return report
 
     def _run_item(self, item: AblationDatasetItem, config: ExperimentConfig) -> dict[str, Any]:
-        started = time.perf_counter()
-        try:
-            state = self.rag_runner(item, config)
-            latency_ms = round((time.perf_counter() - started) * 1000, 2)
-            judge_result = self.judge.evaluate(item=item, state=state, config=config)
-            return summarize_evaluation_item(item, state, judge_result, latency_ms=latency_ms)
-        except Exception as exc:
-            latency_ms = round((time.perf_counter() - started) * 1000, 2)
-            result = summarize_evaluation_error(item, exc, latency_ms=latency_ms)
-            if self.fail_fast:
-                raise
-            return result
+        attempts = max(1, int(self.max_item_attempts))
+        last_result: dict[str, Any] | None = None
+        last_exc: Exception | None = None
+        attempt_errors: list[str] = []
+        for attempt in range(1, attempts + 1):
+            started = time.perf_counter()
+            try:
+                state = self.rag_runner(item, config)
+                rag_latency_ms = round((time.perf_counter() - started) * 1000, 2)
+                if state.get("retrieval_backend_unavailable"):
+                    raise RuntimeError("retrieval backend fallback: retrieval backend unavailable")
+                generation_metadata = state.get("generation_metadata") or {}
+                if generation_metadata.get("fallback_reason") == "generation_backend_error":
+                    error_type = generation_metadata.get("error_type") or "RuntimeError"
+                    error_message = generation_metadata.get("error_message") or "generation backend failed"
+                    raise RuntimeError(f"generation backend error ({error_type}): {error_message}")
+                judge_started = time.perf_counter()
+                try:
+                    judge_result = self.judge.evaluate(item=item, state=state, config=config)
+                except Exception as exc:
+                    raise RuntimeError(f"judge backend error ({type(exc).__name__}): {exc}") from exc
+                judge_latency_ms = round((time.perf_counter() - judge_started) * 1000, 2)
+                result = summarize_evaluation_item(
+                    item,
+                    state,
+                    judge_result,
+                    latency_ms=rag_latency_ms,
+                    judge_latency_ms=judge_latency_ms,
+                )
+                result["attempt_count"] = attempt
+                result["attempt_errors"] = attempt_errors
+                result["result_source"] = "executed"
+                return result
+            except Exception as exc:
+                last_exc = exc
+                latency_ms = round((time.perf_counter() - started) * 1000, 2)
+                last_result = summarize_evaluation_error(item, exc, latency_ms=latency_ms)
+                attempt_errors.append(f"{type(exc).__name__}: {exc}")
+                if attempt < attempts and self.retry_base_seconds > 0:
+                    self.sleep_fn(self.retry_base_seconds * (2 ** (attempt - 1)))
+        assert last_result is not None
+        last_result["attempt_count"] = attempts
+        last_result["attempt_errors"] = attempt_errors
+        last_result["result_source"] = "executed"
+        return last_result
 
 
 def summarize_evaluation_item(
@@ -525,6 +627,7 @@ def summarize_evaluation_item(
     judge_result: EvaluationJudgeResult,
     *,
     latency_ms: float,
+    judge_latency_ms: float | None = None,
 ) -> dict[str, Any]:
     answer = state.get("answer") or ""
     sources = state.get("sources") or []
@@ -540,6 +643,8 @@ def summarize_evaluation_item(
     context_recall = None if chart_only else judge_result.context_recall
     chart_context_grounding = judge_result.context_recall if chart_only else None
     question_family = str((item.labels or {}).get("question_family") or "") or None
+    generation_metadata = state.get("generation_metadata") or {}
+    generation_latency = trace_node_latency_ms(state, "generation")
 
     return {
         "item_id": item.id,
@@ -552,7 +657,14 @@ def summarize_evaluation_item(
         "gold_span_count": len(item.gold_context_spans),
         "status": "completed",
         "latency_ms": latency_ms,
+        "rag_latency_ms": latency_ms,
         "retrieval_latency_ms": retrieval_latency_ms(state),
+        "generation_latency_ms": generation_latency,
+        "judge_latency_ms": judge_latency_ms,
+        "evaluation_total_latency_ms": round(latency_ms + float(judge_latency_ms or 0), 2),
+        "generation_fallback_reason": generation_metadata.get("fallback_reason"),
+        "retrieval_backend_fallback": bool(state.get("retrieval_backend_unavailable")),
+        "failure_stage": None,
         "answer_present": bool(str(answer).strip()),
         "answer_length_chars": len(str(answer)),
         "faithfulness": judge_result.faithfulness,
@@ -587,6 +699,15 @@ def summarize_evaluation_item(
 
 def summarize_evaluation_error(item: AblationDatasetItem, exc: Exception, *, latency_ms: float) -> dict[str, Any]:
     question_family = str((item.labels or {}).get("question_family") or "") or None
+    error_text = str(exc).lower()
+    if "generation backend" in error_text:
+        failure_stage = "generation"
+    elif "retrieval backend" in error_text:
+        failure_stage = "retrieval"
+    elif "judge backend" in error_text:
+        failure_stage = "judge"
+    else:
+        failure_stage = "rag_pipeline"
     return {
         "item_id": item.id,
         "chart_id": item.chart_id,
@@ -598,7 +719,14 @@ def summarize_evaluation_error(item: AblationDatasetItem, exc: Exception, *, lat
         "gold_span_count": len(item.gold_context_spans),
         "status": "failed",
         "latency_ms": latency_ms,
+        "rag_latency_ms": latency_ms,
         "retrieval_latency_ms": None,
+        "generation_latency_ms": None,
+        "judge_latency_ms": None,
+        "evaluation_total_latency_ms": latency_ms,
+        "generation_fallback_reason": "generation_backend_error" if failure_stage == "generation" else None,
+        "retrieval_backend_fallback": failure_stage == "retrieval",
+        "failure_stage": failure_stage,
         "answer_present": False,
         "answer_length_chars": 0,
         "faithfulness": None,
@@ -680,6 +808,20 @@ def retrieval_latency_ms(state: dict[str, Any]) -> float | None:
     return round(sum(durations), 2)
 
 
+def trace_node_latency_ms(state: dict[str, Any], node_name: str) -> float | None:
+    for node in (state.get("retrieval_trace") or {}).get("nodes") or []:
+        if node.get("node") != node_name:
+            continue
+        raw_duration = node.get("duration_ms") or node.get("latency_ms")
+        if raw_duration is None:
+            return None
+        try:
+            return round(float(raw_duration), 2)
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
 def trace_node_statuses(state: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {"node": node.get("node"), "status": node.get("status", "completed")}
@@ -721,6 +863,13 @@ def aggregate_evaluation_metrics(
         "item_count": item_count,
         "completed_count": len(completed),
         "failed_count": failed_count,
+        "generation_backend_fallback_count": sum(
+            1 for item in item_results if item.get("generation_fallback_reason") == "generation_backend_error"
+        ),
+        "no_context_count": sum(1 for item in item_results if item.get("generation_fallback_reason") == "no_context"),
+        "retrieval_backend_fallback_count": sum(1 for item in item_results if item.get("retrieval_backend_fallback")),
+        "judge_failure_count": sum(1 for item in item_results if item.get("failure_stage") == "judge"),
+        "citation_fallback_count": sum(1 for item in item_results if item.get("citation_fallback")),
         "chart_only_count": chart_only_count,
         "corpus_grounded_item_count": item_count - chart_only_count,
         "answer_present_rate": round(sum(1 for item in item_results if item.get("answer_present")) / denominator, 4),
@@ -740,9 +889,18 @@ def aggregate_evaluation_metrics(
         "avg_gold_page_hit_rate": average_defined([item.get("gold_page_hit_rate") for item in item_results]),
         "avg_gold_quote_overlap": average_defined([item.get("gold_quote_overlap_avg") for item in item_results]),
         "p95_latency_ms": percentile_defined([item.get("latency_ms") for item in item_results], 0.95),
+        "p50_latency_ms": percentile_defined([item.get("latency_ms") for item in item_results], 0.50),
         "avg_latency_ms": average_defined([item.get("latency_ms") for item in item_results]),
         "retrieval_p95_ms": percentile_defined([item.get("retrieval_latency_ms") for item in item_results], 0.95),
+        "retrieval_p50_ms": percentile_defined([item.get("retrieval_latency_ms") for item in item_results], 0.50),
         "avg_retrieval_latency_ms": average_defined([item.get("retrieval_latency_ms") for item in item_results]),
+        "generation_p95_ms": percentile_defined([item.get("generation_latency_ms") for item in item_results], 0.95),
+        "generation_p50_ms": percentile_defined([item.get("generation_latency_ms") for item in item_results], 0.50),
+        "judge_p95_ms": percentile_defined([item.get("judge_latency_ms") for item in item_results], 0.95),
+        "judge_p50_ms": percentile_defined([item.get("judge_latency_ms") for item in item_results], 0.50),
+        "evaluation_total_p95_ms": percentile_defined(
+            [item.get("evaluation_total_latency_ms") for item in item_results], 0.95
+        ),
         "citation_marker_presence_rate": round(
             sum(1 for item in corpus_items if item.get("citation_marker_presence")) / corpus_denominator,
             4,
@@ -1164,6 +1322,39 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     ]
     if report.get("notes"):
         lines.append(f"- Notes: {report['notes']}")
+    if report.get("status"):
+        lines.append(f"- Run status: `{report['status']}`")
+    identity = report.get("run_identity") or {}
+    if identity:
+        lines.extend(
+            [
+                "",
+                "## Run identity and provenance",
+                "",
+                f"- Identity SHA-256: `{identity.get('identity_sha256')}`",
+                f"- Dataset SHA-256: `{identity.get('dataset_sha256')}`",
+                f"- Manifest SHA-256: `{identity.get('manifest_sha256')}`",
+                f"- Evaluator SHA-256: `{identity.get('evaluator_sha256')}`",
+                f"- Git SHA: `{identity.get('git_sha')}`",
+                f"- Git dirty: `{identity.get('git_dirty')}`",
+                f"- Judge model: `{identity.get('judge_model')}`",
+                f"- Checkpoint: `{report.get('checkpoint_path')}`",
+            ]
+        )
+    execution = report.get("execution_summary") or {}
+    if execution:
+        lines.extend(
+            [
+                "",
+                "## Execution completeness",
+                "",
+                f"- Expected pairs: {execution.get('expected_pair_count')}",
+                f"- Completed pairs: {execution.get('completed_pair_count')}",
+                f"- Failed pairs: {execution.get('failed_pair_count')}",
+                f"- Executed pairs: {execution.get('executed_pair_count', execution.get('completed_pair_count'))}",
+                f"- Resumed pairs: {execution.get('resumed_pair_count', 0)}",
+            ]
+        )
     if report.get("judge_backend") != "gemini":
         lines.extend(
             [
@@ -1201,6 +1392,29 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 cite=metrics.get("citation_coverage_rate"),
                 latency=metrics.get("p95_latency_ms"),
                 retrieval=metrics.get("retrieval_p95_ms"),
+            )
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Failure and fallback summary",
+            "",
+            "| Config | Failed | Generation backend fallback | Judge failure | No context | Retrieval backend fallback | Citation fallback |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for config in report.get("configs") or []:
+        metrics = config.get("metrics") or {}
+        lines.append(
+            "| {name} | {failed} | {generation} | {judge} | {no_context} | {retrieval} | {citation} |".format(
+                name=config.get("config_name"),
+                failed=metrics.get("failed_count"),
+                generation=metrics.get("generation_backend_fallback_count"),
+                judge=metrics.get("judge_failure_count"),
+                no_context=metrics.get("no_context_count"),
+                retrieval=metrics.get("retrieval_backend_fallback_count"),
+                citation=metrics.get("citation_fallback_count"),
             )
         )
 

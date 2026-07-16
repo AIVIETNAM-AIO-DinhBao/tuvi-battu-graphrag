@@ -1,0 +1,1095 @@
+{
+  "configs": {
+    "default_production": {
+      "items": {
+        "TVQA-001": {
+          "answer_length_chars": 476,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": 1.0,
+          "chart_id": "CHART-001",
+          "chart_only": true,
+          "citation_coverage": null,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": null,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "Direct",
+          "diagnostic_question_family": "core_identity",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts",
+            "house_scope",
+            "generic"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 38.2,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.05,
+          "gold_doc_coverage_rate": null,
+          "gold_page_hit_rate": null,
+          "gold_quote_overlap_avg": null,
+          "gold_span_count": 0,
+          "graph_hit": null,
+          "item_id": "TVQA-001",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.01,
+          "labels": {
+            "question_family": "core_identity",
+            "topic": "identity"
+          },
+          "latency_ms": 38.19,
+          "query": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+          "question_complexity": "Direct",
+          "question_family": "core_identity",
+          "rag_latency_ms": 38.19,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1,
+                "house_scope": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 2,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương",
+                "Lực Sĩ",
+                "Quan Phù",
+                "Kình Dương",
+                "Long Trì",
+                "Thiên Trù",
+                "Linh Tinh",
+                "L.thái Tuế"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 9,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.01,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": false,
+              "enabled_by_plan": false,
+              "min_query_terms": 0,
+              "query_term_count": 16,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 1,
+            "extracted_entities": [
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": null,
+              "effective_required_entity_hits": null,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": null,
+              "required_entity_hits": null,
+              "role_metadata": [],
+              "role_query_count": 0
+            },
+            "missing_evidence_roles": [],
+            "query": {
+              "normalized": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "original": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "rewritten": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?"
+            },
+            "question_complexity": "Direct",
+            "question_complexity_source": "provided",
+            "question_family": "core_identity",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "skipped",
+              "rerank": "completed",
+              "sparse_retrieval": "skipped"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "identity",
+                "house_facts"
+              ],
+              "dense_gate": {
+                "enabled": false
+              },
+              "enabled_retrieval_paths": {
+                "dense": false,
+                "graph": false,
+                "sparse": false
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "Direct",
+              "question_complexity_source": "provided",
+              "question_family": "core_identity",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope"
+              ],
+              "retrieval_depth": "chart_only",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": []
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts",
+              "house_scope",
+              "generic"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.15,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        },
+        "TVQA-002": {
+          "answer_length_chars": 369,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": null,
+          "chart_id": "CHART-001",
+          "chart_only": false,
+          "citation_coverage": 0.75,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": 1.0,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "One-hop",
+          "diagnostic_question_family": "menh_house_interpretation",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts",
+            "house_scope",
+            "star_definition",
+            "modifier_effect",
+            "generic"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 22.28,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.04,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.1356,
+          "gold_span_count": 6,
+          "graph_hit": false,
+          "item_id": "TVQA-002",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.01,
+          "labels": {
+            "question_family": "menh_house_interpretation",
+            "topic": "self"
+          },
+          "latency_ms": 22.27,
+          "query": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+          "question_complexity": "One-hop",
+          "question_family": "menh_house_interpretation",
+          "rag_latency_ms": 22.27,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1,
+                "house_scope": 1,
+                "modifier_effect": 1,
+                "star_definition": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 1,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 2,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.01,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": true,
+              "enabled_by_plan": true,
+              "min_query_terms": 2,
+              "query_term_count": 23,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 2,
+            "extracted_entities": [
+              {
+                "canonical_name": "Thái Dương",
+                "entity_type": "Sao",
+                "surface": null
+              },
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": "entity_any",
+              "effective_required_entity_hits": 1,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": "entity_any",
+              "required_entity_hits": 1,
+              "role_metadata": [
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "house_scope"
+                },
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "star_definition"
+                },
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "modifier_effect"
+                },
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "combination_pattern"
+                }
+              ],
+              "role_query_count": 4
+            },
+            "missing_evidence_roles": [],
+            "query": {
+              "normalized": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "original": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "rewritten": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?"
+            },
+            "question_complexity": "One-hop",
+            "question_complexity_source": "provided",
+            "question_family": "menh_house_interpretation",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope",
+              "star_definition",
+              "modifier_effect"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "completed",
+              "rerank": "completed",
+              "sparse_retrieval": "completed"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "house_facts",
+                "star_facts",
+                "special_states"
+              ],
+              "dense_gate": {
+                "enabled": true,
+                "min_query_terms": 2
+              },
+              "enabled_retrieval_paths": {
+                "dense": true,
+                "graph": true,
+                "sparse": true
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "One-hop",
+              "question_complexity_source": "provided",
+              "question_family": "menh_house_interpretation",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope",
+                "star_definition",
+                "modifier_effect"
+              ],
+              "retrieval_depth": "medium",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": [
+                "Thái Dương"
+              ]
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts",
+              "house_scope",
+              "star_definition",
+              "modifier_effect",
+              "generic"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.56,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        },
+        "TVQA-003": {
+          "answer_length_chars": 504,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": null,
+          "chart_id": "CHART-001",
+          "chart_only": false,
+          "citation_coverage": 0.75,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": 1.0,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "One-hop",
+          "diagnostic_question_family": "than_cu_interpretation",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts",
+            "house_scope",
+            "relation_rule",
+            "star_definition",
+            "generic"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 23.29,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.04,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.1981,
+          "gold_span_count": 7,
+          "graph_hit": false,
+          "item_id": "TVQA-003",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.01,
+          "labels": {
+            "question_family": "than_cu_interpretation",
+            "topic": "self_path"
+          },
+          "latency_ms": 23.28,
+          "query": "Lá số này có Thân cư Thiên Di, vậy đường đời của tôi có thuận lợi khi phát triển sự nghiệp ở nơi xa quê hương không?",
+          "question_complexity": "One-hop",
+          "question_family": "than_cu_interpretation",
+          "rag_latency_ms": 23.28,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1,
+                "house_scope": 1,
+                "relation_rule": 1,
+                "star_definition": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 2,
+              "relation_count": 0,
+              "target_houses": [
+                "Thiên Di"
+              ],
+              "target_stars": [
+                "Địa Không"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 2,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.01,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": true,
+              "enabled_by_plan": true,
+              "min_query_terms": 2,
+              "query_term_count": 27,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 4,
+            "extracted_entities": [
+              {
+                "canonical_name": "Thiên Di",
+                "entity_type": "Cung",
+                "surface": null
+              },
+              {
+                "canonical_name": "Cung Thân",
+                "entity_type": "CucBanMenh",
+                "surface": null
+              },
+              {
+                "canonical_name": "Địa Không",
+                "entity_type": "Sao",
+                "surface": null
+              },
+              {
+                "canonical_name": "Thân",
+                "entity_type": "DiaChi",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": "entity_any",
+              "effective_required_entity_hits": 1,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": "entity_any",
+              "required_entity_hits": 1,
+              "role_metadata": [
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "house_scope"
+                },
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "relation_rule"
+                },
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "star_definition"
+                },
+                {
+                  "candidate_count": 0,
+                  "effective_mode": "entity_any",
+                  "effective_required_entity_hits": 1,
+                  "fallback_reason": null,
+                  "fallback_used": false,
+                  "requested_mode": "entity_any",
+                  "required_entity_hits": 1,
+                  "role": "combination_pattern"
+                }
+              ],
+              "role_query_count": 4
+            },
+            "missing_evidence_roles": [],
+            "query": {
+              "normalized": "Lá số này có Thân cư Thiên Di, vậy đường đời của tôi có thuận lợi khi phát triển sự nghiệp ở nơi xa quê hương không?",
+              "original": "Lá số này có Thân cư Thiên Di, vậy đường đời của tôi có thuận lợi khi phát triển sự nghiệp ở nơi xa quê hương không?",
+              "rewritten": "Lá số này có Thân cư Thiên Di, vậy đường đời của tôi có thuận lợi khi phát triển sự nghiệp ở nơi xa quê hương không?"
+            },
+            "question_complexity": "One-hop",
+            "question_complexity_source": "provided",
+            "question_family": "than_cu_interpretation",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope",
+              "relation_rule",
+              "star_definition"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "completed",
+              "rerank": "completed",
+              "sparse_retrieval": "completed"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "than_position",
+                "house_facts",
+                "star_facts"
+              ],
+              "dense_gate": {
+                "enabled": true,
+                "min_query_terms": 2
+              },
+              "enabled_retrieval_paths": {
+                "dense": true,
+                "graph": true,
+                "sparse": true
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "One-hop",
+              "question_complexity_source": "provided",
+              "question_family": "than_cu_interpretation",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope",
+                "relation_rule",
+                "star_definition"
+              ],
+              "retrieval_depth": "medium",
+              "target_houses": [
+                "Thiên Di"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": [
+                "Địa Không"
+              ]
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts",
+              "house_scope",
+              "relation_rule",
+              "star_definition",
+              "generic"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.4,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "created_at": "2026-07-16T15:21:18.266929Z",
+  "run_identity": {
+    "config_hashes": {
+      "default_production": "c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96"
+    },
+    "dataset_sha256": "90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c",
+    "evaluator_sha256": "9ae528d893159c4092c3129523da8d69a7a79a6ab5c32a132791158287eda314",
+    "generation_models": {
+      "default_production": "gemini-3.1-flash-lite-preview"
+    },
+    "git_dirty": true,
+    "git_sha": "d5c4f734e5acb42679cb9e0755bbd935a4e9fa7f",
+    "identity_sha256": "e3c5a5a7e4d2efdf8112ddb9c69f15c9998bae04b17502c9ce457885474027fb",
+    "judge_backend": "static-smoke",
+    "judge_model": "static-smoke",
+    "manifest_name": "w6_eval_02_single_config",
+    "manifest_sha256": "b9cccbfb5cfe3a6cbc820bc80ce3befd2970a9fec0c33f073a0d9b7de2ee3b5a",
+    "schema_version": 1,
+    "selected_item_ids": [
+      "TVQA-001",
+      "TVQA-002",
+      "TVQA-003"
+    ]
+  },
+  "schema_version": 1,
+  "updated_at": "2026-07-16T15:21:18.375689Z"
+}

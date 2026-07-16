@@ -136,6 +136,24 @@ def trace_entry(state: dict[str, Any], node_name: str) -> dict[str, Any]:
     raise AssertionError(f"Missing trace node {node_name}")
 
 
+TIMED_RAG_NODES = (
+    "graph_retrieval",
+    "dense_retrieval",
+    "sparse_retrieval",
+    "fusion",
+    "rerank",
+    "document_grading",
+    "context_assembly",
+    "generation",
+)
+
+
+def assert_trace_duration(state: dict[str, Any], node_name: str) -> None:
+    duration = trace_entry(state, node_name).get("duration_ms")
+    assert isinstance(duration, (int, float)), f"{node_name} did not emit a numeric duration_ms"
+    assert duration >= 0
+
+
 def test_build_fulltext_query_sanitizes_lucene_operators() -> None:
     assert build_fulltext_query("foo +bar && (baz:qux)") == "foo OR bar OR baz OR qux"
 
@@ -227,7 +245,7 @@ def test_graph_retrieval_filters_by_domain_sources_strategy_and_entities() -> No
     assert "node.chunk_strategy_id = $chunk_strategy_id" in direct_query
     assert direct_params["domain"] == "TUVI"
     assert direct_params["source_ids"] == ["TVKL", "TVNL", "TVHS", "TVGM"]
-    assert direct_params["chunk_strategy_id"] == "chunk_fixed_512"
+    assert direct_params["chunk_strategy_id"] == config.chunk_strategy_id
     assert direct_params["entities"] == [{"canonical_name": "Thien Ma", "entity_type": "Sao"}]
     assert direct_params["per_entity_limit"] == config.graph_retrieval.per_entity_limit
     assert direct_params["graph_mode"] == "entity_any"
@@ -521,6 +539,8 @@ def test_dry_run_populates_enabled_retrieval_paths_and_keeps_downstream_placehol
     assert trace_entry(state, "context_assembly")["selected_count"] == 3
     assert trace_entry(state, "generation")["status"] == "completed"
     assert trace_entry(state, "citation_map")["source_count"] >= 1
+    for node_name in TIMED_RAG_NODES:
+        assert_trace_duration(state, node_name)
     assert state["answer"]
     assert state["sources"]
 
@@ -548,6 +568,31 @@ def test_dry_run_retrieval_toggles_skip_independently(monkeypatch: pytest.Monkey
     assert trace_entry(state, "graph_retrieval")["status"] == "skipped"
     assert trace_entry(state, "dense_retrieval")["status"] == "skipped"
     assert trace_entry(state, "sparse_retrieval")["status"] == "skipped"
+    for node_name in ("graph_retrieval", "dense_retrieval", "sparse_retrieval"):
+        assert_trace_duration(state, node_name)
+
+
+def test_skipped_ranking_and_fallback_generation_nodes_emit_duration() -> None:
+    config = config_with(
+        reranker_config={"enabled": False, "model": None, "top_k": 10},
+        document_grading_enabled=False,
+    )
+    state: dict[str, Any] = {
+        "experiment_config": config,
+        "fused_candidates": [],
+        "query": "Cung Mệnh là gì?",
+        "retrieval_trace": {"nodes": []},
+    }
+
+    rag_nodes.make_rerank_node()(state)
+    rag_nodes.document_grading_node(state)
+    rag_nodes.make_generation_node()(state)
+
+    assert trace_entry(state, "rerank")["status"] == "skipped"
+    assert trace_entry(state, "document_grading")["status"] == "skipped"
+    assert trace_entry(state, "generation")["status"] == "fallback"
+    for node_name in ("rerank", "document_grading", "generation"):
+        assert_trace_duration(state, node_name)
 
 
 def test_dry_run_retrieval_backend_failure_can_still_answer_from_chart_facts() -> None:
@@ -577,3 +622,5 @@ def test_dry_run_retrieval_backend_failure_can_still_answer_from_chart_facts() -
     assert trace_entry(state, "graph_retrieval")["fallback_reason"] == "retrieval_backend_unavailable"
     assert trace_entry(state, "dense_retrieval")["status"] == "fallback"
     assert trace_entry(state, "sparse_retrieval")["status"] == "fallback"
+    for node_name in ("graph_retrieval", "dense_retrieval", "sparse_retrieval"):
+        assert_trace_duration(state, node_name)

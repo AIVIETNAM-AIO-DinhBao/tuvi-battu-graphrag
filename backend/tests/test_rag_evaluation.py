@@ -28,6 +28,7 @@ W6_BASELINE_MANIFEST = ROOT_DIR / "configs" / "w6_eval_baseline.yaml"
 W6_ABL_02_MANIFEST = ROOT_DIR / "configs" / "w6_abl_02_retrieval_matrix.yaml"
 W6_ABL_03_MANIFEST = ROOT_DIR / "configs" / "w6_abl_03_chunking_matrix.yaml"
 W7_ABL_01_MANIFEST = ROOT_DIR / "configs" / "w7_abl_01_generation_prompt_matrix.yaml"
+W8_ABL_01_MANIFEST = ROOT_DIR / "configs" / "w8_abl_01_retrieval_matrix_v2.yaml"
 
 
 def fake_state(item: AblationDatasetItem, config: ExperimentConfig) -> dict[str, Any]:
@@ -247,6 +248,76 @@ def test_w6_abl_02_manifest_loads_full_retrieval_matrix() -> None:
     assert configs["baseline_no_reranker"].reranker_enabled is False
     assert configs["baseline_weighted_sum"].fusion_method == "weighted_sum"
     assert configs["baseline_graph_first"].fusion_method == "graph_first"
+
+
+def test_w8_abl_01_manifest_loads_ten_unique_retrieval_behaviors() -> None:
+    manifest = load_ablation_manifest(W8_ABL_01_MANIFEST)
+    configs = {spec.name: spec.build_config() for spec in manifest.configs}
+
+    def behavior_signature(config: ExperimentConfig) -> tuple[bool, bool, bool, str, bool]:
+        return (
+            config.graph_retrieval_enabled,
+            config.dense_retrieval_enabled,
+            config.sparse_retrieval_enabled,
+            config.fusion_method,
+            config.reranker_enabled,
+        )
+
+    assert manifest.name == "w8_abl_01_retrieval_fusion_reranker_v2"
+    assert manifest.dataset_path == RELEASE_DATASET_PATH
+    assert manifest.output_dir == ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "reports" / "w8_abl_01" / "retrieval_v2"
+    assert set(configs) == {
+        "baseline_graph_sparse_rrf",
+        "graph_only_rrf",
+        "sparse_only_rrf",
+        "dense_only_rrf",
+        "dense_sparse_rrf",
+        "graph_dense_rrf",
+        "all_paths_planner_dense_rrf",
+        "baseline_no_reranker",
+        "baseline_weighted_sum",
+        "baseline_graph_first",
+    }
+    assert len(configs) == 10
+    assert len({config.experiment_id for config in configs.values()}) == 10
+    assert len({behavior_signature(config) for config in configs.values()}) == 10
+
+
+def test_w8_abl_01_retrieval_matrix_holds_fairness_controls_fixed() -> None:
+    manifest = load_ablation_manifest(W8_ABL_01_MANIFEST)
+    configs = {spec.name: spec.build_config() for spec in manifest.configs}
+
+    def fairness_controls(config: ExperimentConfig) -> dict[str, Any]:
+        payload = config.model_dump(mode="json")
+        for field in (
+            "experiment_id",
+            "name",
+            "graph_retrieval_enabled",
+            "dense_retrieval_enabled",
+            "sparse_retrieval_enabled",
+            "fusion_method",
+        ):
+            payload.pop(field)
+        payload["reranker_config"].pop("enabled")
+        return payload
+
+    assert {spec.base_config_path for spec in manifest.configs} == {DEFAULT_CONFIG_PATH}
+    controls = [fairness_controls(config) for config in configs.values()]
+    assert all(control == controls[0] for control in controls)
+    for config in configs.values():
+        assert config.chunk_strategy_id == "chunk_semantic_embedding_bge_m3"
+        assert config.prompt_template_id == "tuvi_generation_v1"
+        assert config.generation_model == "gemini-3.1-flash-lite-preview"
+        assert config.query_rewrite_enabled is False
+        assert config.context_assembly_strategy == "balanced"
+
+    baseline = configs["baseline_graph_sparse_rrf"].model_dump(mode="json")
+    graph_first = configs["baseline_graph_first"].model_dump(mode="json")
+    for payload in (baseline, graph_first):
+        payload.pop("experiment_id")
+        payload.pop("name")
+        payload.pop("fusion_method")
+    assert graph_first == baseline
 
 
 def test_w6_abl_03_manifest_loads_chunking_matrix_with_single_variable() -> None:
