@@ -1,0 +1,5 @@
+{
+  "command": ".\\.venv\\Scripts\\python.exe -m compileall -q backend/app scripts/run_eval.py",
+  "exit_code": 0,
+  "passed": true
+}

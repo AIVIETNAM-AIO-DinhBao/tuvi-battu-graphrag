@@ -1,0 +1,275 @@
+{
+  "candidate_k": 500,
+  "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+  "diagnostics": {
+    "embedded_chunks": 511,
+    "embedding_models": [
+      "BAAI/bge-m3"
+    ],
+    "embedding_property": "embedding_bge_m3",
+    "embedding_slot": "bge_m3",
+    "keyword_chunks": 509,
+    "text_chunks": 511,
+    "title_chunks": 511,
+    "total_chunks": 511
+  },
+  "domain": "TUVI",
+  "embedding_backend": "local",
+  "embedding_model": "BAAI/bge-m3",
+  "embedding_slot": "bge_m3",
+  "generated_at": "2026-07-16T17:30:53.065437Z",
+  "local_embedding_backend": "sentence-transformers",
+  "local_embedding_batch_size": 16,
+  "local_embedding_device": null,
+  "local_embedding_document_calls": 0,
+  "local_embedding_model": "BAAI/bge-m3",
+  "local_embedding_normalize": true,
+  "local_embedding_query_calls": 2,
+  "passed": true,
+  "query_count": 2,
+  "results": [
+    {
+      "dense_hit_count": 5,
+      "dense_hits": [
+        {
+          "chunk_hash": "62da2d16dde13089344ab045f976718519e44d9029944537aed3e3f96f215a0c",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000370",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.8356434106826782,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 213,
+          "text_preview": "Chính tinh của cung Mệnh cho kỹ để hiểu về bản thân người mang lá số. Cung Mệnh không có chính tinh thì được gọi là Mệnh vô chính diệu, phải coi chính tinh của cung chiếu, tìm Tuần, Triệt, Thiên Địa Không và các sát tinh cùng trung tinh... "
+        },
+        {
+          "chunk_hash": "44f99341c4da1adb8d9871c2159fb7ac3c51b241503ce0c130d136b10eaa5507",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000373",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.826300859451294,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 214,
+          "text_preview": "Cung Mệnh và cung Thân cho biết thể chất, tướng mạo của đương số, tính tình, nghề nghiệp, các khả năng về chuyên môn, khoa bảng, quyền hành, tài lộc. Ngoài ra còn cho biết sự thăng trầm trong đời, các tai họa xảy đến, bệnh tật và sự thọ yểu"
+        },
+        {
+          "chunk_hash": "5674bce58a2e2314e11b5a8e7e2bbf79178c564a225418474eb2d4ac03f62603",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000385",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.823986828327179,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 220,
+          "text_preview": "B. Chính tinh cung Mệnh 1. Sao Tử vi Thế đứng của Tử vi (Cục) trong lá số đóng vai trò rất quan trọng. Hãy xem thử Tử vi đóng ở cung nào để xem môi trường sống của đương số ra sao. Chưa cần biết Mệnh đương số đóng ở đâu chỉ cần liếc qua thế"
+        },
+        {
+          "chunk_hash": "1efcbe655f8250c2035f62080bc38b4082ea057fad7418ff38aadf529241c085",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000407",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.8226754069328308,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 234,
+          "text_preview": "Theo thiển ý của chúng tôi, Vận là thời gian mười năm nếu là Đại vận, hoặc một năm nếu là Tiểu vận. Những sao trong cung vận đó là hình ảnh của biến cố hoặc của nhân vật đáng đứng ở cửa chờ đón mình. Cho nên, mỗi lần xét một đại hay tiểu vậ"
+        },
+        {
+          "chunk_hash": "f44cb4dbc896b7f18ebf0ffeee8d764b832c3a768bccaf3a42cd4ebd3035238c",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000510",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.8219107389450073,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 290,
+          "text_preview": "Cung Mệnh, Tài, Quan được coi là cung chính, liên hệ mật thiết với con người nhưng cung Thân, cung Phúc, cung Di, cung Nô, cung Phối, Tử tức cũng không kém phần quan trọng. Một hạnh phúc hoàn hảo không chỉ nằm trong cung Mệnh mà phải chan h"
+        }
+      ],
+      "passed": true,
+      "query": "Cung Mệnh có ý nghĩa gì?",
+      "sparse_hit_count": 5,
+      "sparse_hits": [
+        {
+          "chunk_hash": "1f6856452e8548104cda64c5ac3ec8e1e254d38be9db5343238874a0c56f7a23",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000062",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 4.182432651519775,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 34,
+          "text_preview": "Cứ quan sát cách sắp xếp của 12 cung cũng thấy điều này. Tuổi thuận lý âm dương thì tính đạo vận theo chiều thuận từ cung Mệnh qua cung Phụ mẫu… đến cung Quan rồi về cung Tài, có nghĩa chiều theo ý cha mẹ, ăn học làm quan rồi mới lo kiếm ti"
+        },
+        {
+          "chunk_hash": "435ab908b1b6322f45053c4ea0919e9de63c6c90ee96cd8e8171442bdac90483",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000265",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 3.9488167762756348,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 146,
+          "text_preview": "Tuần triệt đóng ở đâu thì có cảm tưởng chỗ đó tuyệt vọng, vì Triệt đồng nghĩa với tiêu tan, xóa bỏ tất cả, Tuần đồng nghĩa với giam hãm, trói buộc không tha. Thực tế có phải như vậy không? Lại có trường phái xưa quan niệm rằng: - Triệt chỉ "
+        },
+        {
+          "chunk_hash": "68a63899291d1ed150fd99cb6394a2e97d7641d2898d3e4ae840a42e71a48b8d",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000275",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 3.7700095176696777,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 153,
+          "text_preview": "Di: Hay xuất ngoại, du lịch, công cán ở ngoại quốc. Phối: Vợ chồng gặp nhau ở nước ngoài, thường cưới nhau rất nhanh. Vận: Hay có thay đổi nhà, việc làm, xuất ngoại. 15. Cô quả Tượng trưng cho: thủ cựu, cô đơn, khắt khe. Tính nết: Lạnh lùng"
+        },
+        {
+          "chunk_hash": "f74ffb2276c1448902cf4b56eefbf91beda3bba7f8effa7c1931bcca73e366d0",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000018",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 3.713679075241089,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 9,
+          "text_preview": "Trong Thái cực nằm sẵn âm dương. Vạn vật nhờ hai khí đó tương hợp mà được sinh ra. Đó là đức lớn của Trời Đất gọi là đức Sinh. Ngũ hành là năm nguyên tố căn bản tạo thành của Vũ trụ. Đó là Mộc, Hỏa, Thổ, Kim, Thủy. Có một quan hệ giữa Âm Dư"
+        },
+        {
+          "chunk_hash": "f5184277b00c896dc8f2f4c91634b42335f0ce8ebb33cdc0969eb786a9d4552c",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000140",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 3.6902408599853516,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 78,
+          "text_preview": "Giống như ở Tỵ. i) Tử Tướng ở Tuất: - Giống như ở Thìn. j) Tử Phủ ở Dậu: - Giống như ở Mão, nhưng biết hồi tâm. k) Tử Phủ ở Thân: - Giống như ở Dần, nhưng kém hơn. l) Tử Phá ở Mùi: - Giống như ở Sửu, nhưng biết điều hơn. + Đàn ông có cách T"
+        }
+      ]
+    },
+    {
+      "dense_hit_count": 5,
+      "dense_hits": [
+        {
+          "chunk_hash": "4776092d3a58175ebb0a0137549289f87b459da17256bbf4e2b6c0a2474f502e",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000334",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.8141960501670837,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 194,
+          "text_preview": "Thiên mã có Hóa lộc, Lộc tồn đồng cung hoặc xung chiếu thì tiền bạc đến mau hơn; Thiên mã gặp Tuyệt là \"cùng đồ mã\", ngựa đến đường cùng. Thiên mã gặp Thiên hình là ngựa chở xác, ý nói thua lỗ về tiền bạc, hoặc tin vui không đến được. Thiên"
+        },
+        {
+          "chunk_hash": "710606135f6102adc19928293c5af7cc6e8ce73b92e31129865a36864c8310c6",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000274",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.7909021377563477,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 152,
+          "text_preview": "Tốt cho thi cử, cưới hỏi, mang lại những may mắn, giống như Hỉ thần. Thiên hỉ ở các cung: Mệnh: - Hỉ Hồng: sớm có nhân duyên. - Hỉ Đào: lả lơi hoa nguyệt. Phối: - Hỉ Đào Hồng: vợ chồng có tính lả lơi, nếu có thêm Riêu Thai thì có thể có ngo"
+        },
+        {
+          "chunk_hash": "208114ad74d2947e77bbfb7ff0bbdfd7e0f6e2c7b62cbc0d50dae93536ad5e9b",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000400",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.7829425930976868,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 229,
+          "text_preview": "23. Thiên mã - Hoa cái Thiên mã chỉ đóng ở tứ sinh Dần Thân Tỵ Hợi. Hoa cái chỉ đóng ở tứ mộ Thìn Tuất Sửu Mùi. Cho nên chỉ khi nào Mệnh đóng ở tứ chính Tí Ngọ Mão Dậu mới có cách \"Tiền Cái hậu Mã\" hình ảnh vinh quy bái tổ, lọng che, ngựa c"
+        },
+        {
+          "chunk_hash": "14f588793f62638fc3a457ad84482b4f5e8349f28ade425021f5eae32b5c139a",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000287",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.7826567888259888,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 160,
+          "text_preview": "ào ạt phũ phàng như dòng sông lớn, đi với Thanh Long là cách \"rồng mây gặp hội\" nổi danh như cồn. - Tháo vát, chịu khó, mau mắn, thay đổi. - Thiên Mã là nghị lực của kẻ thất thế. Vận gặp Thiên Mã thì long đong vất vả. Hoa Cái - Uy nghi, tự "
+        },
+        {
+          "chunk_hash": "32a14677b598e569da19ff075e38e31a53e7c7b1804f8ff13995e0b51a485295",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000056",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 0.7793488502502441,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 31,
+          "text_preview": "Hồng Loan, An Sao Chi, Phượng Các. Thiên Mã (Tứ Sinh): An tại các cung Dần, Thân, Tỵ, Hợi. 2. Nguyện đức: Khởi từ cung Tỵ, kể là năm Tí, đếm thuận đến năm sinh, ngưng ở cung nào, thì an Nguyện đức ở đó (cung Thân). 3. Kiếp sát: Khởi từ cung"
+        }
+      ],
+      "passed": true,
+      "query": "Thiên Mã tại Quan Lộc thế nào?",
+      "sparse_hit_count": 5,
+      "sparse_hits": [
+        {
+          "chunk_hash": "4776092d3a58175ebb0a0137549289f87b459da17256bbf4e2b6c0a2474f502e",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000334",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 8.805038452148438,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 194,
+          "text_preview": "Thiên mã có Hóa lộc, Lộc tồn đồng cung hoặc xung chiếu thì tiền bạc đến mau hơn; Thiên mã gặp Tuyệt là \"cùng đồ mã\", ngựa đến đường cùng. Thiên mã gặp Thiên hình là ngựa chở xác, ý nói thua lỗ về tiền bạc, hoặc tin vui không đến được. Thiên"
+        },
+        {
+          "chunk_hash": "496fc32a18dbe694b35559b2c0bc2247d25cc990af089e145caa811f37ff12f8",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000333",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 7.384620666503906,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 193,
+          "text_preview": "Các tuổi hưởng Lưu niên Văn tinh là: Bính, Đinh, Mậu, Kỷ, Nhâm, Quí. Trong 60 tuổi chỉ có 30 tuổi được hưởng Văn tinh hoặc Lộc tồn. Thiên trù chỉ phúc lộc trời cho. Phúc đây là một món quà, của cải, hay gia tài đáng giá. 23. Thiên mã Thiên "
+        },
+        {
+          "chunk_hash": "710606135f6102adc19928293c5af7cc6e8ce73b92e31129865a36864c8310c6",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000274",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 7.285471439361572,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 152,
+          "text_preview": "Tốt cho thi cử, cưới hỏi, mang lại những may mắn, giống như Hỉ thần. Thiên hỉ ở các cung: Mệnh: - Hỉ Hồng: sớm có nhân duyên. - Hỉ Đào: lả lơi hoa nguyệt. Phối: - Hỉ Đào Hồng: vợ chồng có tính lả lơi, nếu có thêm Riêu Thai thì có thể có ngo"
+        },
+        {
+          "chunk_hash": "e0e4805090179e1ed4aca59999276973545ca8ddff5726506693aa8cb8a915fc",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000376",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 7.1005940437316895,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 216,
+          "text_preview": "Đào Tang: nhân duyên thay đổi nhiều lần. Thai Tọa: quyền uy vinh hiển sớm. 2. Cung Tài Cung Tài là chủ về tiền bạc, quan trọng chẳng vừa. Quan niệm dân gian cho tiền là \"sức bật tuổi trẻ, sức khỏe của ông già, là cái đà danh vọng, cái lọng "
+        },
+        {
+          "chunk_hash": "20431dd1cf062209e7eb6fd3a097f2f0fa025c2a7959d2d93e40b7d8ff37337c",
+          "chunk_id": "TVKL_chunk_semantic_embedding_bge_m3_chunk_000257",
+          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+          "domain": "TUVI",
+          "score": 6.764566421508789,
+          "source_id": "TVKL",
+          "source_name": "Tử Vi Khảo Luận",
+          "source_page": 142,
+          "text_preview": "Vô chính diệu Tuần Triệt đóng ở cung Vô chính diệu thì lại tốt nhưng phải xét tùy từng hoàn cảnh. Điền: không có điền sản. Phối: trắc trở, Tuần Triệt gặp Mã, vợ chồng bỏ nhau. Quan: công danh lận đận. Mệnh: tuổi trẻ bôn ba cùng cực, sinh bấ"
+        }
+      ]
+    }
+  ],
+  "source_id": "TVKL",
+  "top_k": 5,
+  "vector_index_name": "chunkVectorBgeM3"
+}

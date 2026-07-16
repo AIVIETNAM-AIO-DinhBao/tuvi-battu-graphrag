@@ -1,0 +1,48 @@
+{
+  "branch": "main",
+  "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+  "dataset_item_count": 100,
+  "dataset_path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
+  "dataset_sha256": "90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c",
+  "evaluator_sha256": "9ae528d893159c4092c3129523da8d69a7a79a6ab5c32a132791158287eda314",
+  "experiment_id": "default_production_v2",
+  "git_sha": "bd1305c1a97907cd1ee397790eb5bafa4f3a666f",
+  "manifest_path": "configs/w8_abl_01_retrieval_matrix_v2.yaml",
+  "manifest_sha256": "5682ba4ea8d0f2f987e97855ab8231db2c30502e7f4fb08c17694f1e3d150204",
+  "matrix_config_count": 10,
+  "matrix_config_hashes": {
+    "all_paths_planner_dense_rrf": "2529b7c2269adbfa3e09197daf4e33aa9b95e2f73e3ebd99f763bf3e7ccdda98",
+    "baseline_graph_first": "76913a0e522883985df4738851727320c8ab806d685e7afc00b5f927a69bdb89",
+    "baseline_graph_sparse_rrf": "bdee5a917cb9c6cc31cd134aa23d223ee35a8b617e41d27b24c6362aadb74285",
+    "baseline_no_reranker": "f837b5a24ef0de01b18b31a7b21da168087bc414e13841cbd2c324685e7e27eb",
+    "baseline_weighted_sum": "1d1f66130ea3121beac6cb7f893d0b6d3cf9b920d158f7d545d70840058a4930",
+    "dense_only_rrf": "96abe7083ab581a17e0be2733df268ef0658397e3086e829063eea5a1725fd54",
+    "dense_sparse_rrf": "a490ab4354211521e45969b1317dfb4602ac6efb6a24f5ff46d62a99db8633d9",
+    "graph_dense_rrf": "524f92119d1a1fad5eea502b8be12375b2d5317e4a4c4843f68a814f85d70ec5",
+    "graph_only_rrf": "3a4e9f56821df26b2e5815e2d856d11cc1467399b1adb6e541e52e0151fe5766",
+    "sparse_only_rrf": "5e2b69c72a1ba78007bd679ae9bed0200c9518cb9397d1bcd76e5c68350b1e12"
+  },
+  "matrix_unique_config_hash_count": 10,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "production_config_hash": "c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96",
+  "production_config_path": "configs/default_production.yaml",
+  "python_version": "3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]",
+  "runtime_manifest_fingerprint": "5285d001b1ad92e80a98baf09d7f5f6c9997ec1d483e5c9b6c50139557591b14",
+  "selected_complexities": [
+    "Direct",
+    "One-hop",
+    "One-hop",
+    "One-hop",
+    "One-hop",
+    "Two-hop"
+  ],
+  "selected_item_ids": [
+    "TVQA-001",
+    "TVQA-002",
+    "TVQA-003",
+    "TVQA-004",
+    "TVQA-005",
+    "TVQA-006"
+  ],
+  "tracked_git_dirty": false
+}

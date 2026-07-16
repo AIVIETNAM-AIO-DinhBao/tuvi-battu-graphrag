@@ -1027,6 +1027,23 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 **Depends on:** W8-EVAL-PREP-01, W7-CONFIG-01
 **Done when:** 10 unique behavior/config signatures; offline 10x2 smoke pass; resume 20/20 pass; historical W6 artifacts không bị thay đổi.
 
+### W8-EVAL-PREFLIGHT-01 - Live go/no-go trước full benchmark
+
+**When:** Tuần 8, ngay trước W8-EVAL-01
+**Môi trường:** Local với Neo4j + Gemini live
+
+**What to do:**
+- Khóa Git/config/dataset/manifest/evaluator identity và chạy backend regression/compile gate.
+- Probe exact generation/judge model trên nhiều Gemini keys mà không ghi secret.
+- Kiểm 12/12 source-strategy pairs, Neo4j indexes và semantic BGE-M3 dense+sparse retrieval.
+- Chạy production live trên 6 item Direct/One-hop/Two-hop và retrieval matrix live 10x6.
+- Xác nhận live checkpoint resume 60/60 và deliberate provenance mismatch bị reject.
+- Tạo report JSON/Markdown có hard fallback, latency, artifact provenance và quyết định GO/NO-GO.
+
+**Deliverable:** `benchmark/tuvi_golden_dataset/reports/w8_eval_preflight_01/preflight_report.{json,md}`.
+**Depends on:** W8-EVAL-PREP-01, W8-EVAL-PREP-02
+**Done when:** Tất cả hard gate pass; production 6/6 và matrix 60/60 không có infrastructure/judge failure; resume executed=0/resumed=60; mismatch trả exit code 2; secret scan sạch; full-100 chưa bị khởi động trong preflight.
+
 ### W8-EVAL-01 - Chạy evaluation cuối cùng
 
 **When:** Tuần 8, ngày 2-3
@@ -1038,7 +1055,7 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 - Tạo `evaluation/report_final.md`.
 
 **Deliverable:** Final evaluation report.
-**Depends on:** W6-EVAL-02, W8-EVAL-PREP-01, W8-EVAL-PREP-02
+**Depends on:** W6-EVAL-02, W8-EVAL-PREP-01, W8-EVAL-PREP-02, W8-EVAL-PREFLIGHT-01
 **Done when:** Report có đủ metric và pass/fail rõ.
 
 ### W8-ABL-01 - Đóng gói báo cáo ablation cuối cùng

@@ -1,0 +1,5 @@
+{
+  "command": "scripts/run_eval.py --manifest configs/w8_abl_01_retrieval_matrix_v2.yaml --limit 6 [sanitized]",
+  "pid": 14712,
+  "started_at": "2026-07-16T17:33:50.5591733Z"
+}

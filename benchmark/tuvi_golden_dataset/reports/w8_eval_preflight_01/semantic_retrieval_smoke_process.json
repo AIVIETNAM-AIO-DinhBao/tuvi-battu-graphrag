@@ -1,0 +1,6 @@
+{
+  "command": "scripts/smoke_retrieval.py [sanitized args]",
+  "pid": 23368,
+  "started_at": "2026-07-16T17:29:29.5117544Z",
+  "timeout_seconds": 600
+}

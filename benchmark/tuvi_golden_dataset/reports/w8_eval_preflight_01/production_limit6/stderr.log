@@ -1,0 +1,9 @@
+D:\University\N\u0103m 3 \u0110H\Kì 3 (18th6)\Text Mining\tuvi-battu-graphrag\backend\app\rag\generation.py:46: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai

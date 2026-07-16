@@ -3292,3 +3292,65 @@ resumed_pair_count=20
 - Các smoke trên dùng `judge_backend=static-smoke` và deterministic dependencies; chỉ chứng minh runner/matrix/timing/resume plumbing, không phải quality benchmark. Official metrics vẫn phải chạy live Neo4j + Gemini ở W8-EVAL-PREFLIGHT-01/W8-EVAL-01.
 
 **Status**: COMPLETE - retrieval/fusion/reranker matrix v2 đã fair, không duplicate/confound, offline 10x2 và resume 20/20 pass. Bước tiếp theo là W8-EVAL-PREFLIGHT-01 với live Neo4j/Gemini.
+
+---
+
+## W8-EVAL-PREFLIGHT-01 Live Go/No-Go - 2026-07-17
+
+### Identity và infrastructure gates
+
+- Git SHA: `bd1305c1a97907cd1ee397790eb5bafa4f3a666f`; tracked tree sạch trong toàn bộ live run.
+- Production config: `default_production_v2`, hash `c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96`.
+- Dataset: 100 items; preflight chọn có thứ tự `TVQA-001..006` gồm Direct, One-hop và Two-hop.
+- Retrieval matrix: 10 effective config hashes duy nhất.
+- Evaluator fingerprint: `9ae528d893159c4092c3129523da8d69a7a79a6ab5c32a132791158287eda314`.
+- Regression: `387 passed, 11 warnings`; `compileall=pass`.
+- Gemini exact model `gemini-3.1-flash-lite-preview`: 4/4 configured keys pass, primary key pass.
+- Neo4j coverage: 12/12 source-strategy pairs, không thiếu pair.
+- Semantic BGE-M3 smoke: 2/2 queries pass; mỗi query có 5 dense và 5 sparse hits; index check pass.
+
+### Live evaluator gates
+
+Production `default_production.yaml`, limit 6:
+
+```text
+expected_pair_count=6
+completed_pair_count=6
+failed_pair_count=0
+executed_pair_count=6
+resumed_pair_count=0
+generation_backend_fallback_count=0
+retrieval_backend_fallback_count=0
+judge_failure_count=0
+no_context_count=0
+citation_fallback_count=0
+```
+
+Retrieval/fusion/reranker matrix v2, 10 configs x 6 items:
+
+```text
+expected_pair_count=60
+completed_pair_count=60
+failed_pair_count=0
+executed_pair_count=60
+resumed_pair_count=0
+```
+
+- Cả 10 configs mang status `completed`; không có generation/retrieval/judge failure hoặc fallback.
+- Dense path thực sự được chọn trong cả 4 dense-enabled variants; graph và sparse paths cũng được exercise theo effective config.
+- Live resume cùng checkpoint pass với `executed_pair_count=0`, `resumed_pair_count=60`; toàn bộ result lấy từ checkpoint.
+- Deliberate `--limit 5` provenance mismatch bị reject trước evaluator với exit code `2`; differing fields gồm `selected_item_ids`.
+- Một Neo4j read timeout transient được driver retry; run cuối vẫn 60/60 và không có retrieval fallback.
+
+### Artifacts và quyết định
+
+- Root: `benchmark/tuvi_golden_dataset/reports/w8_eval_preflight_01/`.
+- Go/no-go reports:
+  - `preflight_report.json`
+  - `preflight_report.md`
+- Có repository identity, Gemini diagnostics, Neo4j coverage, semantic retrieval smoke, production/matrix checkpoints và reports, resume report, mismatch evidence, sanitized command log và artifact SHA-256 provenance.
+- Secret scan: 0 findings; không ghi API key/password/token vào artifacts.
+- Scope chỉ là operational subset trên `CHART-001`, không phải quality benchmark cân bằng hoặc kết luận khoa học cuối.
+- Full-100 không được khởi động trong task này.
+
+**Status**: COMPLETE / GO - mọi hard preflight gate đã pass; có thể chuyển sang W8-EVAL-01 sau khi revalidate identity ngay trước full run.
