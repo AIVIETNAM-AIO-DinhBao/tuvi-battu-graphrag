@@ -1,0 +1,52 @@
+name: w8_abl_01_priority_wave_full100
+notes: "W8 priority full-100 retrieval/fusion/reranker wave. Reuse the behavior-equivalent default_production_v2 full-100 run as the Graph+Sparse+RRF+reranker control. This wave isolates sparse-only, planner-gated dense+sparse, reranker-off, and weighted-sum variants while holding semantic BGE-M3 chunking, prompt v1, Gemini Flash Lite, balanced context, query rewrite off, document grading on, and cache disabled constant."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports/w8_abl_01_priority_wave/full100
+configs:
+  - name: sparse_only_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_sparse_only_rrf
+      name: W8 ABL 01 - sparse only RRF
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: dense_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_dense_sparse_rrf
+      name: W8 ABL 01 - planner-gated dense+sparse RRF
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: baseline_no_reranker
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_baseline_no_reranker
+      name: W8 ABL 01 - baseline graph+sparse no reranker
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: false
+
+  - name: baseline_weighted_sum
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_baseline_weighted_sum
+      name: W8 ABL 01 - baseline graph+sparse weighted sum
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: weighted_sum
+      reranker_config:
+        enabled: true

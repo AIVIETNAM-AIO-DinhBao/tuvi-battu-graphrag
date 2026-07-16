@@ -9,6 +9,7 @@ from app.rag.config import ExperimentConfig
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = ROOT_DIR / "configs" / "w8_abl_01_retrieval_matrix_v2.yaml"
+PRIORITY_WAVE_PATH = ROOT_DIR / "configs" / "w8_abl_01_priority_wave.yaml"
 EXPECTED_NAMES = {
     "baseline_graph_sparse_rrf",
     "graph_only_rrf",
@@ -20,6 +21,12 @@ EXPECTED_NAMES = {
     "baseline_no_reranker",
     "baseline_weighted_sum",
     "baseline_graph_first",
+}
+PRIORITY_WAVE_NAMES = {
+    "sparse_only_rrf",
+    "dense_sparse_rrf",
+    "baseline_no_reranker",
+    "baseline_weighted_sum",
 }
 
 
@@ -72,3 +79,24 @@ def test_w8_retrieval_matrix_isolates_dense_reranker_and_fusion_variants() -> No
     assert graph_first.fusion_method == "graph_first"
     assert weighted.context_assembly_strategy == baseline.context_assembly_strategy == "balanced"
     assert graph_first.context_assembly_strategy == baseline.context_assembly_strategy == "balanced"
+
+
+def test_w8_priority_wave_reuses_exact_matrix_configs() -> None:
+    full_manifest = load_ablation_manifest(MANIFEST_PATH)
+    wave_manifest = load_ablation_manifest(PRIORITY_WAVE_PATH)
+    full_configs = {spec.name: spec.build_config() for spec in full_manifest.configs}
+    wave_configs = {spec.name: spec.build_config() for spec in wave_manifest.configs}
+
+    assert wave_manifest.name == "w8_abl_01_priority_wave_full100"
+    assert set(wave_configs) == PRIORITY_WAVE_NAMES
+    assert len({behavior_signature(config) for config in wave_configs.values()}) == 4
+
+    for name, config in wave_configs.items():
+        assert config == full_configs[name]
+        assert config.chunk_strategy_id == "chunk_semantic_embedding_bge_m3"
+        assert config.prompt_template_id == "tuvi_generation_v1"
+        assert config.generation_model == "gemini-3.1-flash-lite-preview"
+        assert config.query_rewrite_enabled is False
+        assert config.context_assembly_strategy == "balanced"
+        assert config.document_grading_enabled is True
+        assert config.cache_disabled is True
