@@ -1,0 +1,46 @@
+{
+  "config_hashes": {
+    "baseline_no_reranker": "f837b5a24ef0de01b18b31a7b21da168087bc414e13841cbd2c324685e7e27eb",
+    "baseline_weighted_sum": "1d1f66130ea3121beac6cb7f893d0b6d3cf9b920d158f7d545d70840058a4930",
+    "dense_sparse_rrf": "a490ab4354211521e45969b1317dfb4602ac6efb6a24f5ff46d62a99db8633d9",
+    "sparse_only_rrf": "5e2b69c72a1ba78007bd679ae9bed0200c9518cb9397d1bcd76e5c68350b1e12"
+  },
+  "config_order": [
+    "sparse_only_rrf",
+    "dense_sparse_rrf",
+    "baseline_no_reranker",
+    "baseline_weighted_sum"
+  ],
+  "effective_controls": {
+    "baseline_no_reranker": {
+      "dense": false,
+      "fusion": "rrf",
+      "graph": true,
+      "reranker": false,
+      "sparse": true
+    },
+    "baseline_weighted_sum": {
+      "dense": false,
+      "fusion": "weighted_sum",
+      "graph": true,
+      "reranker": true,
+      "sparse": true
+    },
+    "dense_sparse_rrf": {
+      "dense": true,
+      "fusion": "rrf",
+      "graph": false,
+      "reranker": true,
+      "sparse": true
+    },
+    "sparse_only_rrf": {
+      "dense": false,
+      "fusion": "rrf",
+      "graph": false,
+      "reranker": true,
+      "sparse": true
+    }
+  },
+  "expected_pair_count": 400,
+  "manifest_name": "w8_abl_01_priority_wave_full100"
+}

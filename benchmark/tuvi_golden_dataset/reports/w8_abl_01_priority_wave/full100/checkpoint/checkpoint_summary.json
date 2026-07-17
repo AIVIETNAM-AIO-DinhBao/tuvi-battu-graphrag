@@ -1,0 +1,11 @@
+{
+  "current_config": "baseline_weighted_sum",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 379,
+  "expected_pair_count": 400,
+  "failed_pair_count": 0,
+  "processed_pair_count": 379,
+  "remaining_pair_count": 21,
+  "resumed_pair_count": 0,
+  "updated_at": "2026-07-16T21:01:41.767728Z"
+}

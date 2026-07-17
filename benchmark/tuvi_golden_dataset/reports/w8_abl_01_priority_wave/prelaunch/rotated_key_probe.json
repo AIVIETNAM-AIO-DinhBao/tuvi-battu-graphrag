@@ -1,0 +1,8 @@
+{
+  "checked_key_count": 4,
+  "exit_code": 0,
+  "model": "gemini-3.1-flash-lite-preview",
+  "ok_key_count": 2,
+  "rotated_primary_label": "original_key_2",
+  "rotated_primary_ok": true
+}

@@ -1,0 +1,16 @@
+{
+  "behavior_equal_excluding_name_and_experiment_id": true,
+  "control_execution": {
+    "completed_pair_count": 100,
+    "executed_pair_count": 100,
+    "expected_pair_count": 100,
+    "failed_pair_count": 0,
+    "resumed_pair_count": 0
+  },
+  "dataset_sha256_matches": true,
+  "evaluator_sha256_matches": true,
+  "matrix_baseline_config_hash": "bdee5a917cb9c6cc31cd134aa23d223ee35a8b617e41d27b24c6362aadb74285",
+  "ordered_item_ids_match": true,
+  "passed": true,
+  "production_config_hash": "c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96"
+}

@@ -1,0 +1,11 @@
+{
+  "active_primary_label": "original_key_2",
+  "command": "scripts/run_eval.py --manifest configs/w8_abl_01_priority_wave.yaml [sanitized live full-100 args]",
+  "evaluator_pid": 6768,
+  "exhausted_key_label_moved_to_end": "original_key_1",
+  "exit_code": 1,
+  "pid": 6352,
+  "runtime_key_count": 4,
+  "started_at": "2026-07-16T19:51:26.333861+00:00",
+  "status": "failed"
+}

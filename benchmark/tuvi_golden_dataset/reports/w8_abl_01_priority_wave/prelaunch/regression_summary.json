@@ -1,0 +1,6 @@
+﻿{
+    "command":  ".venv/Scripts/python.exe -m pytest backend/tests -q -p no:cacheprovider",
+    "exit_code":  0,
+    "duration_seconds":  23.61,
+    "passed":  true
+}

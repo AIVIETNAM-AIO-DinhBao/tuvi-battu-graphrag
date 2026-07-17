@@ -1,0 +1,13 @@
+{
+  "active_primary_label": "original_key_2",
+  "available_key_count_after_initial_probe": 3,
+  "available_key_count_after_rotated_probe": 2,
+  "decision": "Rotate original key_1 to the end for the child evaluator process only.",
+  "estimated_successful_calls_required": 800,
+  "estimated_max_daily_requests_across_current_healthy_keys": 1000,
+  "estimated_request_reserve_before_retries": 200,
+  "exhausted_key_label": "original_key_1",
+  "exhaustion_reason": "GenerateRequestsPerDayPerProjectPerModel-FreeTier limit 500",
+  "model": "gemini-3.1-flash-lite-preview",
+  "secret_values_persisted": false
+}
