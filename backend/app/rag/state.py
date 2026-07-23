@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, TypedDict
 
-if TYPE_CHECKING:
-    from app.rag.config import ExperimentConfig
+from app.rag.config import ExperimentConfig
 
 
 class RAGState(TypedDict, total=False):
@@ -44,6 +43,8 @@ class RAGState(TypedDict, total=False):
     retrieval_trace: dict[str, Any]
     retrieval_plan: dict[str, Any]
     retrieval_diagnostics: dict[str, Any]
+    retrieval_backend_unavailable: bool
+    retrieval_backend_error_type: str
 
     normalized_query: str
     experiment_config_path: str

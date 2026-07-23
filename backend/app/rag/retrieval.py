@@ -413,7 +413,9 @@ def graph_retrieval_tx(
     graph_mode: str = "entity_any",
     required_entity_hits: int = 1,
 ) -> list[Any]:
-    direct = list(
+    # Optimized: Single unified query with UNION instead of 2 separate queries
+    # This reduces network roundtrip and improves index usage
+    results = list(
         tx.run(
             """
             UNWIND $entities AS qe
@@ -422,7 +424,9 @@ def graph_retrieval_tx(
                 entity_type: qe.entity_type,
                 domain: $domain
             })
-            CALL (seed) {
+            CALL {
+                WITH seed
+                // Direct MENTIONS path
                 MATCH (node:Chunk)-[:MENTIONS]->(seed)
                 WHERE node.domain = $domain
                   AND node.source_id IN $source_ids
@@ -432,40 +436,19 @@ def graph_retrieval_tx(
                     OR $chunk_strategy_id <> 'chunk_structure_parent_child'
                     OR node.chunk_type = 'child'
                   )
-                RETURN node
+                RETURN node,
+                       1.0 AS score,
+                       seed.canonical_name AS matched_entity,
+                       'MENTIONS' AS rel_type
                 LIMIT $per_entity_limit
-            }
-            WITH node, collect(DISTINCT seed.canonical_name) AS matched_entities
-            WHERE size(matched_entities) >= $required_entity_hits
-            RETURN node,
-                   1.0 AS score,
-                   matched_entities,
-                   ['MENTIONS'] AS relation_types
-            ORDER BY score DESC
-            LIMIT $top_k
-            """,
-            entities=entities,
-            top_k=top_k,
-            per_entity_limit=per_entity_limit,
-            domain=domain,
-            source_ids=source_ids,
-            chunk_strategy_id=chunk_strategy_id,
-            child_only=child_only,
-            graph_mode=graph_mode,
-            required_entity_hits=required_entity_hits,
-        )
-    )
-    related = list(
-        tx.run(
-            """
-            UNWIND $entities AS qe
-            MATCH (seed:Entity {
-                canonical_name: qe.canonical_name,
-                entity_type: qe.entity_type,
-                domain: $domain
-            })-[rel]-(related:Entity)
-            WHERE type(rel) IN $relation_types
-            CALL (related) {
+                
+                UNION
+                
+                // Related entity path through graph relations
+                WITH seed
+                MATCH (seed)-[rel]-(related:Entity)
+                WHERE type(rel) IN $relation_types
+                WITH seed, rel, related
                 MATCH (node:Chunk)-[:MENTIONS]->(related)
                 WHERE node.domain = $domain
                   AND node.source_id IN $source_ids
@@ -475,16 +458,22 @@ def graph_retrieval_tx(
                     OR $chunk_strategy_id <> 'chunk_structure_parent_child'
                     OR node.chunk_type = 'child'
                   )
-                RETURN node
+                RETURN node,
+                       coalesce(rel.confidence, 0.5) AS score,
+                       seed.canonical_name AS matched_entity,
+                       type(rel) AS rel_type
                 LIMIT $per_entity_limit
             }
             WITH node,
-                 max(coalesce(rel.confidence, 0.5)) AS score,
-                 collect(DISTINCT seed.canonical_name) AS matched_entities,
-                 collect(DISTINCT type(rel)) AS relation_types
+                 max(score) AS final_score,
+                 collect(DISTINCT matched_entity) AS matched_entities,
+                 collect(DISTINCT rel_type) AS relation_types
             WHERE size(matched_entities) >= $required_entity_hits
-            RETURN node, score, matched_entities, relation_types
-            ORDER BY score DESC
+            RETURN node,
+                   final_score AS score,
+                   matched_entities,
+                   relation_types
+            ORDER BY final_score DESC
             LIMIT $top_k
             """,
             entities=entities,
@@ -499,7 +488,7 @@ def graph_retrieval_tx(
             required_entity_hits=required_entity_hits,
         )
     )
-    return direct + related
+    return results
 
 
 def dense_retrieval_tx(

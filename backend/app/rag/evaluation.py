@@ -1287,7 +1287,7 @@ def build_generation_prompt_ablation_analysis(report: dict[str, Any]) -> dict[st
     return {
         "analysis_language": "vi",
         "scope_vi": "So sánh prompt template và generation model, giữ retrieval config cố định để cô lập ảnh hưởng generation.",
-        "retrieval_control_vi": "Retrieval stack cố định theo W6 integration candidate: chunk_semantic_embedding_bge_m3, Graph + Sparse + RRF + lexical reranker, dense off.",
+        "retrieval_control_vi": "Retrieval stack cố định theo W6 integration candidate: chunk_semantic_embedding_bge_m3, Graph + Sparse + RRF + BGE cross-encoder reranker, dense off.",
         "partial_run_policy_vi": "Run chính của task này là Gemini judge partial 10 câu balanced; full/expanded run sẽ để W7-CONFIG-01/W8 hoặc khi quota cho phép.",
         "prompt_template_ids": prompt_ids,
         "generation_models": sorted({str(config.get("generation_model")) for config in configs if config.get("generation_model")}),

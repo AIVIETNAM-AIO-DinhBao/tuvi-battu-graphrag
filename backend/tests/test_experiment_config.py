@@ -21,7 +21,7 @@ W7_GENERATION_CONFIG_PATHS = [
     ROOT_DIR / "configs" / "w7_generation_structured_v3_flash_lite.yaml",
 ]
 EXPERIMENT_RUNS_MIGRATION = ROOT_DIR / "infra" / "supabase" / "migrations" / "20260709_experiment_runs.sql"
-LOCKED_DEFAULT_CONFIG_HASH = "c40227a029588b7793201702798e96e640d7a436131d6f5f0437f67151803d96"
+LOCKED_DEFAULT_CONFIG_HASH = "05cf0b6d9c4a0839b73427efa7b092a30225412cf53f04a8c1f1d51346ca255b"
 
 
 def default_payload() -> dict:
@@ -60,9 +60,14 @@ def test_default_production_config_loads_with_w7_evidence_locked_defaults() -> N
     assert config.dense_retrieval_enabled is False
     assert config.sparse_retrieval_enabled is True
     assert config.fusion_method == "rrf"
+    assert config.fusion_path_weights == {"graph": 1.45, "dense": 1.15, "sparse": 0.8}
     assert config.reranker_enabled is True
-    assert config.reranker_config.model == "lexical-overlap-v1"
+    assert config.reranker_config.model == "BAAI/bge-reranker-v2-m3"
     assert config.reranker_config.top_k == 10
+    assert config.reranker_config.batch_size == 2
+    assert config.reranker_config.max_length == 512
+    assert config.reranker_config.local_files_only is True
+    assert str(config.reranker_config.local_model_path).replace("\\", "/") == "models/bge-reranker-v2-m3"
     assert config.prompt_template_id == "tuvi_generation_v1"
     assert config.generation_model == "gemini-3.1-flash-lite-preview"
     assert config.context_assembly_strategy == "balanced"
@@ -139,6 +144,8 @@ def test_missing_required_field_fails_clearly() -> None:
         (("dense_retrieval", "candidate_k"), 1, "candidate_k"),
         (("dense_retrieval", "vector_index"), "chunkVectorBad", "dense_retrieval"),
         (("sparse_retrieval", "fulltext_index"), "chunkFulltextBad", "sparse_retrieval"),
+        (("fusion_path_weights",), {"graph": 1.0, "dense": 1.0, "sparse": 1.0, "bad": 1.0}, "Unsupported fusion path weights"),
+        (("reranker_config", "model"), "lexical-overlap-v1", "lexical reranker"),
     ],
 )
 def test_invalid_config_values_fail(

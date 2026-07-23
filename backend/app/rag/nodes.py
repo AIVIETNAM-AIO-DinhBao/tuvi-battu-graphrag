@@ -734,6 +734,7 @@ def fusion_node(state: RAGState) -> RAGState:
         detail={
             "duration_ms": elapsed_ms(started),
             "fusion_method": config.fusion_method,
+            "fusion_path_weights": config.fusion_path_weights if config.fusion_method == "weighted_sum" else None,
             "input_counts": count_candidates_by_path(state),
             "output_count": len(fused_candidates),
             "score_breakdown": fusion_trace_summary(fused_candidates),

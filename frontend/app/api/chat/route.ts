@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const CHAT_PROXY_TIMEOUT_MS = 30_000;
+const CHAT_PROXY_TIMEOUT_MS = 300_000;
 const CHAT_RATE_LIMIT_WINDOW_MS = 60_000;
 const CHAT_RATE_LIMIT_MAX_REQUESTS = 6;
 

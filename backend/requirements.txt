@@ -13,6 +13,10 @@ requests
 supabase
 pymupdf
 psycopg[binary]
+FlagEmbedding
+sentence-transformers
+torch
+transformers
 
 # Tử Vi Engine
 # Install lasotuvi with: pip install --no-deps lasotuvi

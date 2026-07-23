@@ -63,10 +63,18 @@ sparse_retrieval:
   timeout_seconds: 3.0
   child_only: true
 fusion_method: rrf
+fusion_path_weights:
+  graph: 1.45
+  dense: 1.15
+  sparse: 0.80
 reranker_config:
   enabled: true
-  model: lexical-overlap-v1
+  model: BAAI/bge-reranker-v2-m3
   top_k: 10
+  batch_size: 2
+  max_length: 512
+  local_files_only: true
+  local_model_path: models/bge-reranker-v2-m3
 document_grading_enabled: true
 prompt_template_id: tuvi_generation_structured_v3
 generation_model: gemini-3.1-flash-lite-preview

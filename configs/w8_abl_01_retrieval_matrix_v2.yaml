@@ -108,6 +108,10 @@ configs:
       dense_retrieval_enabled: false
       sparse_retrieval_enabled: true
       fusion_method: weighted_sum
+      fusion_path_weights:
+        graph: 1.45
+        dense: 1.15
+        sparse: 0.80
       reranker_config:
         enabled: true
 

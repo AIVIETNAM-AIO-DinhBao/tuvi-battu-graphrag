@@ -228,7 +228,7 @@ def test_reranker_enabled_can_change_order_and_apply_top_k() -> None:
 
 
 def test_lexical_overlap_reranker_prefers_query_overlap() -> None:
-    config = config_with(reranker_config={"enabled": True, "model": "lexical", "top_k": 3})
+    config = config_with(reranker_config={"enabled": True, "model": "unit-test-reranker", "top_k": 3})
     reranker = LexicalOverlapReranker()
     reranked = reranker.rerank(
         "Thiên Mã Quan Lộc",

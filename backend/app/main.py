@@ -9,7 +9,7 @@ from app.clients import get_neo4j_driver, get_langfuse_client, get_supabase_clie
 from app.config import settings
 from app.rag.gemini_keys import runtime_gemini_key_diagnostics
 from app.rag.generation import DeterministicGenerationClient
-from app.rag.graph import run_rag_dry_run
+from app.rag.graph import LANGGRAPH_AVAILABLE, run_rag_dry_run
 from app.rag.nodes import default_chart_loader
 
 
@@ -206,6 +206,20 @@ async def rag_runtime_debug():
         "dense_retrieval_enabled": config.dense_retrieval_enabled,
         "sparse_retrieval_enabled": config.sparse_retrieval_enabled,
         "generation_model": config.generation_model,
+        "langgraph_available": LANGGRAPH_AVAILABLE,
+        "fusion_method": config.fusion_method,
+        "fusion_path_weights": config.fusion_path_weights,
+        "reranker": {
+            "enabled": config.reranker_enabled,
+            "model": config.reranker_config.model,
+            "top_k": config.reranker_config.top_k,
+            "batch_size": config.reranker_config.batch_size,
+            "max_length": config.reranker_config.max_length,
+            "local_files_only": config.reranker_config.local_files_only,
+            "local_model_path": str(config.reranker_config.local_model_path)
+            if config.reranker_config.local_model_path
+            else None,
+        },
         "gemini": runtime_gemini_key_diagnostics(),
         "neo4j": {
             "uri": neo4j_uri_safe,

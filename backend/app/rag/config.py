@@ -35,6 +35,8 @@ VALID_GRAPH_RELATION_TYPES = {
     "THUOC_CUNG",
 }
 SAFE_NEO4J_INDEX_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+DEFAULT_FUSION_PATH_WEIGHTS = {"graph": 1.45, "dense": 1.15, "sparse": 0.80}
+VALID_RETRIEVAL_PATHS = set(DEFAULT_FUSION_PATH_WEIGHTS)
 
 
 class EmbeddingConfig(BaseModel):
@@ -71,8 +73,23 @@ class RerankerConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     enabled: bool = False
-    model: str | None = None
+    model: str | None = "BAAI/bge-reranker-v2-m3"
     top_k: int = Field(default=10, ge=1)
+    batch_size: int = Field(default=2, ge=1, le=128)
+    max_length: int = Field(default=512, ge=128, le=8192)
+    local_files_only: bool = True
+    local_model_path: Path | None = None
+
+    @model_validator(mode="after")
+    def validate_model_backed_reranker(self) -> "RerankerConfig":
+        if not self.enabled:
+            return self
+        model_name = (self.model or "").strip()
+        if not model_name:
+            raise ValueError("enabled reranker_config requires a cross-encoder model.")
+        if model_name in {"lexical", "lexical-overlap-v1"}:
+            raise ValueError("lexical reranker is not allowed for enabled runtime configs.")
+        return self
 
 
 class QueryRewriteConfig(BaseModel):
@@ -225,6 +242,7 @@ class ExperimentConfig(BaseModel):
     sparse_retrieval_enabled: bool
     sparse_retrieval: SparseRetrievalConfig
     fusion_method: str
+    fusion_path_weights: dict[str, float] = Field(default_factory=lambda: dict(DEFAULT_FUSION_PATH_WEIGHTS))
     reranker_config: RerankerConfig
     document_grading_enabled: bool
     prompt_template_id: str
@@ -278,6 +296,21 @@ class ExperimentConfig(BaseModel):
             allowed = ", ".join(sorted(VALID_FUSION_METHODS))
             raise ValueError(f"fusion_method must be one of: {allowed}.")
         return value
+
+    @field_validator("fusion_path_weights")
+    @classmethod
+    def validate_fusion_path_weights(cls, value: dict[str, float]) -> dict[str, float]:
+        if not value:
+            raise ValueError("fusion_path_weights must not be empty.")
+        invalid = sorted(set(value) - VALID_RETRIEVAL_PATHS)
+        if invalid:
+            allowed = ", ".join(sorted(VALID_RETRIEVAL_PATHS))
+            raise ValueError(f"Unsupported fusion path weights: {', '.join(invalid)}. Allowed: {allowed}.")
+        weights = {path: float(value.get(path, DEFAULT_FUSION_PATH_WEIGHTS[path])) for path in VALID_RETRIEVAL_PATHS}
+        non_positive = sorted(path for path, weight in weights.items() if weight <= 0.0)
+        if non_positive:
+            raise ValueError(f"fusion_path_weights must be positive for: {', '.join(non_positive)}.")
+        return {path: weights[path] for path in ("graph", "dense", "sparse")}
 
     @field_validator("context_assembly_strategy")
     @classmethod

@@ -95,6 +95,23 @@ class FakeEmbeddingService:
         return [0.0] * 1024
 
 
+class IdentityReranker:
+    def rerank(
+        self,
+        query: str,
+        candidates: list[dict[str, Any]],
+        *,
+        config: ExperimentConfig,
+        state: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        output = []
+        for index, candidate in enumerate(candidates, start=1):
+            item = dict(candidate)
+            item["rerank_score"] = float(len(candidates) - index + 1)
+            output.append(item)
+        return output
+
+
 class FailingDriver:
     def __init__(self) -> None:
         self.session_calls = 0
@@ -527,6 +544,7 @@ def test_dry_run_populates_enabled_retrieval_paths_and_keeps_downstream_placehol
         experiment_config=config,
         neo4j_driver=driver,
         dense_embedding_service=FakeEmbeddingService(),
+        candidate_reranker=IdentityReranker(),
         generation_client=DeterministicGenerationClient(),
     )
 

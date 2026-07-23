@@ -1,5 +1,5 @@
 name: w7_abl_01_generation_prompt_v1
-notes: "W7-ABL-01 compares generation prompt templates while holding retrieval fixed to the W6 integration candidate: semantic BGE-M3 chunking, Graph + Sparse + RRF + lexical reranker, dense off. Official partial run target is --judge-backend gemini --limit 10 --skip-persistence."
+notes: "W7-ABL-01 compares generation prompt templates while holding retrieval fixed to the W6 integration candidate: semantic BGE-M3 chunking, Graph + Sparse + RRF + BGE cross-encoder reranker, dense off. Official partial run target is --judge-backend gemini --limit 10 --skip-persistence."
 dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
 output_dir: benchmark/tuvi_golden_dataset/reports/w7_abl_01
 configs:
