@@ -20,6 +20,38 @@ ROLE_PLANNER_GRAPH_MODE = {"generic", "relation_rule", "combination_pattern"}
 STAR_ENTITY_TYPES = {"sao", "star", "chinh_tinh", "chính tinh", "phu_tinh", "phụ tinh"}
 HOUSE_ENTITY_TYPES = {"cung", "house"}
 MODIFIER_TERMS = ("tuần", "tuan", "triệt", "triet", "hãm", "ham", "miếu", "mieu", "đắc", "dac", "vượng", "vuong", "hóa", "hoa")
+MODIFIER_STAR_NAMES = {
+    "hóa lộc",
+    "hóa quyền",
+    "hóa khoa",
+    "hóa kỵ",
+    "hoa loc",
+    "hoa quyen",
+    "hoa khoa",
+    "hoa ky",
+    "tuần",
+    "tuan",
+    "triệt",
+    "triet",
+    "kình dương",
+    "kinh duong",
+    "đà la",
+    "da la",
+    "địa không",
+    "dia khong",
+    "địa kiếp",
+    "dia kiep",
+    "thiên không",
+    "thien khong",
+    "thiên la",
+    "thien la",
+    "địa võng",
+    "dia vong",
+    "thái tuế",
+    "thai tue",
+}
+MAX_STAR_DEFINITION_QUERIES = 3
+MAX_MODIFIER_QUERIES = 3
 
 
 class RoleQuery(TypedDict, total=False):
@@ -66,10 +98,84 @@ def build_role_queries(state: RAGState) -> list[RoleQuery]:
     for role in roles:
         if role == "generic":
             continue
-        role_query = make_role_query(role, query, target_houses, target_stars, query_entities)
-        if role_query and role_query.get("query"):
-            queries.append(role_query)
+        role_queries = make_role_queries(role, query, target_houses, target_stars, query_entities)
+        queries.extend(role_query for role_query in role_queries if role_query.get("query"))
     return dedupe_role_queries(queries)
+
+
+def make_role_queries(
+    role: str,
+    original_query: str,
+    target_houses: list[str],
+    target_stars: list[str],
+    query_entities: list[dict[str, str]],
+) -> list[RoleQuery]:
+    if role == "star_definition" and target_stars:
+        stars = prioritized_target_stars(target_stars, include_modifiers=False, max_count=MAX_STAR_DEFINITION_QUERIES)
+        if not stars:
+            stars = target_stars[:MAX_STAR_DEFINITION_QUERIES]
+        return [
+            {
+                "evidence_role": role,
+                "retrieval_intent": "define_star",
+                "query": f"{star} tính chất ý nghĩa luận giải",
+                "entities": select_entities(query_entities, entity_types=STAR_ENTITY_TYPES, names=[star]) or name_entities([star], "Sao"),
+                "target_houses": target_houses,
+                "target_stars": [star],
+            }
+            for star in stars
+        ]
+    if role == "modifier_effect":
+        modifiers = modifier_target_stars(target_stars)
+        query_modifiers = extract_modifier_terms(original_query)
+        if not modifiers:
+            modifiers = query_modifiers
+        if modifiers:
+            houses = target_houses[:1]
+            return [
+                {
+                    "evidence_role": role,
+                    "retrieval_intent": "modifier_effect",
+                    "query": f"{modifier} {' '.join(houses)} ảnh hưởng ý nghĩa khi đóng cung".strip(),
+                    "entities": unique_entity_rows(
+                        [
+                            *select_entities(query_entities, entity_types=STAR_ENTITY_TYPES, names=[modifier]),
+                            *select_entities(query_entities, entity_types=HOUSE_ENTITY_TYPES, names=houses),
+                            *name_entities([modifier], "Sao"),
+                            *name_entities(houses, "Cung"),
+                        ]
+                    ),
+                    "target_houses": target_houses,
+                    "target_stars": [modifier],
+                }
+                for modifier in modifiers[:MAX_MODIFIER_QUERIES]
+            ]
+    if role == "combination_pattern" and (target_houses or target_stars):
+        stars = prioritized_target_stars(target_stars, include_modifiers=False, max_count=2)
+        modifiers = modifier_target_stars(target_stars)[:1]
+        houses = target_houses[:1]
+        focus_terms = unique_strings([*stars, *modifiers, *houses])
+        focus = " ".join(focus_terms) or original_query
+        return [
+            {
+                "evidence_role": role,
+                "retrieval_intent": "combination_pattern",
+                "query": f"{focus} phối hợp kết hợp đồng cung luận giải",
+                "entities": unique_entity_rows(
+                    [
+                        *select_entities(query_entities, entity_types=STAR_ENTITY_TYPES, names=[*stars, *modifiers]),
+                        *select_entities(query_entities, entity_types=HOUSE_ENTITY_TYPES, names=houses),
+                        *name_entities([*stars, *modifiers], "Sao"),
+                        *name_entities(houses, "Cung"),
+                    ]
+                )
+                or query_entities,
+                "target_houses": target_houses,
+                "target_stars": unique_strings([*stars, *modifiers]),
+            }
+        ]
+    role_query = make_role_query(role, original_query, target_houses, target_stars, query_entities)
+    return [role_query] if role_query else []
 
 
 def make_role_query(
@@ -100,7 +206,7 @@ def make_role_query(
             "target_stars": target_stars,
         }
     if role == "modifier_effect":
-        focus = " ".join([*target_stars[:1], *extract_modifier_terms(original_query)[:1]]).strip() or original_query
+        focus = " ".join([*modifier_target_stars(target_stars)[:1], *extract_modifier_terms(original_query)[:1]]).strip() or original_query
         return {
             "evidence_role": role,
             "retrieval_intent": "modifier_effect",
@@ -214,8 +320,14 @@ def entity_rows(values: Iterable[dict[str, Any]]) -> list[dict[str, str]]:
     return rows
 
 
-def select_entities(values: list[dict[str, str]], *, entity_types: set[str]) -> list[dict[str, str]]:
-    return [entity for entity in values if entity_type(entity) in entity_types]
+def select_entities(values: list[dict[str, str]], *, entity_types: set[str], names: list[str] | None = None) -> list[dict[str, str]]:
+    normalized_names = {normalize_text(name) for name in names or [] if str(name).strip()}
+    return [
+        entity
+        for entity in values
+        if entity_type(entity) in entity_types
+        and (not normalized_names or normalize_text(entity.get("canonical_name")) in normalized_names)
+    ]
 
 
 def name_entities(names: list[str], entity_type_value: str) -> list[dict[str, str]]:
@@ -236,6 +348,38 @@ def dedupe_role_queries(queries: list[RoleQuery]) -> list[RoleQuery]:
         seen.add(key)
         deduped.append(query)
     return deduped
+
+
+def prioritized_target_stars(target_stars: list[str], *, include_modifiers: bool, max_count: int) -> list[str]:
+    stars = [star for star in target_stars if include_modifiers or not is_modifier_like_star(star)]
+    return unique_strings(stars)[:max_count]
+
+
+def modifier_target_stars(target_stars: list[str]) -> list[str]:
+    return unique_strings([star for star in target_stars if is_modifier_like_star(star)])
+
+
+def is_modifier_like_star(value: Any) -> bool:
+    text = normalize_text(value)
+    if not text:
+        return False
+    return text in MODIFIER_STAR_NAMES or text.startswith("l.") or text.startswith("lưu ") or text.startswith("luu ")
+
+
+def unique_entity_rows(values: Iterable[dict[str, Any]]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for entity in values:
+        canonical_name = str(entity.get("canonical_name") or "").strip()
+        etype = str(entity.get("entity_type") or "").strip()
+        if not canonical_name or not etype:
+            continue
+        key = (normalize_text(canonical_name), etype.casefold())
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append({"canonical_name": canonical_name, "entity_type": etype})
+    return rows
 
 
 def extract_modifier_terms(query: str) -> list[str]:

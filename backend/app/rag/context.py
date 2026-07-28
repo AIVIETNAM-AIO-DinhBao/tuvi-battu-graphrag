@@ -94,6 +94,7 @@ def filter_candidates_for_chart_relevance(candidates: list[dict[str, Any]], stat
         hits = candidate_relevance_hits(item, target_terms)
         item["chart_relevance_hits"] = hits
         item["chart_relevance_hit_count"] = len(hits)
+        item.update(assess_role_evidence_quality(item, target_terms))
         scored.append(item)
     relevant = [item for item in scored if is_chart_relevant_candidate(item, strong_terms=strong_terms)]
     role_aware = bool(required_evidence_roles_from_plan(state))
@@ -176,13 +177,82 @@ def candidate_relevance_hits(candidate: dict[str, Any], target_terms: list[dict[
 
 def is_chart_relevant_candidate(candidate: dict[str, Any], *, strong_terms: list[dict[str, str]]) -> bool:
     hits = candidate.get("chart_relevance_hits") or []
+    roles = set(candidate_roles(candidate))
+    if candidate.get("weak_evidence") and roles & {"modifier_effect", "combination_pattern"}:
+        return False
     if any(hit.get("kind") == "star" for hit in hits if isinstance(hit, dict)):
         return True
-    roles = set(candidate_roles(candidate))
     if roles & {"house_scope", "relation_rule", "combination_pattern"} and hits:
         return True
     # Nếu không có sao mục tiêu nào, house-only vẫn là tín hiệu tốt nhất.
     return bool(hits) and not strong_terms
+
+
+def assess_role_evidence_quality(candidate: dict[str, Any], target_terms: list[dict[str, str]]) -> dict[str, Any]:
+    roles = set(candidate_roles(candidate))
+    hits = candidate.get("chart_relevance_hits") or []
+    hit_kinds = {str(hit.get("kind") or "") for hit in hits if isinstance(hit, dict)}
+    hit_values = [str(hit.get("value") or "") for hit in hits if isinstance(hit, dict)]
+    reasons: list[str] = []
+
+    if "star_definition" in roles and "star" not in hit_kinds:
+        reasons.append("star_definition_without_target_star")
+
+    modifier_targets = [term for term in target_terms if term.get("kind") == "star" and is_modifier_like_star(term.get("value"))]
+    modifier_hits = [value for value in hit_values if is_modifier_like_star(value)]
+    if "modifier_effect" in roles and modifier_targets and not modifier_hits:
+        reasons.append("modifier_effect_without_modifier_target")
+
+    has_target_house = any(term.get("kind") == "house" for term in target_terms)
+    has_target_star = any(term.get("kind") == "star" for term in target_terms)
+    has_house_hit = any(hit.get("kind") == "house" for hit in hits if isinstance(hit, dict))
+    has_star_hit = any(hit.get("kind") == "star" for hit in hits if isinstance(hit, dict))
+    if "combination_pattern" in roles and has_target_house and has_target_star and not (has_house_hit and has_star_hit):
+        reasons.append("combination_pattern_without_house_and_star")
+
+    return {
+        "weak_evidence": bool(reasons),
+        "weak_evidence_reasons": reasons,
+    }
+
+
+def is_modifier_like_star(value: Any) -> bool:
+    text = normalize_text(value)
+    if not text:
+        return False
+    modifier_names = {
+        "hóa lộc",
+        "hóa quyền",
+        "hóa khoa",
+        "hóa kỵ",
+        "hoa loc",
+        "hoa quyen",
+        "hoa khoa",
+        "hoa ky",
+        "tuần",
+        "tuan",
+        "triệt",
+        "triet",
+        "kình dương",
+        "kinh duong",
+        "đà la",
+        "da la",
+        "địa không",
+        "dia khong",
+        "địa kiếp",
+        "dia kiep",
+        "thiên không",
+        "thien khong",
+        "thiên la",
+        "thien la",
+        "địa võng",
+        "dia vong",
+        "thái tuế",
+        "thai tue",
+    }
+    if text in modifier_names:
+        return True
+    return text.startswith("l.") or text.startswith("lưu ") or text.startswith("luu ")
 
 
 def append_relevance_term(values: list[dict[str, str]], value: str, *, kind: str) -> None:
@@ -340,6 +410,8 @@ def make_context_chunk(candidate: dict[str, Any], *, index: int, config: Experim
         "chunk_hash": candidate.get("chunk_hash"),
         "chunk_strategy_id": candidate.get("chunk_strategy_id") or config.chunk_strategy_id,
         "chunk_type": candidate.get("chunk_type"),
+        "chart_relevance_hits": list(candidate.get("chart_relevance_hits") or []),
+        "chart_relevance_hit_count": candidate.get("chart_relevance_hit_count"),
         "domain": candidate.get("domain") or config.domain,
         "excerpt": excerpt,
         "fusion_score": candidate.get("fusion_score"),
@@ -358,6 +430,8 @@ def make_context_chunk(candidate: dict[str, Any], *, index: int, config: Experim
         "source_name": candidate.get("source_name"),
         "source_page": candidate.get("source_page"),
         "title": candidate.get("title"),
+        "weak_evidence": bool(candidate.get("weak_evidence")),
+        "weak_evidence_reasons": list(candidate.get("weak_evidence_reasons") or []),
     }
 
 
@@ -372,7 +446,7 @@ def make_chart_context_chunk(state: RAGState, *, config: ExperimentConfig) -> di
         "domain": config.domain,
         "excerpt": build_chart_fact_context_block(chart_facts),
         "evidence_role": "chart_facts",
-        "evidence_roles": ["chart_facts", *required_evidence_roles_from_plan(state)],
+        "evidence_roles": ["chart_facts"],
         "provenance": {"source_id": "CHART", "source_name": "Dữ kiện lá số", "source_type": "chart_facts"},
         "retrieval_intent": "chart_facts",
         "retrieval_paths": ["chart"],
@@ -395,6 +469,11 @@ def format_context_block(chunk: dict[str, Any]) -> str:
     ]
     if role_line:
         metadata_lines.append(role_line)
+    if chunk.get("weak_evidence"):
+        reasons = ", ".join(str(reason) for reason in chunk.get("weak_evidence_reasons") or [])
+        metadata_lines.append(f"weak_evidence: true | reasons: {reasons}")
+    if chunk.get("role_query"):
+        metadata_lines.append(f"role_query: {chunk.get('role_query')}")
     return (
         f"[{chunk['citation_marker']}] {source_label}{page_label}{title}\n"
         f"{'\n'.join(metadata_lines)}\n"
