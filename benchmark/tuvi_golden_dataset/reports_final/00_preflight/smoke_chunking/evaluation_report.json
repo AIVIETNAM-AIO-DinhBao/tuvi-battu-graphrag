@@ -1,0 +1,3049 @@
+{
+  "ablation_analysis": {
+    "baseline_config_name": "baseline_graph_sparse_rrf",
+    "preliminary_recommendation": {
+      "reasoning": [
+        "Preliminary heuristic ranks configs by context recall, citation coverage, faithfulness, answer relevancy, graph hit rate, and a small p95 latency penalty.",
+        "Selected `semantic_bge_m3_graph_sparse_rrf` with context_recall_avg=1.0, citation_coverage_rate=0.75, p95_latency_ms=99.65.",
+        "Treat this as a smoke/first-pass recommendation until official Gemini judge and full dataset runs are complete."
+      ],
+      "recommended_candidate": "semantic_bge_m3_graph_sparse_rrf",
+      "score": 0.8842
+    },
+    "ranking_by_citation_coverage": [
+      {
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "citation_coverage_rate",
+        "value": 0.75
+      },
+      {
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "citation_coverage_rate",
+        "value": 0.75
+      },
+      {
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "citation_coverage_rate",
+        "value": 0.75
+      }
+    ],
+    "ranking_by_context_recall": [
+      {
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "context_recall_avg",
+        "value": 1.0
+      },
+      {
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "context_recall_avg",
+        "value": 1.0
+      },
+      {
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "context_recall_avg",
+        "value": 1.0
+      }
+    ],
+    "ranking_by_graph_hit_rate": [
+      {
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "graph_hit_rate",
+        "value": 0.0
+      },
+      {
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "graph_hit_rate",
+        "value": 0.0
+      },
+      {
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "graph_hit_rate",
+        "value": 0.0
+      }
+    ],
+    "ranking_by_p95_latency": [
+      {
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "p95_latency_ms",
+        "value": 99.65
+      },
+      {
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "p95_latency_ms",
+        "value": 102.79
+      },
+      {
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "p95_latency_ms",
+        "value": 167.3
+      }
+    ],
+    "rerank_miss_summary": [
+      {
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "examples": [],
+        "miss_count": 0
+      },
+      {
+        "config_name": "parent_child_graph_sparse_rrf",
+        "examples": [],
+        "miss_count": 0
+      },
+      {
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "examples": [],
+        "miss_count": 0
+      }
+    ],
+    "retrieval_miss_summary": [
+      {
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "examples": [
+          {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "context_recall": 1.0,
+            "gold_doc_coverage_rate": 0.0,
+            "item_id": "TVQA-002",
+            "question_complexity": "One-hop",
+            "question_family": "menh_house_interpretation",
+            "reasons": [
+              "gold_doc_miss"
+            ],
+            "selected_retrieval_paths": [
+              "chart"
+            ],
+            "source_count": 1
+          }
+        ],
+        "miss_count": 1
+      },
+      {
+        "config_name": "parent_child_graph_sparse_rrf",
+        "examples": [
+          {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "context_recall": 1.0,
+            "gold_doc_coverage_rate": 0.0,
+            "item_id": "TVQA-002",
+            "question_complexity": "One-hop",
+            "question_family": "menh_house_interpretation",
+            "reasons": [
+              "gold_doc_miss"
+            ],
+            "selected_retrieval_paths": [
+              "chart"
+            ],
+            "source_count": 1
+          }
+        ],
+        "miss_count": 1
+      },
+      {
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "examples": [
+          {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "context_recall": 1.0,
+            "gold_doc_coverage_rate": 0.0,
+            "item_id": "TVQA-002",
+            "question_complexity": "One-hop",
+            "question_family": "menh_house_interpretation",
+            "reasons": [
+              "gold_doc_miss"
+            ],
+            "selected_retrieval_paths": [
+              "chart"
+            ],
+            "source_count": 1
+          }
+        ],
+        "miss_count": 1
+      }
+    ]
+  },
+  "chunking_ablation_analysis": {
+    "analysis_language": "vi",
+    "dense_policy_vi": "Matrix chính tắt dense retrieval để không trộn lẫn biến chunking với biến dense retrieval. Retrieval stack cố định là Graph + Sparse + RRF + reranker.",
+    "preliminary_chunking_candidate": {
+      "reasoning_vi": [
+        "Đây là gợi ý sơ bộ do máy tính tổng hợp, không phải quyết định production cuối cùng.",
+        "Điểm ưu tiên Context Recall, Citation Coverage, Graph Hit Rate, sau đó mới xét Faithfulness, Answer Relevancy và phạt nhẹ p95 latency.",
+        "Ứng viên hiện tại là `chunk_semantic_embedding_bge_m3` qua config `semantic_bge_m3_graph_sparse_rrf` với context_recall_avg=1.0, citation_coverage_rate=0.75, graph_hit_rate=0.0, p95_latency_ms=99.65.",
+        "Chỉ được dùng làm bằng chứng chính thức sau khi chạy Gemini judge/live database trên cùng golden dataset và đủ 12 cặp source-strategy."
+      ],
+      "recommended_chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "recommended_config_name": "semantic_bge_m3_graph_sparse_rrf",
+      "score": 0.7842
+    },
+    "ranking_by_citation_coverage": [
+      {
+        "chunk_strategy_id": "chunk_fixed_512",
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "citation_coverage_rate",
+        "value": 0.75
+      },
+      {
+        "chunk_strategy_id": "chunk_structure_parent_child",
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "citation_coverage_rate",
+        "value": 0.75
+      },
+      {
+        "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "citation_coverage_rate",
+        "value": 0.75
+      }
+    ],
+    "ranking_by_context_recall": [
+      {
+        "chunk_strategy_id": "chunk_fixed_512",
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "context_recall_avg",
+        "value": 1.0
+      },
+      {
+        "chunk_strategy_id": "chunk_structure_parent_child",
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "context_recall_avg",
+        "value": 1.0
+      },
+      {
+        "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "context_recall_avg",
+        "value": 1.0
+      }
+    ],
+    "ranking_by_graph_hit_rate": [
+      {
+        "chunk_strategy_id": "chunk_fixed_512",
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "graph_hit_rate",
+        "value": 0.0
+      },
+      {
+        "chunk_strategy_id": "chunk_structure_parent_child",
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "graph_hit_rate",
+        "value": 0.0
+      },
+      {
+        "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "graph_hit_rate",
+        "value": 0.0
+      }
+    ],
+    "ranking_by_p95_latency": [
+      {
+        "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+        "config_name": "semantic_bge_m3_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+        "metric": "p95_latency_ms",
+        "value": 99.65
+      },
+      {
+        "chunk_strategy_id": "chunk_structure_parent_child",
+        "config_name": "parent_child_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+        "metric": "p95_latency_ms",
+        "value": 102.79
+      },
+      {
+        "chunk_strategy_id": "chunk_fixed_512",
+        "config_name": "fixed_512_graph_sparse_rrf",
+        "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+        "metric": "p95_latency_ms",
+        "value": 167.3
+      }
+    ],
+    "scope_vi": "So sánh chiến lược chunking trên cùng corpus TVKL/TVNL/TVHS/TVGM; biến chính là chunk_strategy_id.",
+    "semantic_strategy_note_vi": "PLAN.md gọi chiến lược semantic là chunk_semantic_embedding; runtime hiện dùng mã chunk_semantic_embedding_bge_m3.",
+    "strategies": [
+      "chunk_fixed_512",
+      "chunk_semantic_embedding_bge_m3",
+      "chunk_structure_parent_child"
+    ]
+  },
+  "command": "scripts\\run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --offline-smoke --limit 2 --skip-persistence --output-dir benchmark/tuvi_golden_dataset/reports_final/00_preflight/smoke_chunking",
+  "completed_at": "2026-07-28T12:26:54.721231Z",
+  "config_count": 3,
+  "configs": [
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "completed_at": "2026-07-28T12:26:54.300239Z",
+      "config_hash": "6b8250da09920192b47712fa7f04237d6cf4c7c1c37e85bd1e8d6dbaac9cdb8a",
+      "config_name": "fixed_512_graph_sparse_rrf",
+      "context_assembly_strategy": "balanced",
+      "dense_retrieval_enabled": false,
+      "document_grading_enabled": true,
+      "error": null,
+      "experiment_id": "w6_abl_03_fixed_512_graph_sparse_rrf",
+      "fusion_method": "rrf",
+      "generation_model": "gemini-3.1-flash-lite-preview",
+      "graph_retrieval_enabled": true,
+      "grouped_metrics": {
+        "by_question_complexity": {
+          "Direct": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 170.44,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.23,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "evaluation_total_p95_ms": 170.46,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.07,
+            "generation_p95_ms": 0.07,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 170.44,
+            "p95_latency_ms": 170.44,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.23,
+            "retrieval_p95_ms": 0.23,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          },
+          "One-hop": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.144,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 107.56,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 1.1,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.75,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 1.0,
+            "evaluation_total_p95_ms": 107.58,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.06,
+            "generation_p95_ms": 0.06,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 107.56,
+            "p95_latency_ms": 107.56,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 1.1,
+            "retrieval_p95_ms": 1.1,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          }
+        },
+        "by_question_family": {
+          "core_identity": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 170.44,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.23,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "evaluation_total_p95_ms": 170.46,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.07,
+            "generation_p95_ms": 0.07,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 170.44,
+            "p95_latency_ms": 170.44,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.23,
+            "retrieval_p95_ms": 0.23,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          },
+          "menh_house_interpretation": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.144,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 107.56,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 1.1,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.75,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 1.0,
+            "evaluation_total_p95_ms": 107.58,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.06,
+            "generation_p95_ms": 0.06,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 107.56,
+            "p95_latency_ms": 107.56,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 1.1,
+            "retrieval_p95_ms": 1.1,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          }
+        }
+      },
+      "items": [
+        {
+          "answer_length_chars": 476,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": 1.0,
+          "chart_id": "CHART-001",
+          "chart_only": true,
+          "citation_coverage": null,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": null,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "Direct",
+          "diagnostic_question_family": "core_identity",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 170.46,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.07,
+          "gold_doc_coverage_rate": null,
+          "gold_page_hit_rate": null,
+          "gold_quote_overlap_avg": null,
+          "gold_span_count": 0,
+          "graph_hit": null,
+          "item_id": "TVQA-001",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.02,
+          "labels": {
+            "question_family": "core_identity",
+            "topic": "identity"
+          },
+          "latency_ms": 170.44,
+          "query": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+          "question_complexity": "Direct",
+          "question_family": "core_identity",
+          "rag_latency_ms": 170.44,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 2,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương",
+                "Lực Sĩ",
+                "Quan Phù",
+                "Kình Dương",
+                "Long Trì",
+                "Thiên Trù",
+                "Linh Tinh",
+                "L.thái Tuế"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 9,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_fixed_512",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.02,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": false,
+              "enabled_by_plan": false,
+              "min_query_terms": 0,
+              "query_term_count": 16,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 1,
+            "extracted_entities": [
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": null,
+              "effective_required_entity_hits": null,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": null,
+              "required_entity_hits": null,
+              "role_metadata": [],
+              "role_query_count": 0
+            },
+            "missing_evidence_roles": [
+              "house_scope"
+            ],
+            "query": {
+              "normalized": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "original": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "rewritten": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?"
+            },
+            "question_complexity": "Direct",
+            "question_complexity_source": "provided",
+            "question_family": "core_identity",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "skipped",
+              "rerank": "completed",
+              "sparse_retrieval": "skipped"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "identity",
+                "house_facts"
+              ],
+              "dense_gate": {
+                "enabled": false
+              },
+              "enabled_retrieval_paths": {
+                "dense": false,
+                "graph": false,
+                "sparse": false
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "Direct",
+              "question_complexity_source": "provided",
+              "question_family": "core_identity",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope"
+              ],
+              "retrieval_depth": "chart_only",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": []
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.23,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "answer_length_chars": 369,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": null,
+          "chart_id": "CHART-001",
+          "chart_only": false,
+          "citation_coverage": 0.75,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": 1.0,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "One-hop",
+          "diagnostic_question_family": "menh_house_interpretation",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 107.58,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.06,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.144,
+          "gold_span_count": 6,
+          "graph_hit": false,
+          "item_id": "TVQA-002",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.02,
+          "labels": {
+            "question_family": "menh_house_interpretation",
+            "topic": "self"
+          },
+          "latency_ms": 107.56,
+          "query": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+          "question_complexity": "One-hop",
+          "question_family": "menh_house_interpretation",
+          "rag_latency_ms": 107.56,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 1,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 2,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_fixed_512",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.03,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": true,
+              "enabled_by_plan": true,
+              "min_query_terms": 2,
+              "query_term_count": 23,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 2,
+            "extracted_entities": [
+              {
+                "canonical_name": "Thái Dương",
+                "entity_type": "Sao",
+                "surface": null
+              },
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": null,
+              "effective_required_entity_hits": null,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": null,
+              "required_entity_hits": null,
+              "role_metadata": [],
+              "role_query_count": 0
+            },
+            "missing_evidence_roles": [
+              "house_scope",
+              "star_definition",
+              "modifier_effect"
+            ],
+            "query": {
+              "normalized": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "original": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "rewritten": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?"
+            },
+            "question_complexity": "One-hop",
+            "question_complexity_source": "provided",
+            "question_family": "menh_house_interpretation",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope",
+              "star_definition",
+              "modifier_effect"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "completed",
+              "rerank": "completed",
+              "sparse_retrieval": "completed"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "house_facts",
+                "star_facts",
+                "special_states"
+              ],
+              "dense_gate": {
+                "enabled": true,
+                "min_query_terms": 2
+              },
+              "enabled_retrieval_paths": {
+                "dense": true,
+                "graph": true,
+                "sparse": true
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "One-hop",
+              "question_complexity_source": "provided",
+              "question_family": "menh_house_interpretation",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope",
+                "star_definition",
+                "modifier_effect"
+              ],
+              "retrieval_depth": "medium",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": [
+                "Thái Dương"
+              ]
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 1.1,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "answer_present_rate": 1.0,
+        "answer_relevancy_avg": 1.0,
+        "avg_context_selected_diagnostic_count": 1.0,
+        "avg_dense_candidate_count": 0.0,
+        "avg_fused_candidate_count": 0.0,
+        "avg_gold_doc_coverage_rate": 0.0,
+        "avg_gold_page_hit_rate": 0.0,
+        "avg_gold_quote_overlap": 0.144,
+        "avg_graph_candidate_count": 0.0,
+        "avg_latency_ms": 139.0,
+        "avg_ranked_candidate_count": 0.0,
+        "avg_retrieval_latency_ms": 0.665,
+        "avg_source_count": 1.0,
+        "avg_sparse_candidate_count": 0.0,
+        "chart_context_grounding_avg": 1.0,
+        "chart_only_count": 1,
+        "citation_coverage_rate": 0.75,
+        "citation_fallback_count": 0,
+        "citation_marker_presence_rate": 0.0,
+        "citation_source_alignment_rate": 0.0,
+        "completed_count": 2,
+        "context_recall_avg": 1.0,
+        "context_selected_count_avg": 1.0,
+        "corpus_grounded_item_count": 1,
+        "corpus_source_coverage_rate": 1.0,
+        "evaluation_total_p95_ms": 167.32,
+        "failed_count": 0,
+        "faithfulness_avg": 1.0,
+        "generation_backend_fallback_count": 0,
+        "generation_p50_ms": 0.07,
+        "generation_p95_ms": 0.07,
+        "graph_hit_rate": 0.0,
+        "item_count": 2,
+        "judge_failure_count": 0,
+        "judge_p50_ms": 0.02,
+        "judge_p95_ms": 0.02,
+        "no_context_count": 0,
+        "p50_latency_ms": 139.0,
+        "p95_latency_ms": 167.3,
+        "retrieval_backend_fallback_count": 0,
+        "retrieval_p50_ms": 0.67,
+        "retrieval_p95_ms": 1.06,
+        "selected_dense_path_rate": 0.0,
+        "selected_graph_path_rate": 0.0,
+        "selected_sparse_path_rate": 0.0,
+        "source_coverage_rate": 1.0
+      },
+      "prompt_template_id": "tuvi_generation_structured_v3",
+      "reranker_enabled": true,
+      "run_id": null,
+      "sparse_retrieval_enabled": true,
+      "started_at": "2026-07-28T12:26:54.020454Z",
+      "status": "completed"
+    },
+    {
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "completed_at": "2026-07-28T12:26:54.512558Z",
+      "config_hash": "39be6f7d0e9a354361665e8d79ef1db47cb7b73826414aef0e96726d75938dfa",
+      "config_name": "parent_child_graph_sparse_rrf",
+      "context_assembly_strategy": "balanced",
+      "dense_retrieval_enabled": false,
+      "document_grading_enabled": true,
+      "error": null,
+      "experiment_id": "w6_abl_03_parent_child_graph_sparse_rrf",
+      "fusion_method": "rrf",
+      "generation_model": "gemini-3.1-flash-lite-preview",
+      "graph_retrieval_enabled": true,
+      "grouped_metrics": {
+        "by_question_complexity": {
+          "Direct": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 102.93,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.27,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "evaluation_total_p95_ms": 102.95,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.09,
+            "generation_p95_ms": 0.09,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 102.93,
+            "p95_latency_ms": 102.93,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.27,
+            "retrieval_p95_ms": 0.27,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          },
+          "One-hop": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.144,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 100.12,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.66,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.75,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 1.0,
+            "evaluation_total_p95_ms": 100.13,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.05,
+            "generation_p95_ms": 0.05,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.01,
+            "judge_p95_ms": 0.01,
+            "no_context_count": 0,
+            "p50_latency_ms": 100.12,
+            "p95_latency_ms": 100.12,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.66,
+            "retrieval_p95_ms": 0.66,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          }
+        },
+        "by_question_family": {
+          "core_identity": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 102.93,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.27,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "evaluation_total_p95_ms": 102.95,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.09,
+            "generation_p95_ms": 0.09,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 102.93,
+            "p95_latency_ms": 102.93,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.27,
+            "retrieval_p95_ms": 0.27,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          },
+          "menh_house_interpretation": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.144,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 100.12,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.66,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.75,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 1.0,
+            "evaluation_total_p95_ms": 100.13,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.05,
+            "generation_p95_ms": 0.05,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.01,
+            "judge_p95_ms": 0.01,
+            "no_context_count": 0,
+            "p50_latency_ms": 100.12,
+            "p95_latency_ms": 100.12,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.66,
+            "retrieval_p95_ms": 0.66,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          }
+        }
+      },
+      "items": [
+        {
+          "answer_length_chars": 476,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": 1.0,
+          "chart_id": "CHART-001",
+          "chart_only": true,
+          "citation_coverage": null,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": null,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "Direct",
+          "diagnostic_question_family": "core_identity",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 102.95,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.09,
+          "gold_doc_coverage_rate": null,
+          "gold_page_hit_rate": null,
+          "gold_quote_overlap_avg": null,
+          "gold_span_count": 0,
+          "graph_hit": null,
+          "item_id": "TVQA-001",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.02,
+          "labels": {
+            "question_family": "core_identity",
+            "topic": "identity"
+          },
+          "latency_ms": 102.93,
+          "query": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+          "question_complexity": "Direct",
+          "question_family": "core_identity",
+          "rag_latency_ms": 102.93,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 2,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương",
+                "Lực Sĩ",
+                "Quan Phù",
+                "Kình Dương",
+                "Long Trì",
+                "Thiên Trù",
+                "Linh Tinh",
+                "L.thái Tuế"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 9,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_structure_parent_child",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.01,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": false,
+              "enabled_by_plan": false,
+              "min_query_terms": 0,
+              "query_term_count": 16,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 1,
+            "extracted_entities": [
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": null,
+              "effective_required_entity_hits": null,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": null,
+              "required_entity_hits": null,
+              "role_metadata": [],
+              "role_query_count": 0
+            },
+            "missing_evidence_roles": [
+              "house_scope"
+            ],
+            "query": {
+              "normalized": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "original": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "rewritten": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?"
+            },
+            "question_complexity": "Direct",
+            "question_complexity_source": "provided",
+            "question_family": "core_identity",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "skipped",
+              "rerank": "completed",
+              "sparse_retrieval": "skipped"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "identity",
+                "house_facts"
+              ],
+              "dense_gate": {
+                "enabled": false
+              },
+              "enabled_retrieval_paths": {
+                "dense": false,
+                "graph": false,
+                "sparse": false
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "Direct",
+              "question_complexity_source": "provided",
+              "question_family": "core_identity",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope"
+              ],
+              "retrieval_depth": "chart_only",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": []
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.27,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "answer_length_chars": 369,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": null,
+          "chart_id": "CHART-001",
+          "chart_only": false,
+          "citation_coverage": 0.75,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": 1.0,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "One-hop",
+          "diagnostic_question_family": "menh_house_interpretation",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 100.13,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.05,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.144,
+          "gold_span_count": 6,
+          "graph_hit": false,
+          "item_id": "TVQA-002",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.01,
+          "labels": {
+            "question_family": "menh_house_interpretation",
+            "topic": "self"
+          },
+          "latency_ms": 100.12,
+          "query": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+          "question_complexity": "One-hop",
+          "question_family": "menh_house_interpretation",
+          "rag_latency_ms": 100.12,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 1,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 2,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_structure_parent_child",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.02,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": true,
+              "enabled_by_plan": true,
+              "min_query_terms": 2,
+              "query_term_count": 23,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 2,
+            "extracted_entities": [
+              {
+                "canonical_name": "Thái Dương",
+                "entity_type": "Sao",
+                "surface": null
+              },
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": null,
+              "effective_required_entity_hits": null,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": null,
+              "required_entity_hits": null,
+              "role_metadata": [],
+              "role_query_count": 0
+            },
+            "missing_evidence_roles": [
+              "house_scope",
+              "star_definition",
+              "modifier_effect"
+            ],
+            "query": {
+              "normalized": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "original": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "rewritten": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?"
+            },
+            "question_complexity": "One-hop",
+            "question_complexity_source": "provided",
+            "question_family": "menh_house_interpretation",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope",
+              "star_definition",
+              "modifier_effect"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "completed",
+              "rerank": "completed",
+              "sparse_retrieval": "completed"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "house_facts",
+                "star_facts",
+                "special_states"
+              ],
+              "dense_gate": {
+                "enabled": true,
+                "min_query_terms": 2
+              },
+              "enabled_retrieval_paths": {
+                "dense": true,
+                "graph": true,
+                "sparse": true
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "One-hop",
+              "question_complexity_source": "provided",
+              "question_family": "menh_house_interpretation",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope",
+                "star_definition",
+                "modifier_effect"
+              ],
+              "retrieval_depth": "medium",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": [
+                "Thái Dương"
+              ]
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.66,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "answer_present_rate": 1.0,
+        "answer_relevancy_avg": 1.0,
+        "avg_context_selected_diagnostic_count": 1.0,
+        "avg_dense_candidate_count": 0.0,
+        "avg_fused_candidate_count": 0.0,
+        "avg_gold_doc_coverage_rate": 0.0,
+        "avg_gold_page_hit_rate": 0.0,
+        "avg_gold_quote_overlap": 0.144,
+        "avg_graph_candidate_count": 0.0,
+        "avg_latency_ms": 101.525,
+        "avg_ranked_candidate_count": 0.0,
+        "avg_retrieval_latency_ms": 0.465,
+        "avg_source_count": 1.0,
+        "avg_sparse_candidate_count": 0.0,
+        "chart_context_grounding_avg": 1.0,
+        "chart_only_count": 1,
+        "citation_coverage_rate": 0.75,
+        "citation_fallback_count": 0,
+        "citation_marker_presence_rate": 0.0,
+        "citation_source_alignment_rate": 0.0,
+        "completed_count": 2,
+        "context_recall_avg": 1.0,
+        "context_selected_count_avg": 1.0,
+        "corpus_grounded_item_count": 1,
+        "corpus_source_coverage_rate": 1.0,
+        "evaluation_total_p95_ms": 102.81,
+        "failed_count": 0,
+        "faithfulness_avg": 1.0,
+        "generation_backend_fallback_count": 0,
+        "generation_p50_ms": 0.07,
+        "generation_p95_ms": 0.09,
+        "graph_hit_rate": 0.0,
+        "item_count": 2,
+        "judge_failure_count": 0,
+        "judge_p50_ms": 0.01,
+        "judge_p95_ms": 0.02,
+        "no_context_count": 0,
+        "p50_latency_ms": 101.53,
+        "p95_latency_ms": 102.79,
+        "retrieval_backend_fallback_count": 0,
+        "retrieval_p50_ms": 0.47,
+        "retrieval_p95_ms": 0.64,
+        "selected_dense_path_rate": 0.0,
+        "selected_graph_path_rate": 0.0,
+        "selected_sparse_path_rate": 0.0,
+        "source_coverage_rate": 1.0
+      },
+      "prompt_template_id": "tuvi_generation_structured_v3",
+      "reranker_enabled": true,
+      "run_id": null,
+      "sparse_retrieval_enabled": true,
+      "started_at": "2026-07-28T12:26:54.308102Z",
+      "status": "completed"
+    },
+    {
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "completed_at": "2026-07-28T12:26:54.721194Z",
+      "config_hash": "c6e72838cb37a55ea68dcdf3a3016d1b3e2bb5a133800423196bacc0fda2c195",
+      "config_name": "semantic_bge_m3_graph_sparse_rrf",
+      "context_assembly_strategy": "balanced",
+      "dense_retrieval_enabled": false,
+      "document_grading_enabled": true,
+      "error": null,
+      "experiment_id": "w6_abl_03_semantic_bge_m3_graph_sparse_rrf",
+      "fusion_method": "rrf",
+      "generation_model": "gemini-3.1-flash-lite-preview",
+      "graph_retrieval_enabled": true,
+      "grouped_metrics": {
+        "by_question_complexity": {
+          "Direct": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 99.67,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.15,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "evaluation_total_p95_ms": 99.69,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.05,
+            "generation_p95_ms": 0.05,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 99.67,
+            "p95_latency_ms": 99.67,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.15,
+            "retrieval_p95_ms": 0.15,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          },
+          "One-hop": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.144,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 99.24,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.73,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.75,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 1.0,
+            "evaluation_total_p95_ms": 99.25,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.05,
+            "generation_p95_ms": 0.05,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.01,
+            "judge_p95_ms": 0.01,
+            "no_context_count": 0,
+            "p50_latency_ms": 99.24,
+            "p95_latency_ms": 99.24,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.73,
+            "retrieval_p95_ms": 0.73,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          }
+        },
+        "by_question_family": {
+          "core_identity": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": null,
+            "avg_gold_page_hit_rate": null,
+            "avg_gold_quote_overlap": null,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 99.67,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.15,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": 1.0,
+            "chart_only_count": 1,
+            "citation_coverage_rate": null,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": null,
+            "citation_source_alignment_rate": null,
+            "completed_count": 1,
+            "context_recall_avg": null,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 0,
+            "corpus_source_coverage_rate": null,
+            "evaluation_total_p95_ms": 99.69,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.05,
+            "generation_p95_ms": 0.05,
+            "graph_hit_rate": null,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.02,
+            "judge_p95_ms": 0.02,
+            "no_context_count": 0,
+            "p50_latency_ms": 99.67,
+            "p95_latency_ms": 99.67,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.15,
+            "retrieval_p95_ms": 0.15,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          },
+          "menh_house_interpretation": {
+            "answer_present_rate": 1.0,
+            "answer_relevancy_avg": 1.0,
+            "avg_context_selected_diagnostic_count": 1.0,
+            "avg_dense_candidate_count": 0.0,
+            "avg_fused_candidate_count": 0.0,
+            "avg_gold_doc_coverage_rate": 0.0,
+            "avg_gold_page_hit_rate": 0.0,
+            "avg_gold_quote_overlap": 0.144,
+            "avg_graph_candidate_count": 0.0,
+            "avg_latency_ms": 99.24,
+            "avg_ranked_candidate_count": 0.0,
+            "avg_retrieval_latency_ms": 0.73,
+            "avg_source_count": 1.0,
+            "avg_sparse_candidate_count": 0.0,
+            "chart_context_grounding_avg": null,
+            "chart_only_count": 0,
+            "citation_coverage_rate": 0.75,
+            "citation_fallback_count": 0,
+            "citation_marker_presence_rate": 0.0,
+            "citation_source_alignment_rate": 0.0,
+            "completed_count": 1,
+            "context_recall_avg": 1.0,
+            "context_selected_count_avg": 1.0,
+            "corpus_grounded_item_count": 1,
+            "corpus_source_coverage_rate": 1.0,
+            "evaluation_total_p95_ms": 99.25,
+            "failed_count": 0,
+            "faithfulness_avg": 1.0,
+            "generation_backend_fallback_count": 0,
+            "generation_p50_ms": 0.05,
+            "generation_p95_ms": 0.05,
+            "graph_hit_rate": 0.0,
+            "item_count": 1,
+            "judge_failure_count": 0,
+            "judge_p50_ms": 0.01,
+            "judge_p95_ms": 0.01,
+            "no_context_count": 0,
+            "p50_latency_ms": 99.24,
+            "p95_latency_ms": 99.24,
+            "retrieval_backend_fallback_count": 0,
+            "retrieval_p50_ms": 0.73,
+            "retrieval_p95_ms": 0.73,
+            "selected_dense_path_rate": 0.0,
+            "selected_graph_path_rate": 0.0,
+            "selected_sparse_path_rate": 0.0,
+            "source_coverage_rate": 1.0
+          }
+        }
+      },
+      "items": [
+        {
+          "answer_length_chars": 476,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": 1.0,
+          "chart_id": "CHART-001",
+          "chart_only": true,
+          "citation_coverage": null,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": null,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "Direct",
+          "diagnostic_question_family": "core_identity",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 99.69,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.05,
+          "gold_doc_coverage_rate": null,
+          "gold_page_hit_rate": null,
+          "gold_quote_overlap_avg": null,
+          "gold_span_count": 0,
+          "graph_hit": null,
+          "item_id": "TVQA-001",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.02,
+          "labels": {
+            "question_family": "core_identity",
+            "topic": "identity"
+          },
+          "latency_ms": 99.67,
+          "query": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+          "question_complexity": "Direct",
+          "question_family": "core_identity",
+          "rag_latency_ms": 99.67,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 2,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương",
+                "Lực Sĩ",
+                "Quan Phù",
+                "Kình Dương",
+                "Long Trì",
+                "Thiên Trù",
+                "Linh Tinh",
+                "L.thái Tuế"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 9,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.01,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": false,
+              "enabled_by_plan": false,
+              "min_query_terms": 0,
+              "query_term_count": 16,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 1,
+            "extracted_entities": [
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": null,
+              "effective_required_entity_hits": null,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": null,
+              "required_entity_hits": null,
+              "role_metadata": [],
+              "role_query_count": 0
+            },
+            "missing_evidence_roles": [
+              "house_scope"
+            ],
+            "query": {
+              "normalized": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "original": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?",
+              "rewritten": "Cung Mệnh của lá số này nằm ở đâu và có những sao chính tinh nào?"
+            },
+            "question_complexity": "Direct",
+            "question_complexity_source": "provided",
+            "question_family": "core_identity",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "skipped",
+              "rerank": "completed",
+              "sparse_retrieval": "skipped"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "identity",
+                "house_facts"
+              ],
+              "dense_gate": {
+                "enabled": false
+              },
+              "enabled_retrieval_paths": {
+                "dense": false,
+                "graph": false,
+                "sparse": false
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "Direct",
+              "question_complexity_source": "provided",
+              "question_family": "core_identity",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope"
+              ],
+              "retrieval_depth": "chart_only",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": []
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.15,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "answer_length_chars": 369,
+          "answer_present": true,
+          "answer_relevancy": 1.0,
+          "attempt_count": 1,
+          "attempt_errors": [],
+          "chart_context_grounding": null,
+          "chart_id": "CHART-001",
+          "chart_only": false,
+          "citation_coverage": 0.75,
+          "citation_fallback": false,
+          "citation_marker_count": 0,
+          "citation_marker_presence": false,
+          "citation_source_alignment": false,
+          "context_recall": 1.0,
+          "context_selected_count": 1,
+          "diagnostic_candidate_counts": {
+            "context_selected": 1,
+            "dense": 0,
+            "fused": 0,
+            "graded": 0,
+            "graph": 0,
+            "ranked": 0,
+            "reranked": 0,
+            "sources": 1,
+            "sparse": 0
+          },
+          "diagnostic_complexity_match": true,
+          "diagnostic_family_match": true,
+          "diagnostic_question_complexity": "One-hop",
+          "diagnostic_question_family": "menh_house_interpretation",
+          "diagnostic_selected_evidence_roles": [
+            "chart_facts"
+          ],
+          "diagnostic_selected_retrieval_paths": [
+            "chart"
+          ],
+          "error": null,
+          "evaluation_total_latency_ms": 99.25,
+          "failure_stage": null,
+          "faithfulness": 1.0,
+          "generation_fallback_reason": null,
+          "generation_latency_ms": 0.05,
+          "gold_doc_coverage_rate": 0.0,
+          "gold_page_hit_rate": 0.0,
+          "gold_quote_overlap_avg": 0.144,
+          "gold_span_count": 6,
+          "graph_hit": false,
+          "item_id": "TVQA-002",
+          "judge": {
+            "answer_relevancy": 1.0,
+            "backend": "static-smoke",
+            "context_recall": 1.0,
+            "faithfulness": 1.0,
+            "model": "static-smoke",
+            "raw_response_present": false,
+            "reasons": {
+              "answer_relevancy": "Static smoke score; official W6 runs must use Gemini judge.",
+              "context_recall": "Static smoke score; official W6 runs must use Gemini judge.",
+              "faithfulness": "Static smoke score; official W6 runs must use Gemini judge."
+            }
+          },
+          "judge_latency_ms": 0.01,
+          "labels": {
+            "question_family": "menh_house_interpretation",
+            "topic": "self"
+          },
+          "latency_ms": 99.24,
+          "query": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+          "question_complexity": "One-hop",
+          "question_family": "menh_house_interpretation",
+          "rag_latency_ms": 99.24,
+          "result_source": "executed",
+          "retrieval_backend_fallback": false,
+          "retrieval_diagnostics": {
+            "candidate_counts": {
+              "context_selected": 1,
+              "dense": 0,
+              "fused": 0,
+              "graded": 0,
+              "graph": 0,
+              "ranked": 0,
+              "reranked": 0,
+              "sources": 1,
+              "sparse": 0
+            },
+            "candidate_counts_by_role": {
+              "context_selected": {
+                "chart_facts": 1
+              },
+              "dense": {},
+              "fused": {},
+              "graph": {},
+              "sparse": {}
+            },
+            "chart_facts": {
+              "chart_available": true,
+              "chart_schema_detected": "chart_repr_v2",
+              "house_fact_count": 1,
+              "relation_count": 0,
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_stars": [
+                "Thái Dương"
+              ],
+              "unverified_claim_count": 0,
+              "verified_claim_count": 2,
+              "warnings": []
+            },
+            "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+            "dense_retrieval": {
+              "candidate_count": 0,
+              "duration_ms": 0.01,
+              "embedding_cache_stats": {},
+              "enabled": false,
+              "enabled_by_config": false,
+              "enabled_by_dense_gate": true,
+              "enabled_by_plan": true,
+              "min_query_terms": 2,
+              "query_term_count": 23,
+              "selected_context_count": 0,
+              "selected_context_rate": 0.0,
+              "skipped_reason": "disabled_by_config",
+              "status": "skipped"
+            },
+            "enabled_retrieval_paths": {
+              "dense": false,
+              "graph": true,
+              "sparse": true
+            },
+            "entity_count": 2,
+            "extracted_entities": [
+              {
+                "canonical_name": "Thái Dương",
+                "entity_type": "Sao",
+                "surface": null
+              },
+              {
+                "canonical_name": "Mệnh",
+                "entity_type": "Cung",
+                "surface": null
+              }
+            ],
+            "fallbacks": [],
+            "final_selected_retrieval_paths": [
+              "chart"
+            ],
+            "graph_retrieval": {
+              "effective_mode": null,
+              "effective_required_entity_hits": null,
+              "fallback_reason": null,
+              "fallback_used": false,
+              "requested_mode": null,
+              "required_entity_hits": null,
+              "role_metadata": [],
+              "role_query_count": 0
+            },
+            "missing_evidence_roles": [
+              "house_scope",
+              "star_definition",
+              "modifier_effect"
+            ],
+            "query": {
+              "normalized": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "original": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?",
+              "rewritten": "Cung Mệnh của tôi có sao Thái Dương, điều này nói lên tính cách và xu hướng sống của tôi như thế nào?"
+            },
+            "question_complexity": "One-hop",
+            "question_complexity_source": "provided",
+            "question_family": "menh_house_interpretation",
+            "question_family_source": "provided",
+            "required_evidence_roles": [
+              "house_scope",
+              "star_definition",
+              "modifier_effect"
+            ],
+            "retrieval_node_statuses": {
+              "context_assembly": "completed",
+              "dense_retrieval": "skipped",
+              "document_grading": "completed",
+              "fusion": "completed",
+              "graph_retrieval": "completed",
+              "rerank": "completed",
+              "sparse_retrieval": "completed"
+            },
+            "retrieval_plan": {
+              "chart_fact_intents": [
+                "house_facts",
+                "star_facts",
+                "special_states"
+              ],
+              "dense_gate": {
+                "enabled": true,
+                "min_query_terms": 2
+              },
+              "enabled_retrieval_paths": {
+                "dense": true,
+                "graph": true,
+                "sparse": true
+              },
+              "graph_mode": {
+                "min_hit_count": 1,
+                "mode": "entity_any"
+              },
+              "notes": [],
+              "planner_version": "w6_rag_02_v1",
+              "question_complexity": "One-hop",
+              "question_complexity_source": "provided",
+              "question_family": "menh_house_interpretation",
+              "question_family_source": "provided",
+              "required_evidence_roles": [
+                "house_scope",
+                "star_definition",
+                "modifier_effect"
+              ],
+              "retrieval_depth": "medium",
+              "target_houses": [
+                "Mệnh"
+              ],
+              "target_houses_source": "planner_inference",
+              "target_stars": [
+                "Thái Dương"
+              ]
+            },
+            "retrieval_plan_source": "generated_by_query_planner",
+            "selected_chunk_ids": [
+              "chart_facts"
+            ],
+            "selected_evidence_roles": [
+              "chart_facts"
+            ],
+            "selected_source_ids": [
+              "CHART"
+            ],
+            "warnings": [
+              "no_retrieval_candidates"
+            ]
+          },
+          "retrieval_latency_ms": 0.73,
+          "selected_retrieval_paths": [
+            "chart"
+          ],
+          "source_count": 1,
+          "status": "completed",
+          "trace_node_statuses": [
+            {
+              "node": "load_chart_context",
+              "status": "completed"
+            },
+            {
+              "node": "load_config",
+              "status": "completed"
+            },
+            {
+              "node": "normalize_query",
+              "status": "completed"
+            },
+            {
+              "node": "classify_query_complexity",
+              "status": "completed"
+            },
+            {
+              "node": "query_rewrite",
+              "status": "skipped"
+            },
+            {
+              "node": "entity_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "query_planner",
+              "status": "completed"
+            },
+            {
+              "node": "chart_fact_extraction",
+              "status": "completed"
+            },
+            {
+              "node": "graph_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "dense_retrieval",
+              "status": "skipped"
+            },
+            {
+              "node": "sparse_retrieval",
+              "status": "completed"
+            },
+            {
+              "node": "fusion",
+              "status": "completed"
+            },
+            {
+              "node": "rerank",
+              "status": "completed"
+            },
+            {
+              "node": "document_grading",
+              "status": "completed"
+            },
+            {
+              "node": "context_assembly",
+              "status": "completed"
+            },
+            {
+              "node": "generation",
+              "status": "completed"
+            },
+            {
+              "node": "citation_map",
+              "status": "completed"
+            },
+            {
+              "node": "retrieval_diagnostics",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "answer_present_rate": 1.0,
+        "answer_relevancy_avg": 1.0,
+        "avg_context_selected_diagnostic_count": 1.0,
+        "avg_dense_candidate_count": 0.0,
+        "avg_fused_candidate_count": 0.0,
+        "avg_gold_doc_coverage_rate": 0.0,
+        "avg_gold_page_hit_rate": 0.0,
+        "avg_gold_quote_overlap": 0.144,
+        "avg_graph_candidate_count": 0.0,
+        "avg_latency_ms": 99.455,
+        "avg_ranked_candidate_count": 0.0,
+        "avg_retrieval_latency_ms": 0.44,
+        "avg_source_count": 1.0,
+        "avg_sparse_candidate_count": 0.0,
+        "chart_context_grounding_avg": 1.0,
+        "chart_only_count": 1,
+        "citation_coverage_rate": 0.75,
+        "citation_fallback_count": 0,
+        "citation_marker_presence_rate": 0.0,
+        "citation_source_alignment_rate": 0.0,
+        "completed_count": 2,
+        "context_recall_avg": 1.0,
+        "context_selected_count_avg": 1.0,
+        "corpus_grounded_item_count": 1,
+        "corpus_source_coverage_rate": 1.0,
+        "evaluation_total_p95_ms": 99.67,
+        "failed_count": 0,
+        "faithfulness_avg": 1.0,
+        "generation_backend_fallback_count": 0,
+        "generation_p50_ms": 0.05,
+        "generation_p95_ms": 0.05,
+        "graph_hit_rate": 0.0,
+        "item_count": 2,
+        "judge_failure_count": 0,
+        "judge_p50_ms": 0.01,
+        "judge_p95_ms": 0.02,
+        "no_context_count": 0,
+        "p50_latency_ms": 99.45,
+        "p95_latency_ms": 99.65,
+        "retrieval_backend_fallback_count": 0,
+        "retrieval_p50_ms": 0.44,
+        "retrieval_p95_ms": 0.7,
+        "selected_dense_path_rate": 0.0,
+        "selected_graph_path_rate": 0.0,
+        "selected_sparse_path_rate": 0.0,
+        "source_coverage_rate": 1.0
+      },
+      "prompt_template_id": "tuvi_generation_structured_v3",
+      "reranker_enabled": true,
+      "run_id": null,
+      "sparse_retrieval_enabled": true,
+      "started_at": "2026-07-28T12:26:54.520859Z",
+      "status": "completed"
+    }
+  ],
+  "dataset_item_count": 2,
+  "dataset_path": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\release\\tuviqa_v1_release.jsonl",
+  "execution_summary": {
+    "completed_pair_count": 6,
+    "executed_pair_count": 6,
+    "expected_pair_count": 6,
+    "failed_pair_count": 0,
+    "resumed_pair_count": 0
+  },
+  "judge_backend": "static-smoke",
+  "manifest_name": "w6_abl_03_chunking_strategy_v1",
+  "metric_definitions": {
+    "answer_relevancy": "Gemini judge score in official runs; current judge_backend=static-smoke.",
+    "citation_coverage_rate": "Average citation/source coverage for non-chart-only corpus-grounded items; Direct chart-only items are excluded.",
+    "context_recall": "Gemini judge score for corpus-grounded items; chart-only Direct items are excluded from this aggregate and reported as chart_context_grounding.",
+    "faithfulness": "Gemini judge score in official runs; current judge_backend=static-smoke.",
+    "graph_hit_rate": "Rate of non-chart-only items with graph candidates or graph-selected context.",
+    "p95_latency_ms": "95th percentile end-to-end runner latency per item.",
+    "retrieval_p95_ms": "95th percentile retrieval latency if node timing is present; null until W6-RAG-01 timing diagnostics are available."
+  },
+  "notes": "W6-ABL-03 so sánh 3 chiến lược chunking trên cùng bộ corpus TVKL/TVNL/TVHS/TVGM. Biến chính của ablation là chunk_strategy_id. PLAN.md gọi chiến lược semantic là chunk_semantic_embedding; runtime hiện dùng mã chính thức chunk_semantic_embedding_bge_m3, nên manifest này dùng chunk_semantic_embedding_bge_m3 và ghi rõ như alias vận hành. Matrix chính giữ Graph+Sparse+RRF+reranker, tắt dense để không trộn lẫn biến chunking với biến dense retrieval.",
+  "output_dir": "benchmark\\tuvi_golden_dataset\\reports_final\\00_preflight\\smoke_chunking",
+  "started_at": "2026-07-28T12:26:54.012726Z",
+  "status": "completed"
+}

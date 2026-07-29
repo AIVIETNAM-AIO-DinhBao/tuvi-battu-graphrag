@@ -21,7 +21,7 @@ W7_GENERATION_CONFIG_PATHS = [
     ROOT_DIR / "configs" / "w7_generation_structured_v3_flash_lite.yaml",
 ]
 EXPERIMENT_RUNS_MIGRATION = ROOT_DIR / "infra" / "supabase" / "migrations" / "20260709_experiment_runs.sql"
-LOCKED_DEFAULT_CONFIG_HASH = "05cf0b6d9c4a0839b73427efa7b092a30225412cf53f04a8c1f1d51346ca255b"
+LOCKED_DEFAULT_CONFIG_HASH = "fb9a7a5be6c23824c5f5bd42115d94d70a6b508c6aa89102dabfa5615fd1ea47"
 
 
 def default_payload() -> dict:
@@ -68,7 +68,7 @@ def test_default_production_config_loads_with_w7_evidence_locked_defaults() -> N
     assert config.reranker_config.max_length == 512
     assert config.reranker_config.local_files_only is True
     assert str(config.reranker_config.local_model_path).replace("\\", "/") == "models/bge-reranker-v2-m3"
-    assert config.prompt_template_id == "tuvi_generation_v1"
+    assert config.prompt_template_id == "tuvi_generation_structured_v3"
     assert config.generation_model == "gemini-3.1-flash-lite-preview"
     assert config.context_assembly_strategy == "balanced"
     assert config.cache_disabled is True

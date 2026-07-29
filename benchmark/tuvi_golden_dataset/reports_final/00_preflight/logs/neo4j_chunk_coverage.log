@@ -1,0 +1,8 @@
+{
+  "completed": true,
+  "expected_pair_count": 12,
+  "missing_pair_count": 0,
+  "mode": "neo4j",
+  "observed_pair_count": 12,
+  "output_dir": "benchmark\\tuvi_golden_dataset\\reports_final\\00_preflight\\neo4j_chunk_coverage"
+}

@@ -1,0 +1,11 @@
+{
+  "current_config": "semantic_bge_m3_graph_sparse_rrf",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 275,
+  "expected_pair_count": 300,
+  "failed_pair_count": 0,
+  "processed_pair_count": 300,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 25,
+  "updated_at": "2026-07-28T23:15:56.677512Z"
+}

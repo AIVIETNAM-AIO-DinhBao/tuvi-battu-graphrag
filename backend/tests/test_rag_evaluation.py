@@ -306,7 +306,7 @@ def test_w8_abl_01_retrieval_matrix_holds_fairness_controls_fixed() -> None:
     assert all(control == controls[0] for control in controls)
     for config in configs.values():
         assert config.chunk_strategy_id == "chunk_semantic_embedding_bge_m3"
-        assert config.prompt_template_id == "tuvi_generation_v1"
+        assert config.prompt_template_id == "tuvi_generation_structured_v3"
         assert config.generation_model == "gemini-3.1-flash-lite-preview"
         assert config.query_rewrite_enabled is False
         assert config.context_assembly_strategy == "balanced"

@@ -230,9 +230,7 @@ def test_graph_retrieval_filters_by_domain_sources_strategy_and_entities() -> No
                     "score": 1.0,
                     "matched_entities": ["Thien Ma"],
                     "relation_types": ["MENTIONS"],
-                }
-            ],
-            [
+                },
                 {
                     "node": sample_node(chunk_hash="related", chunk_id="related"),
                     "score": 0.7,
@@ -255,27 +253,25 @@ def test_graph_retrieval_filters_by_domain_sources_strategy_and_entities() -> No
     )
 
     assert [candidate["chunk_id"] for candidate in candidates] == ["direct", "related"]
-    assert len(session.runs) == 2
-    direct_query, direct_params = session.runs[0]
-    related_query, related_params = session.runs[1]
-    assert "source_id IN $source_ids" in direct_query
-    assert "node.chunk_strategy_id = $chunk_strategy_id" in direct_query
-    assert direct_params["domain"] == "TUVI"
-    assert direct_params["source_ids"] == ["TVKL", "TVNL", "TVHS", "TVGM"]
-    assert direct_params["chunk_strategy_id"] == config.chunk_strategy_id
-    assert direct_params["entities"] == [{"canonical_name": "Thien Ma", "entity_type": "Sao"}]
-    assert direct_params["per_entity_limit"] == config.graph_retrieval.per_entity_limit
-    assert direct_params["graph_mode"] == "entity_any"
-    assert direct_params["required_entity_hits"] == 1
-    assert "type(rel) IN $relation_types" in related_query
-    assert "MENTIONS" not in related_params["relation_types"]
+    assert len(session.runs) == 1
+    query, params = session.runs[0]
+    assert "source_id IN $source_ids" in query
+    assert "node.chunk_strategy_id = $chunk_strategy_id" in query
+    assert "type(rel) IN $relation_types" in query
+    assert params["domain"] == "TUVI"
+    assert params["source_ids"] == ["TVKL", "TVNL", "TVHS", "TVGM"]
+    assert params["chunk_strategy_id"] == config.chunk_strategy_id
+    assert params["entities"] == [{"canonical_name": "Thien Ma", "entity_type": "Sao"}]
+    assert params["per_entity_limit"] == config.graph_retrieval.per_entity_limit
+    assert params["graph_mode"] == "entity_any"
+    assert params["required_entity_hits"] == 1
+    assert "MENTIONS" not in params["relation_types"]
 
 
 def test_graph_retrieval_entity_all_fallbacks_to_entity_any_when_strict_empty() -> None:
     config = config_with()
     session = MutatingRecordingSession(
         [
-            [],
             [],
             [
                 {
@@ -285,7 +281,6 @@ def test_graph_retrieval_entity_all_fallbacks_to_entity_any_when_strict_empty() 
                     "relation_types": ["MENTIONS"],
                 }
             ],
-            [],
         ]
     )
     state = {
@@ -301,8 +296,8 @@ def test_graph_retrieval_entity_all_fallbacks_to_entity_any_when_strict_empty() 
     assert [candidate["chunk_id"] for candidate in candidates] == ["fallback"]
     assert session.runs[0][1]["graph_mode"] == "entity_all"
     assert session.runs[0][1]["required_entity_hits"] == 2
-    assert session.runs[2][1]["graph_mode"] == "entity_any"
-    assert session.runs[2][1]["required_entity_hits"] == 1
+    assert session.runs[1][1]["graph_mode"] == "entity_any"
+    assert session.runs[1][1]["required_entity_hits"] == 1
     assert candidates[0]["graph_mode_requested"] == "entity_all"
     assert candidates[0]["graph_mode"] == "entity_any"
     assert state["graph_retrieval_metadata"]["fallback_used"] is True
@@ -314,7 +309,6 @@ def test_graph_retrieval_role_queries_annotate_candidates() -> None:
     session = MutatingRecordingSession(
         [
             [],
-            [],
             [
                 {
                     "node": sample_node(chunk_hash="star", chunk_id="star"),
@@ -323,7 +317,6 @@ def test_graph_retrieval_role_queries_annotate_candidates() -> None:
                     "relation_types": ["MENTIONS"],
                 }
             ],
-            [],
         ]
     )
     state = {

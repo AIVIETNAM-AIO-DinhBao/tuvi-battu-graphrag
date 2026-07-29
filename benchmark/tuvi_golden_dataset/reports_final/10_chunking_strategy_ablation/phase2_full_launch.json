@@ -1,0 +1,10 @@
+﻿{
+    "phase":  "10_chunking_strategy_ablation",
+    "pid":  12724,
+    "started_at":  "2026-07-28T20:50:19.1087461+07:00",
+    "output_dir":  "benchmark\\tuvi_golden_dataset\\reports_final\\10_chunking_strategy_ablation",
+    "checkpoint_dir":  "benchmark\\tuvi_golden_dataset\\reports_final\\10_chunking_strategy_ablation\\checkpoints",
+    "stdout_log":  "benchmark\\tuvi_golden_dataset\\reports_final\\10_chunking_strategy_ablation\\phase2_full_stdout.log",
+    "stderr_log":  "benchmark\\tuvi_golden_dataset\\reports_final\\10_chunking_strategy_ablation\\phase2_full_stderr.log",
+    "command":  ".\\.venv\\Scripts\\python.exe -X utf8 scripts\\run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --judge-backend gemini --skip-persistence --checkpoint-dir benchmark\\tuvi_golden_dataset\\reports_final\\10_chunking_strategy_ablation\\checkpoints --output-dir benchmark\\tuvi_golden_dataset\\reports_final\\10_chunking_strategy_ablation"
+}

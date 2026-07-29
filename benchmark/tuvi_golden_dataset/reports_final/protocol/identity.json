@@ -1,0 +1,107 @@
+{
+  "created_at_local": "2026-07-28T19:18:00+07:00",
+  "dataset_count": 100,
+  "dataset_path": "benchmark\\tuvi_golden_dataset\\release\\tuviqa_v1_release.jsonl",
+  "dataset_sha256": "90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c",
+  "evaluator_fingerprint": "487e4762a669fec1d4c3059f75d3665b35ad1327ea05ae5de6421dc41487ff8f",
+  "generation_model": "gemini-3.1-flash-lite-preview",
+  "git_dirty": false,
+  "git_sha": "22ca387b11fec3b96a488fb42ed49a7cfc3b4d5e",
+  "judge_backend_official": "gemini",
+  "judge_model": "gemini-3.1-flash-lite-preview",
+  "manifests": {
+    "configs/w6_abl_03_chunking_matrix.yaml": {
+      "config_hashes": {
+        "fixed_512_graph_sparse_rrf": "6b8250da09920192b47712fa7f04237d6cf4c7c1c37e85bd1e8d6dbaac9cdb8a",
+        "parent_child_graph_sparse_rrf": "39be6f7d0e9a354361665e8d79ef1db47cb7b73826414aef0e96726d75938dfa",
+        "semantic_bge_m3_graph_sparse_rrf": "c6e72838cb37a55ea68dcdf3a3016d1b3e2bb5a133800423196bacc0fda2c195"
+      },
+      "config_names": [
+        "fixed_512_graph_sparse_rrf",
+        "parent_child_graph_sparse_rrf",
+        "semantic_bge_m3_graph_sparse_rrf"
+      ],
+      "manifest_fingerprint": "e6c131fa25707566175f6db369ac80d9c71eef4044e8cabbf9d76f025d9a5b77",
+      "name": "w6_abl_03_chunking_strategy_v1",
+      "output_dir_in_manifest": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w6_abl_03"
+    },
+    "configs/w7_abl_01_generation_prompt_matrix.yaml": {
+      "config_hashes": {
+        "baseline_v1_flash_lite": "db5251237290acbf3567a6c1da1ad4979a2d703e2c0b24a7de2d2ad972e655c3",
+        "grounded_v2_flash_lite": "3974b524b0f763262121715fd61e0d0374fdd6e42c72003941f69418139434e4",
+        "structured_v3_flash_lite": "c099aacc105da68acba15b06bb08fd456f3320f5d222350cd50a71a67deca2fe"
+      },
+      "config_names": [
+        "baseline_v1_flash_lite",
+        "grounded_v2_flash_lite",
+        "structured_v3_flash_lite"
+      ],
+      "manifest_fingerprint": "97f12503fecfe6097192a7d4d53ade6d44532483130b0dd69f85d6b2d0114c3b",
+      "name": "w7_abl_01_generation_prompt_v1",
+      "output_dir_in_manifest": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w7_abl_01"
+    },
+    "configs/w8_abl_01_priority_wave.yaml": {
+      "config_hashes": {
+        "baseline_no_reranker": "eb65d183e8a38286e52fd75ca9ac1b7117c70273554e94c125fd9de588251bf7",
+        "baseline_weighted_sum": "db9038d4fabf98a17a8db3259a94c811373a447c3d4db907efc8f8706a7f4d6d",
+        "dense_sparse_rrf": "c801bd9b3dcd211b5b580d1d1832bb122a1fce5daf4f8d2cad33dc9c759bc2d2",
+        "sparse_only_rrf": "305287d273a12e8e7b38b7a54f307a76bb656645a8846c3b3da59060c0173683"
+      },
+      "config_names": [
+        "sparse_only_rrf",
+        "dense_sparse_rrf",
+        "baseline_no_reranker",
+        "baseline_weighted_sum"
+      ],
+      "manifest_fingerprint": "89aa2f1528b69e850d8d0300c2855d43df3eb735958786fb33d5ea896168b978",
+      "name": "w8_abl_01_priority_wave_full100",
+      "output_dir_in_manifest": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w8_abl_01_priority_wave\\full100"
+    },
+    "configs/w8_abl_01_retrieval_matrix_v2.yaml": {
+      "config_hashes": {
+        "all_paths_planner_dense_rrf": "826da9182fa625efeddcd0b98d06f2bfb1d49499d7c4a90cb5e32ce151efb6a5",
+        "baseline_graph_first": "0bb737b18f6627e617d80b2d65a28f589ced3725365e84e37825439fb7f3cb0b",
+        "baseline_graph_sparse_rrf": "627c79c1a041e10e04f29fdad8eebaa1073d7a819bb5d735b0a5258104423943",
+        "baseline_no_reranker": "eb65d183e8a38286e52fd75ca9ac1b7117c70273554e94c125fd9de588251bf7",
+        "baseline_weighted_sum": "db9038d4fabf98a17a8db3259a94c811373a447c3d4db907efc8f8706a7f4d6d",
+        "dense_only_rrf": "bde1c6dca9b34383234564753adc6bb2394589530a4cae78045165a3d76ab3a2",
+        "dense_sparse_rrf": "c801bd9b3dcd211b5b580d1d1832bb122a1fce5daf4f8d2cad33dc9c759bc2d2",
+        "graph_dense_rrf": "155aa01c9275b6fe8af34bd9f839052041811c145b00c24ade1e0d81305b7fc5",
+        "graph_only_rrf": "2ba12da545db12a3e7195260afc9c171ccaa22cedf8e54ad213df64956e11743",
+        "sparse_only_rrf": "305287d273a12e8e7b38b7a54f307a76bb656645a8846c3b3da59060c0173683"
+      },
+      "config_names": [
+        "baseline_graph_sparse_rrf",
+        "graph_only_rrf",
+        "sparse_only_rrf",
+        "dense_only_rrf",
+        "dense_sparse_rrf",
+        "graph_dense_rrf",
+        "all_paths_planner_dense_rrf",
+        "baseline_no_reranker",
+        "baseline_weighted_sum",
+        "baseline_graph_first"
+      ],
+      "manifest_fingerprint": "b0ed0707799cda472d8b87ece466646e7c185831abd8b52c24b14cccd4acce34",
+      "name": "w8_abl_01_retrieval_fusion_reranker_v2",
+      "output_dir_in_manifest": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w8_abl_01\\retrieval_v2"
+    }
+  },
+  "question_complexity_counts": {
+    "Direct": 10,
+    "One-hop": 46,
+    "Two-hop": 44
+  },
+  "question_family_counts": {
+    "core_identity": 10,
+    "dai_van_interpretation": 10,
+    "menh_cuc_relation": 10,
+    "menh_house_interpretation": 10,
+    "menh_tam_hop": 10,
+    "menh_xung_chieu": 10,
+    "special_state_interpretation": 10,
+    "synthesis_judgement": 10,
+    "than_cu_interpretation": 10,
+    "topic_house_plus_relations": 10
+  }
+}
