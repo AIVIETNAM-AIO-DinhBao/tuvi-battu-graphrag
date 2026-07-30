@@ -1,0 +1,112 @@
+name: w8_abl_02_chunking_prompt_interaction_v1_v2
+notes: "W8-ABL-02 completes the chunking x prompt interaction study by running the two prompt templates not covered by the completed W6/W8 prompt-v3 chunking ablation. Holds retrieval fixed to Graph + Sparse + RRF + BGE reranker, dense off, balanced context assembly, document grading on, Gemini Flash Lite generation. Main variables: chunk_strategy_id in {chunk_fixed_512, chunk_structure_parent_child, chunk_semantic_embedding_bge_m3} and prompt_template_id in {tuvi_generation_v1, tuvi_generation_grounded_v2}. Combine with reports_final/10_chunking_strategy_ablation for the full 3 chunking x 3 prompt matrix."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2
+configs:
+  - name: fixed_512_prompt_v1_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_02_fixed_512_prompt_v1_graph_sparse_rrf
+      name: W8 ABL 02 - fixed 512 + prompt v1 graph+sparse RRF
+      chunk_strategy_id: chunk_fixed_512
+      prompt_template_id: tuvi_generation_v1
+      generation_model: gemini-3.1-flash-lite-preview
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
+
+  - name: parent_child_prompt_v1_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_02_parent_child_prompt_v1_graph_sparse_rrf
+      name: W8 ABL 02 - parent child + prompt v1 graph+sparse RRF
+      chunk_strategy_id: chunk_structure_parent_child
+      prompt_template_id: tuvi_generation_v1
+      generation_model: gemini-3.1-flash-lite-preview
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
+
+  - name: semantic_bge_m3_prompt_v1_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_02_semantic_bge_m3_prompt_v1_graph_sparse_rrf
+      name: W8 ABL 02 - semantic BGE-M3 + prompt v1 graph+sparse RRF
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      prompt_template_id: tuvi_generation_v1
+      generation_model: gemini-3.1-flash-lite-preview
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
+
+  - name: fixed_512_prompt_v2_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_02_fixed_512_prompt_v2_graph_sparse_rrf
+      name: W8 ABL 02 - fixed 512 + grounded prompt v2 graph+sparse RRF
+      chunk_strategy_id: chunk_fixed_512
+      prompt_template_id: tuvi_generation_grounded_v2
+      generation_model: gemini-3.1-flash-lite-preview
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
+
+  - name: parent_child_prompt_v2_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_02_parent_child_prompt_v2_graph_sparse_rrf
+      name: W8 ABL 02 - parent child + grounded prompt v2 graph+sparse RRF
+      chunk_strategy_id: chunk_structure_parent_child
+      prompt_template_id: tuvi_generation_grounded_v2
+      generation_model: gemini-3.1-flash-lite-preview
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
+
+  - name: semantic_bge_m3_prompt_v2_graph_sparse_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_02_semantic_bge_m3_prompt_v2_graph_sparse_rrf
+      name: W8 ABL 02 - semantic BGE-M3 + grounded prompt v2 graph+sparse RRF
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      prompt_template_id: tuvi_generation_grounded_v2
+      generation_model: gemini-3.1-flash-lite-preview
+      cache_disabled: true
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      context_assembly_strategy: balanced
+      document_grading_enabled: true
+      reranker_config:
+        enabled: true
