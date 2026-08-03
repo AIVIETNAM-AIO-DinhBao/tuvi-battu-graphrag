@@ -54,7 +54,149 @@ Nếu thấy tài liệu cũ ghi “prompt v1” thì coi đó là tài liệu l
 7. Chỉ commit các tệp kết quả trong thư mục shard của mình.
 8. Không commit `.env`, API key, `.venv/`, cache, notebook checkpoint.
 
-## 3. Bảng phân công nhanh
+## 3. Chuẩn bị máy local trước khi chạy shard
+
+Cả Người A/B/C đều làm mục này một lần sau khi đã pull được code mới. Nếu máy đã có sẵn `.venv`, `.env`, model và đã chạy được evaluation trước đó thì vẫn phải chạy các lệnh kiểm tra ở cuối mục này.
+
+### 3.1. Nhận và đặt file `.env`
+
+Người phụ trách chính gửi riêng file `.env` qua kênh an toàn. Không commit file này.
+
+Đặt `.env` ở thư mục gốc repo:
+
+```text
+.env
+```
+
+Code cũng hỗ trợ `backend/.env`, nhưng để thống nhất thì dùng `.env` ở root repo.
+
+Biến tối thiểu cần có:
+
+```text
+GEMINI_API_KEYS=...
+NEO4J_URI=...
+NEO4J_USERNAME=...
+NEO4J_PASSWORD=...
+NEO4J_DATABASE=...
+```
+
+Kiểm tra file `.env` đã có chưa:
+
+```powershell
+Test-Path .\.env
+```
+
+Kết quả phải là `True`.
+
+### 3.2. Tạo `.venv` và cài dependency
+
+Chạy từ thư mục gốc repo:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+```
+
+Cài wrapper Tử Vi engine:
+
+```powershell
+cd backend
+.\setup_lasotuvi.ps1
+cd ..
+```
+
+Nếu PowerShell chặn chạy script, dùng:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+cd backend
+.\setup_lasotuvi.ps1
+cd ..
+```
+
+Kiểm tra Python trong `.venv`:
+
+```powershell
+Test-Path .\.venv\Scripts\python.exe
+.\.venv\Scripts\python.exe --version
+```
+
+### 3.3. Tải model reranker local vào `models/`
+
+Repo không commit thư mục `models/`, nên pull `main` sẽ **không** có model reranker. Shard A/B/C đều có config dùng reranker, vì vậy cả 3 người đều cần model này.
+
+Đường dẫn bắt buộc:
+
+```text
+models/bge-reranker-v2-m3
+```
+
+Trong `configs/default_production.yaml` đang cố định:
+
+```yaml
+reranker_config:
+  enabled: true
+  local_files_only: true
+  local_model_path: models/bge-reranker-v2-m3
+```
+
+Cách 1 — tải từ Hugging Face:
+
+```powershell
+New-Item -ItemType Directory -Force models | Out-Null
+.\.venv\Scripts\python.exe -m pip install huggingface_hub
+.\.venv\Scripts\python.exe -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='BAAI/bge-reranker-v2-m3', local_dir='models/bge-reranker-v2-m3')"
+```
+
+Cách 2 — nếu không tải được từ Hugging Face: nhận/copy nguyên thư mục model từ người phụ trách chính vào đúng đường dẫn:
+
+```text
+models/bge-reranker-v2-m3
+```
+
+Dung lượng model reranker khoảng vài GB. Không commit thư mục `models/`.
+
+Kiểm tra model đã đủ file chính:
+
+```powershell
+Test-Path .\models\bge-reranker-v2-m3\config.json
+Test-Path .\models\bge-reranker-v2-m3\model.safetensors
+Test-Path .\models\bge-reranker-v2-m3\tokenizer.json
+```
+
+Cả 3 dòng phải trả về `True`.
+
+### 3.4. Lưu ý riêng cho shard B/C có dense retrieval
+
+Người B và Người C có config dùng dense retrieval, nên ngoài reranker còn cần:
+
+- Neo4j phải có vector index `chunkVectorBgeM3`.
+- Neo4j phải có dữ liệu/chunk embedding slot `bge_m3` đúng 1024 chiều.
+- Máy có thể cần tải/cache model query embedding `BAAI/bge-m3` lần đầu.
+
+Nếu muốn tải/cache `BAAI/bge-m3` trước khi chạy shard B/C, chạy:
+
+```powershell
+.\.venv\Scripts\python.exe -c "from FlagEmbedding import BGEM3FlagModel; BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)"
+```
+
+Nếu lệnh trên fail do thiếu quyền mạng/Hugging Face hoặc thiếu RAM/disk, báo người phụ trách chính trước khi chạy shard B/C.
+
+### 3.5. Kiểm tra nhanh trước khi chạy shard
+
+```powershell
+$env:PYTHONPATH='backend'
+Test-Path .\.env
+Test-Path .\.venv\Scripts\python.exe
+Test-Path .\models\bge-reranker-v2-m3\model.safetensors
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_w8_retrieval_matrix.py backend/tests/test_run_eval_cli.py -q -p no:cacheprovider
+.\.venv\Scripts\python.exe scripts\check_gemini_api.py --model gemini-3.1-flash-lite-preview
+```
+
+Nếu một dòng `Test-Path` trả về `False`, hoặc pytest/Gemini check fail, thì dừng và báo người phụ trách chính.
+
+## 4. Bảng phân công nhanh
 
 | Người | Shard | Branch | Manifest | Thư mục output | Config được chạy | Số cặp kỳ vọng |
 |---|---|---|---|---|---|---:|
@@ -62,7 +204,7 @@ Nếu thấy tài liệu cũ ghi “prompt v1” thì coi đó là tài liệu l
 | B | single paths | `run/w8-retrieval-shard-b-single-paths` | `configs/w8_abl_01_retrieval_matrix_v2_shard_b_single_paths.yaml` | `benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_b_single_paths` | `graph_only_rrf`, `sparse_only_rrf`, `dense_only_rrf` | 300 |
 | C | dense combos | `run/w8-retrieval-shard-c-dense-combos` | `configs/w8_abl_01_retrieval_matrix_v2_shard_c_dense_combos.yaml` | `benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_c_dense_combos` | `dense_sparse_rrf`, `graph_dense_rrf`, `all_paths_planner_dense_rrf` | 300 |
 
-## 4. Việc của Người A — shard controls
+## 5. Việc của Người A — shard controls
 
 Người A chỉ làm shard A.
 
@@ -93,11 +235,14 @@ git switch -c run/w8-retrieval-shard-a-controls w8-retrieval-v2-run-freeze
 
 ```powershell
 $env:PYTHONPATH='backend'
+Test-Path .\.env
+Test-Path .\.venv\Scripts\python.exe
+Test-Path .\models\bge-reranker-v2-m3\model.safetensors
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_w8_retrieval_matrix.py backend/tests/test_run_eval_cli.py -q -p no:cacheprovider
 .\.venv\Scripts\python.exe scripts\check_gemini_api.py --model gemini-3.1-flash-lite-preview
 ```
 
-Nếu một trong hai lệnh fail thì dừng, báo người phụ trách chính, không chạy shard.
+Nếu một dòng `Test-Path` trả về `False`, hoặc pytest/Gemini check fail, thì dừng, báo người phụ trách chính, không chạy shard.
 
 ### A.3. Chạy shard A lần đầu
 
@@ -193,7 +338,7 @@ Số cặp lỗi: 0
 Ghi chú: ghi rõ nếu có gián đoạn/hết hạn mức Gemini và đã resume mấy lần
 ```
 
-## 5. Việc của Người B — shard single paths
+## 6. Việc của Người B — shard single paths
 
 Người B chỉ làm shard B.
 
@@ -224,11 +369,14 @@ git switch -c run/w8-retrieval-shard-b-single-paths w8-retrieval-v2-run-freeze
 
 ```powershell
 $env:PYTHONPATH='backend'
+Test-Path .\.env
+Test-Path .\.venv\Scripts\python.exe
+Test-Path .\models\bge-reranker-v2-m3\model.safetensors
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_w8_retrieval_matrix.py backend/tests/test_run_eval_cli.py -q -p no:cacheprovider
 .\.venv\Scripts\python.exe scripts\check_gemini_api.py --model gemini-3.1-flash-lite-preview
 ```
 
-Nếu một trong hai lệnh fail thì dừng, báo người phụ trách chính, không chạy shard.
+Nếu một dòng `Test-Path` trả về `False`, hoặc pytest/Gemini check fail, thì dừng, báo người phụ trách chính, không chạy shard.
 
 ### B.3. Chạy shard B lần đầu
 
@@ -324,7 +472,7 @@ Số cặp lỗi: 0
 Ghi chú: ghi rõ nếu có gián đoạn/hết hạn mức Gemini và đã resume mấy lần
 ```
 
-## 6. Việc của Người C — shard dense combos
+## 7. Việc của Người C — shard dense combos
 
 Người C chỉ làm shard C.
 
@@ -355,11 +503,14 @@ git switch -c run/w8-retrieval-shard-c-dense-combos w8-retrieval-v2-run-freeze
 
 ```powershell
 $env:PYTHONPATH='backend'
+Test-Path .\.env
+Test-Path .\.venv\Scripts\python.exe
+Test-Path .\models\bge-reranker-v2-m3\model.safetensors
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_w8_retrieval_matrix.py backend/tests/test_run_eval_cli.py -q -p no:cacheprovider
 .\.venv\Scripts\python.exe scripts\check_gemini_api.py --model gemini-3.1-flash-lite-preview
 ```
 
-Nếu một trong hai lệnh fail thì dừng, báo người phụ trách chính, không chạy shard.
+Nếu một dòng `Test-Path` trả về `False`, hoặc pytest/Gemini check fail, thì dừng, báo người phụ trách chính, không chạy shard.
 
 ### C.3. Chạy shard C lần đầu
 
@@ -455,7 +606,7 @@ Số cặp lỗi: 0
 Ghi chú: ghi rõ nếu có gián đoạn/hết hạn mức Gemini và đã resume mấy lần
 ```
 
-## 7. Checklist cuối cùng cho từng người trước khi báo xong
+## 8. Checklist cuối cùng cho từng người trước khi báo xong
 
 Trước khi báo người phụ trách chính, mỗi người tự tick đủ:
 
@@ -477,7 +628,7 @@ Trước khi báo người phụ trách chính, mỗi người tự tick đủ:
 - Đã push branch shard lên origin.
 - Đã mở PR/MR vào `main`.
 
-## 8. Những lỗi hay gặp và cách xử lý
+## 9. Những lỗi hay gặp và cách xử lý
 
 ### Lỡ chạy sai output vào thư mục gốc chuẩn
 
@@ -501,6 +652,14 @@ benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/
 
 Không xóa checkpoint. Chạy lại lệnh resume của đúng shard mình.
 
+### Thiếu model reranker local
+
+Nếu lỗi liên quan `models/bge-reranker-v2-m3`, `model.safetensors`, `local_files_only`, hoặc `from_pretrained`, quay lại mục 3.3 để tải/copy model. Không sửa config để tắt reranker.
+
+### Người B/C lỗi dense embedding hoặc vector index
+
+Nếu shard B/C lỗi liên quan `BAAI/bge-m3`, `chunkVectorBgeM3`, `bge_m3`, hoặc vector dimension, kiểm tra lại mục 3.4 và báo người phụ trách chính. Không tự đổi dense config.
+
 ### Kiểm tra thấy số cặp lỗi > 0
 
 Chạy lại lệnh resume với `--resume --retry-failed`. Nếu vẫn còn cặp lỗi sau retry, báo người phụ trách chính kèm log lỗi.
@@ -509,7 +668,7 @@ Chạy lại lệnh resume với `--resume --retry-failed`. Nếu vẫn còn c�
 
 Không commit. Kiểm tra kỹ file đó là gì. Chỉ add thư mục shard của mình theo đúng lệnh ở trên.
 
-## 9. Phần của người phụ trách chính sau khi cả 3 PR/MR đã merge vào `main`
+## 10. Phần của người phụ trách chính sau khi cả 3 PR/MR đã merge vào `main`
 
 Người A/B/C không chạy phần này.
 
