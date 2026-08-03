@@ -141,15 +141,7 @@ reranker_config:
   local_model_path: models/bge-reranker-v2-m3
 ```
 
-Cách 1 — tải từ Hugging Face:
-
-```powershell
-New-Item -ItemType Directory -Force models | Out-Null
-.\.venv\Scripts\python.exe -m pip install huggingface_hub
-.\.venv\Scripts\python.exe -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='BAAI/bge-reranker-v2-m3', local_dir='models/bge-reranker-v2-m3')"
-```
-
-Cách 2 — nếu không tải được từ Hugging Face: nhận/copy nguyên thư mục model từ người phụ trách chính vào đúng đường dẫn:
+Tiếp theo, giải nén/copy nguyên thư mục model từ người phụ trách chính vào đúng đường dẫn:
 
 ```text
 models/bge-reranker-v2-m3
