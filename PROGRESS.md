@@ -21,20 +21,17 @@
 ## Completed ablation evidence
 
 - Preflight gates completed: backend regression subset, Gemini probe, Neo4j chunk coverage, offline smoke manifests.
-- Chunking single-axis ablation completed: `3 configs x 100 = 300/300`, failed `0`.
-  - Manifest: `configs/w6_abl_03_chunking_matrix.yaml`
-  - Output: `benchmark/tuvi_golden_dataset/reports_final/10_chunking_strategy_ablation`
-- Chunking × prompt interaction supporting wave completed: `6 configs x 100 = 600/600`, failed `0`.
-  - Manifest: `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml`
-  - Output: `benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2`
-  - Note: this varies more than one factor jointly; use as supporting evidence only, not as a single-axis chunking or prompt conclusion.
+- Chunking × Prompt factorial ablation completed: `3 chunking strategies x 3 prompt templates x 100 = 900/900`, failed `0`.
+  - Canonical interpretation: this is **one completed 3×3 study**, not two separate ablation studies.
+  - Source wave A: `configs/w6_abl_03_chunking_matrix.yaml` → `benchmark/tuvi_golden_dataset/reports_final/10_chunking_strategy_ablation`; contains the 3 prompt-v3 cells.
+  - Source wave B: `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml` → `benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2`; contains the 6 prompt-v1/v2 cells.
+  - Current top config by report heuristic: `parent_child_graph_sparse_rrf` (`chunk_structure_parent_child` + `tuvi_generation_structured_v3`), with latency caveat.
 
 ## Pending ablation work
 
 1. Retrieval/fusion/reranker full matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, expected `10 x 100 = 1000` pairs.
-2. Prompt/generation ablation after retrieval control is frozen, expected `3 x 100 = 300` pairs.
-3. Optional targeted hard-case diagnostic wave after full matrix analysis.
-4. Rebuild final report after each wave with:
+2. Optional targeted hard-case diagnostic wave after full matrix analysis.
+3. Rebuild final report after each wave with:
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -44,8 +41,11 @@ $env:PYTHONPATH='backend'
 ## Documentation rule going forward
 
 - Do not overwrite completed manifests/results.
+- Treat `10_chunking_strategy_ablation` + `11_chunking_prompt_interaction_v1_v2` as source waves for one canonical completed 3×3 Chunking × Prompt matrix.
+- Do not introduce a separate prompt/generation phase for the current study; prompt evidence is already complete inside the 3×3 Chunking × Prompt matrix.
 - Do not treat Supabase `experiment_runs` as a blocker while local artifacts are valid.
 - Do not modify `configs/default_production.yaml` for experiment candidates; create a new eval candidate config after evidence is complete.
+- `evaluation/report_final.md` is historical W8 production-config evaluation evidence, not the canonical comparative report for the completed 3×3 Chunking × Prompt study.
 - Keep deploy/production notes below as historical context only.
 
 ---
@@ -2945,171 +2945,11 @@ Không ghi nhận blocker trong phần backend/chart/RAG/build. Phần browser m
 
 ---
 
-## W7-ABL-01 - Generation model và prompt template ablation partial-10 - 2026-07-16
+## Historical prompt wiring note - 2026-07-16
 
-### Phạm vi đã cài đặt
+Earlier W7 prompt-template exploration is retained only as implementation history for prompt registry/generation wiring. It is superseded for the final ablation narrative by the completed Chunking x Prompt 3x3 factorial matrix sourced from `reports_final/10_chunking_strategy_ablation` and `reports_final/11_chunking_prompt_interaction_v1_v2`.
 
-Đã triển khai ablation generation/prompt theo đúng phạm vi partial 10 câu đã chốt:
-
-- giữ retrieval config cố định theo W6 integration candidate để cô lập biến generation;
-- dùng `chunk_semantic_embedding_bge_m3` + Graph + Sparse + RRF + lexical reranker;
-- tắt dense retrieval để không trộn biến dense vào generation ablation;
-- so sánh 3 prompt template trên cùng model `gemini-3.1-flash-lite-preview`;
-- chạy Gemini judge partial 10 câu balanced;
-- skip Supabase persistence vì blocker `experiment_runs` schema cache vẫn là caveat hạ tầng.
-
-### File đã thêm hoặc chỉnh sửa
-
-Prompt registry:
-
-```text
-backend/app/rag/prompt_templates.py
-backend/app/rag/generation.py
-```
-
-Config/manifest W7:
-
-```text
-configs/w7_generation_baseline_v1_flash_lite.yaml
-configs/w7_generation_grounded_v2_flash_lite.yaml
-configs/w7_generation_structured_v3_flash_lite.yaml
-configs/w7_abl_01_generation_prompt_matrix.yaml
-```
-
-Evaluation/report analysis:
-
-```text
-backend/app/rag/evaluation.py
-```
-
-Tests:
-
-```text
-backend/tests/test_experiment_config.py
-backend/tests/test_rag_context_generation_citations.py
-backend/tests/test_rag_evaluation.py
-```
-
-### Prompt templates được so sánh
-
-| Config | Prompt template | Generation model | Retrieval control |
-|---|---|---|---|
-| `baseline_v1_flash_lite` | `tuvi_generation_v1` | `gemini-3.1-flash-lite-preview` | semantic BGE-M3 + Graph/Sparse/RRF/reranker, dense off |
-| `grounded_v2_flash_lite` | `tuvi_generation_grounded_v2` | `gemini-3.1-flash-lite-preview` | semantic BGE-M3 + Graph/Sparse/RRF/reranker, dense off |
-| `structured_v3_flash_lite` | `tuvi_generation_structured_v3` | `gemini-3.1-flash-lite-preview` | semantic BGE-M3 + Graph/Sparse/RRF/reranker, dense off |
-
-### Lệnh đã chạy
-
-Unit/config/evaluation tests:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest backend/tests/test_rag_context_generation_citations.py backend/tests/test_rag_evaluation.py backend/tests/test_experiment_config.py -q
-```
-
-Kết quả:
-
-```text
-46 passed
-```
-
-RAG/chart regression sau khi thêm prompt registry:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest backend/tests/test_rag_chart_facts.py backend/tests/test_rag_context_generation_citations.py backend/tests/test_rag_planner.py backend/tests/test_rag_dry_run.py -q
-```
-
-Kết quả:
-
-```text
-37 passed, 1 warning
-```
-
-Static smoke W7:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w7_abl_01_generation_prompt_matrix.yaml --offline-smoke --limit 3 --skip-persistence
-```
-
-Gemini limit-1 probe:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w7_abl_01_generation_prompt_matrix.yaml --judge-backend gemini --limit 1 --skip-persistence --output-dir benchmark/tuvi_golden_dataset/reports/w7_abl_01_limit1_probe
-```
-
-Official partial-10 Gemini run:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w7_abl_01_generation_prompt_matrix.yaml --judge-backend gemini --limit 10 --skip-persistence
-```
-
-Ghi chú vận hành: trong terminal/tool hiện tại, lệnh foreground dài hơn timeout wrapper nên partial-10 được chạy nền qua `cmd /B`. Các log thử nghiệm retry/popen/cmd cũ đã được dọn; chỉ giữ lại report chính và log run thành công.
-
-### Report đã sinh
-
-```text
-benchmark/tuvi_golden_dataset/reports/w7_abl_01/evaluation_report.json
-benchmark/tuvi_golden_dataset/reports/w7_abl_01/evaluation_report.md
-benchmark/tuvi_golden_dataset/reports/w7_abl_01/gemini_partial_cmd3_stdout.log
-benchmark/tuvi_golden_dataset/reports/w7_abl_01/gemini_partial_cmd3_stderr.log
-```
-
-Probe riêng:
-
-```text
-benchmark/tuvi_golden_dataset/reports/w7_abl_01_limit1_probe/evaluation_report.json
-benchmark/tuvi_golden_dataset/reports/w7_abl_01_limit1_probe/evaluation_report.md
-```
-
-### Kết quả Gemini partial-10
-
-Tổng quan:
-
-```text
-manifest_name=w7_abl_01_generation_prompt_v1
-judge_backend=gemini
-dataset_item_count=10
-config_count=3
-statuses=3/3 completed
-```
-
-Metric chính:
-
-| Config | Prompt | Faithfulness | Answer Relevancy | Context Recall | Citation Coverage | p95 latency |
-|---|---|---:|---:|---:|---:|---:|
-| `baseline_v1_flash_lite` | `tuvi_generation_v1` | 0.92 | 0.79 | 0.7000 | 1.00 | 25911.78 ms |
-| `grounded_v2_flash_lite` | `tuvi_generation_grounded_v2` | 0.92 | 0.76 | 0.6444 | 1.00 | 30187.57 ms |
-| `structured_v3_flash_lite` | `tuvi_generation_structured_v3` | 0.67 | 0.52 | 0.3222 | 1.00 | 28321.40 ms |
-
-### Candidate được chọn
-
-Ứng viên generation/prompt sơ bộ cho W7-CONFIG-01:
-
-```text
-prompt_template_id=tuvi_generation_v1
-generation_model=gemini-3.1-flash-lite-preview
-config=baseline_v1_flash_lite
-```
-
-Lý do:
-
-- Faithfulness đồng hạng cao nhất với grounded v2: `0.92`.
-- Answer Relevancy cao nhất: `0.79`.
-- Context Recall cao nhất: `0.7000`.
-- Citation Coverage đạt `1.00`.
-- p95 latency thấp nhất trong 3 config: `25911.78 ms`.
-
-`grounded_v2_flash_lite` vẫn là candidate phụ nếu team ưu tiên prompt chặt hơn về policy, nhưng partial-10 cho thấy baseline v1 cân bằng chất lượng/latency tốt hơn. `structured_v3_flash_lite` không nên promote vì Faithfulness, Answer Relevancy và Context Recall thấp rõ.
-
-### Caveats
-
-- Đây là partial-10 Gemini judge, chưa phải full dataset/final evaluation.
-- Supabase persistence vẫn skip do blocker `experiment_runs` chưa visible trong live schema cache.
-- Runtime/test vẫn có warning `google.generativeai` deprecated; chưa block functional nhưng nên migrate sang `google.genai` ở technical debt.
-- Report title hiện vẫn ghi `W6 Evaluation report` do runner dùng chung W6-EVAL framework; nội dung manifest/report là W7-ABL-01 và có section riêng `Phân tích ablation generation prompt/model`.
-
-### Trạng thái W7-ABL-01
-
-**Status**: COMPLETE theo phạm vi partial-10 đã chốt. Có implementation prompt registry, config/manifest W7, tests pass, static smoke pass, Gemini limit-1 probe pass, Gemini partial-10 pass, report JSON/Markdown và candidate prompt/model sơ bộ cho `W7-CONFIG-01`.
+Do not use the earlier W7 exploration as a separate active/pending final ablation phase, and do not cite it as missing work in the current final report scope.
 
 ---
 
@@ -3152,12 +2992,9 @@ Evidence chính:
   - Gemini partial-10 balanced.
   - Semantic BGE-M3 đạt Faithfulness `0.85`, Answer Relevancy `0.74`, Citation Coverage `1.0`, Graph Hit `1.0` và 2 retrieval miss.
   - Fixed-512 nhỉnh hơn Context Recall (`0.5556` so với `0.5444`); parent-child nhanh hơn rõ ở p95. Vì W7 đang quality-first, semantic BGE-M3 được chọn nhưng latency vẫn là follow-up bắt buộc.
-- `benchmark/tuvi_golden_dataset/reports/w7_abl_01/evaluation_report.md`
-  - Gemini partial-10 balanced.
-  - `tuvi_generation_v1` đạt Faithfulness `0.92`, Answer Relevancy `0.79`, Context Recall `0.7000`, Citation Coverage `1.0`, và p95 thấp nhất trong ba prompt (`25911.78 ms`).
 - `benchmark/tuvi_golden_dataset/reports/w6_abl_02/evaluation_report.md`
   - Chỉ là static smoke 2 item, nên không được dùng để tuyên bố retrieval/fusion/reranker winner.
-  - Graph + Sparse + RRF + lexical reranker được giữ như control stack đã chạy ổn trong W6-ABL-03, W7-ABL-01 và W6-INT-01, không phải vì W6-ABL-02 đã chứng minh chính thức.
+  - Graph + Sparse + RRF + lexical reranker được giữ như control stack đã chạy ổn trong W6-ABL-03 và W6-INT-01, không phải vì W6-ABL-02 đã chứng minh chính thức.
 
 ### Files cập nhật
 
@@ -3209,7 +3046,7 @@ Kết quả: single config hoàn tất `3/3`, `failed_count=0`, `judge_backend=s
 
 ### Chưa chạy full benchmark
 
-Chưa chạy full 100-item golden dataset cho `default_production_v2`. Production config này được lock từ evidence Gemini partial-10 cân bằng của W6-ABL-03 và W7-ABL-01 để unblock W7 deploy/observability. Full final evaluation vẫn thuộc `W8-EVAL-01` hoặc một pre-release run riêng khi quota/capacity cho phép.
+Chưa chạy full 100-item golden dataset cho `default_production_v2`. Production config này được lock từ evidence Gemini partial-10 cân bằng của W6-ABL-03 cùng prompt wiring history để unblock W7 deploy/observability. Full final evaluation vẫn thuộc `W8-EVAL-01` hoặc một pre-release run riêng khi quota/capacity cho phép.
 
 Các experiment/measurement còn deferred:
 

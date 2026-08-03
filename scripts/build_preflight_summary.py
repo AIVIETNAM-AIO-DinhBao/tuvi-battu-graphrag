@@ -16,9 +16,8 @@ from app.rag.config import config_hash
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "benchmark" / "tuvi_golden_dataset" / "release" / "tuviqa_v1_release.jsonl"
 MANIFESTS = {
-    "chunking": ROOT / "configs" / "w6_abl_03_chunking_matrix.yaml",
+    "chunking_prompt_source_v3": ROOT / "configs" / "w6_abl_03_chunking_matrix.yaml",
     "retrieval_fusion_reranker": ROOT / "configs" / "w8_abl_01_retrieval_matrix_v2.yaml",
-    "prompt_generation_current_retrieval": ROOT / "configs" / "w7_abl_01_generation_prompt_matrix.yaml",
 }
 
 
@@ -58,6 +57,16 @@ def git_output(*args: str) -> str:
         return "unknown"
 
 
+def git_status_summary() -> str:
+    status = git_output("status", "--short")
+    if status in {"", "clean"}:
+        return "clean"
+    if status == "unknown":
+        return "unknown"
+    changed_path_count = len([line for line in status.splitlines() if line.strip()])
+    return f"dirty ({changed_path_count} changed paths)"
+
+
 def manifest_inventory() -> dict[str, Any]:
     inventory: dict[str, Any] = {}
     for key, path in MANIFESTS.items():
@@ -95,9 +104,8 @@ def manifest_inventory() -> dict[str, Any]:
 
 def smoke_summary(base: Path) -> dict[str, Any]:
     smoke_paths = {
-        "chunking": base / "smoke_chunking" / "evaluation_report.json",
+        "chunking_prompt_source_v3": base / "smoke_chunking" / "evaluation_report.json",
         "retrieval_fusion_reranker": base / "smoke_retrieval_fusion_reranker" / "evaluation_report.json",
-        "prompt_generation_current_retrieval": base / "smoke_prompt_generation_current_retrieval" / "evaluation_report.json",
     }
     smokes: dict[str, Any] = {}
     for key, report_path in smoke_paths.items():
@@ -128,7 +136,7 @@ def build_summary(base: Path) -> dict[str, Any]:
         "status": "passed",
         "completed_at_utc": datetime.now(timezone.utc).isoformat(),
         "git_sha": git_output("rev-parse", "HEAD"),
-        "git_status_short": git_output("status", "--short") or "clean",
+        "git_status_short": git_status_summary(),
         "dataset": {
             "path": posix(DATASET),
             "item_count": len(load_ablation_dataset(DATASET)),
@@ -231,20 +239,21 @@ def write_markdown(summary: dict[str, Any], base: Path) -> None:
             "",
             "## Decision",
             "",
-            "- Preflight passed for backend regression, Gemini model access, Neo4j chunk coverage, and all three manifest smoke runs.",
-            "- Safe next step: run Phase 2 full chunking ablation with Gemini judge and checkpoint/resume.",
+            "- Preflight passed for backend regression, Gemini model access, Neo4j chunk coverage, retrieval smoke, and source-wave smoke.",
+            "- Completed source waves `10_...` and `11_...` must be interpreted as one Chunking × Prompt 3×3 matrix.",
+            "- Current active next step after the completed 3×3 matrix: run/resume the retrieval/fusion/reranker matrix with Gemini judge and checkpoint/resume.",
             "- Keep `--skip-persistence`; Supabase persistence remains non-blocking.",
             "",
-            "## Phase 2 Command",
+            "## Active Retrieval Matrix Command",
             "",
             "```powershell",
             "$env:PYTHONPATH='backend'",
             r".\.venv\Scripts\python.exe scripts\run_eval.py `",
-            r"  --manifest configs/w6_abl_03_chunking_matrix.yaml `",
+            r"  --manifest configs/w8_abl_01_retrieval_matrix_v2.yaml `",
             r"  --judge-backend gemini `",
             r"  --skip-persistence `",
-            r"  --checkpoint-dir benchmark/tuvi_golden_dataset/reports_final/10_chunking_strategy_ablation/checkpoints `",
-            r"  --output-dir benchmark/tuvi_golden_dataset/reports_final/10_chunking_strategy_ablation",
+            r"  --checkpoint-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/checkpoints `",
+            r"  --output-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix",
             "```",
             "",
         ]

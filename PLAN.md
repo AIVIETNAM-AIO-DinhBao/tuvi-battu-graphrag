@@ -20,9 +20,9 @@
 ### In scope hiện tại
 
 - Preflight local: backend regression subset, Gemini probe, Neo4j source/strategy coverage, offline smoke manifests.
-- Full chunking strategy ablation trên `benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl` đủ 100 item.
+- Full Chunking × Prompt factorial ablation trên `benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl` đủ 100 item: `3 chunking strategies x 3 prompt templates = 9 configs = 900/900` official pairs.
 - Full retrieval/fusion/reranker matrix với checkpoint/resume.
-- Prompt/generation ablation sau khi retrieval control được chọn.
+- Không còn active prompt/generation ablation riêng cho retrieval control hiện tại; prompt evidence đã nằm trong completed 3×3 Chunking × Prompt matrix.
 - Optional targeted hard-case diagnostic wave, tách riêng khỏi full-100 aggregate.
 - Final ablation report: `evaluation/ablation_final_report.md`.
 - Nếu cần candidate mới cho research/eval thì tạo file mới như `configs/eval_candidate_v3.yaml`; không ghi đè config production mặc định.
@@ -31,11 +31,10 @@
 
 1. Đọc và giữ frozen protocol trong `benchmark/tuvi_golden_dataset/reports_final/protocol/`.
 2. Không rerun các wave đã complete nếu không có thay đổi môi trường/cấu hình vật chất.
-3. Chạy/resume retrieval/fusion/reranker full matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`.
-4. Sau Phase 3, chọn prompt control: dùng manifest hiện tại hoặc tạo prompt matrix trên retrieval winner.
-5. Chạy prompt/generation ablation full-100.
-6. Optional: chạy targeted hard-case wave sau khi phân tích lỗi full matrix.
-7. Rebuild report sau mỗi wave bằng `scripts/build_final_ablation_report.py`.
+3. Diễn giải `reports_final/10_chunking_strategy_ablation` và `reports_final/11_chunking_prompt_interaction_v1_v2` là **hai source waves của một Chunking × Prompt 3×3 factorial study đã hoàn tất**, không phải hai ablation study tách rời.
+4. Chạy/resume retrieval/fusion/reranker full matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`.
+5. Optional: chạy targeted hard-case wave sau khi phân tích lỗi full matrix.
+6. Rebuild report sau mỗi wave bằng `scripts/build_final_ablation_report.py`.
 
 Canonical handoff hiện tại: `benchmark/tuvi_golden_dataset/reports_final/protocol/next_session_handoff.md`.
 
@@ -850,20 +849,9 @@ Mục tiêu: có golden dataset Tử Vi, runner đo metric, experiment matrix v1
 
 Mục tiêu: chốt production config bằng evidence, deploy lên Render/Vercel, đo latency, QA và security review.
 
-### W7-ABL-01 - Ablation generation model và prompt template
+### Historical prompt wiring note
 
-**When:** Tuần 7, ngày 1
-**Môi trường:** Kaggle hoặc Local
-
-**What to do:**
-- So sánh model generation candidate.
-- So sánh 2-3 prompt template.
-- Giữ retrieval config ổn định để cô lập ảnh hưởng generation.
-- Đánh giá Faithfulness, Answer Relevancy, Citation Coverage và cost/latency.
-
-**Deliverable:** Report generation/prompt ablation.
-**Depends on:** W6-ABL-02, W6-ABL-03
-**Done when:** Có prompt/model candidate cuối.
+Prompt-template implementation work from the earlier W7 roadmap is superseded for the current final ablation narrative. The canonical prompt evidence is the completed Chunking x Prompt 3x3 matrix; do not plan a separate prompt/generation ablation phase in the current scope.
 
 ### W7-CONFIG-01 - Chọn production config bằng evidence
 
@@ -878,7 +866,7 @@ Mục tiêu: chốt production config bằng evidence, deploy lên Render/Vercel
 - Lock config hash.
 
 **Deliverable:** Production config final.
-**Depends on:** W7-ABL-01
+**Depends on:** completed Chunking x Prompt 3x3 evidence and retrieval/fusion/reranker evidence
 **Done when:** Team đồng ý config final và có evidence đi kèm.
 
 ### W7-DEPLOY-01 - Deploy backend FastAPI lên Render

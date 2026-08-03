@@ -2,7 +2,19 @@
 
 All commands are Windows PowerShell commands from repository root. Production/deploy ops are intentionally excluded. Official runs use `--judge-backend gemini --skip-persistence` and local checkpoints.
 
-## Phase 1 preflight
+## Interpretation rule
+
+The completed Chunking × Prompt result is one canonical **3×3 factorial matrix**:
+
+- Source wave A: `reports_final/10_chunking_strategy_ablation` contains the 3 prompt-v3 cells.
+- Source wave B: `reports_final/11_chunking_prompt_interaction_v1_v2` contains the 6 prompt-v1/v2 cells.
+- Together they equal `9 configs x 100 = 900/900` official Gemini pairs.
+
+Do not treat source wave A as a separate final chunking study and source wave B as a separate supporting interaction study. Do not introduce a separate prompt/generation phase for the current completed 3×3 study.
+
+## Phase 1 preflight, historical/completed
+
+These commands are retained for reproducibility. Rerun only after material environment/configuration changes.
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -21,10 +33,9 @@ $env:PYTHONPATH='backend'
 .\.venv\Scripts\python.exe scripts/check_w6_abl_03_chunk_coverage.py --mode neo4j --output-dir benchmark/tuvi_golden_dataset/reports_final/00_preflight/neo4j_chunk_coverage
 .\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w6_abl_03_chunking_matrix.yaml --offline-smoke --limit 2 --skip-persistence --output-dir benchmark/tuvi_golden_dataset/reports_final/00_preflight/smoke_chunking
 .\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w8_abl_01_retrieval_matrix_v2.yaml --offline-smoke --limit 2 --skip-persistence --output-dir benchmark/tuvi_golden_dataset/reports_final/00_preflight/smoke_retrieval_fusion_reranker
-.\.venv\Scripts\python.exe scripts/run_eval.py --manifest configs/w7_abl_01_generation_prompt_matrix.yaml --offline-smoke --limit 2 --skip-persistence --output-dir benchmark/tuvi_golden_dataset/reports_final/00_preflight/smoke_prompt_generation_current_retrieval
 ```
 
-## Phase 2 full chunking
+## Phase 2A source wave, historical/completed: prompt-v3 cells
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -38,11 +49,9 @@ $env:PYTHONPATH='backend'
   --retry-base-seconds 2
 ```
 
-Resume: same command plus `--resume --retry-failed`.
+Resume historical source wave A only if its checkpoint/report is incomplete: append `--resume --retry-failed`.
 
-## Phase 2B chunking × prompt interaction v1/v2
-
-This supporting wave varies `chunk_strategy_id` and `prompt_template_id` jointly. Treat it as interaction evidence, not as a replacement for the single-axis chunking or prompt ablations.
+## Phase 2B source wave, historical/completed: prompt-v1/v2 cells
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -56,9 +65,9 @@ $env:PYTHONPATH='backend'
   --retry-base-seconds 2
 ```
 
-Resume: same command plus `--resume --retry-failed`.
+Resume historical source wave B only if its checkpoint/report is incomplete: append `--resume --retry-failed`.
 
-## Phase 3 full retrieval/fusion/reranker matrix
+## Phase 3 active: full retrieval/fusion/reranker matrix
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -74,18 +83,9 @@ $env:PYTHONPATH='backend'
 
 Resume: same command plus `--resume --retry-failed`.
 
-## Phase 4 prompt/generation
+## Rebuild final comparative report
 
 ```powershell
 $env:PYTHONPATH='backend'
-.\.venv\Scripts\python.exe scripts/run_eval.py `
-  --manifest configs/w7_abl_01_generation_prompt_matrix.yaml `
-  --judge-backend gemini `
-  --skip-persistence `
-  --checkpoint-dir benchmark/tuvi_golden_dataset/reports_final/30_prompt_generation_current_retrieval/checkpoints `
-  --output-dir benchmark/tuvi_golden_dataset/reports_final/30_prompt_generation_current_retrieval `
-  --max-item-attempts 2 `
-  --retry-base-seconds 2
+.\.venv\Scripts\python.exe scripts/build_final_ablation_report.py
 ```
-
-If Phase 3 winner changes retrieval stack, create `configs/w8_abl_02_prompt_matrix_on_best_retrieval.yaml` and use `31_prompt_generation_best_retrieval/`.

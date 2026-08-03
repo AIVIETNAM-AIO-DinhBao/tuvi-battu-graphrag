@@ -59,6 +59,17 @@ METRIC_COLUMNS = [
     ("generation_p95_ms", "Gen p95 ms"),
 ]
 
+# The completed 3 x 3 factorial matrix is materialized in two immutable source
+# waves: reports_final/10 contains the three structured-v3 cells, while
+# reports_final/11 contains the six v1/v2 cells.  They are one canonical
+# analytical matrix in the synthesized report, not two separate studies.
+CHUNKING_PROMPT_SOURCE_KEYS = (
+    "chunking_strategy",
+    "chunking_prompt_interaction_v1_v2",
+)
+CHUNKING_PROMPT_MATRIX_KEY = "chunking_prompt_matrix_v1_v2_v3"
+CHUNKING_PROMPT_MATRIX_LABEL = "Chunking × Prompt Matrix (3 × 3, v1/v2/v3)"
+
 
 @dataclass(frozen=True)
 class PhaseSpec:
@@ -74,19 +85,19 @@ class PhaseSpec:
 PHASES = [
     PhaseSpec(
         key="chunking_strategy",
-        label="Chunking Strategy Ablation",
-        axis="chunking",
+        label="Chunking × Prompt Source Wave A (prompt v3 cells)",
+        axis="chunking_prompt_interaction",
         manifest=ROOT / "configs" / "w6_abl_03_chunking_matrix.yaml",
         output_dir=DEFAULT_BASE / "10_chunking_strategy_ablation",
-        expected_note="3 x 100 = 300",
+        expected_note="3 prompt-v3 cells x 100 = 300",
     ),
     PhaseSpec(
         key="chunking_prompt_interaction_v1_v2",
-        label="Chunking × Prompt Interaction (v1/v2)",
+        label="Chunking × Prompt Source Wave B (prompt v1/v2 cells)",
         axis="chunking_prompt_interaction",
         manifest=ROOT / "configs" / "w8_abl_02_chunking_prompt_interaction_v1_v2.yaml",
         output_dir=DEFAULT_BASE / "11_chunking_prompt_interaction_v1_v2",
-        expected_note="6 x 100 = 600",
+        expected_note="6 prompt-v1/v2 cells x 100 = 600",
         required_for_final=False,
     ),
     PhaseSpec(
@@ -96,24 +107,6 @@ PHASES = [
         manifest=ROOT / "configs" / "w8_abl_01_retrieval_matrix_v2.yaml",
         output_dir=DEFAULT_BASE / "20_retrieval_fusion_reranker_matrix",
         expected_note="10 x 100 = 1000",
-    ),
-    PhaseSpec(
-        key="prompt_generation_current_retrieval",
-        label="Prompt / Generation Ablation on Current Retrieval",
-        axis="prompt",
-        manifest=ROOT / "configs" / "w7_abl_01_generation_prompt_matrix.yaml",
-        output_dir=DEFAULT_BASE / "30_prompt_generation_current_retrieval",
-        expected_note="3 x 100 = 300",
-        required_for_final=False,
-    ),
-    PhaseSpec(
-        key="prompt_generation_best_retrieval",
-        label="Prompt / Generation Ablation on Best Retrieval",
-        axis="prompt",
-        manifest=ROOT / "configs" / "w8_abl_02_prompt_matrix_on_best_retrieval.yaml",
-        output_dir=DEFAULT_BASE / "31_prompt_generation_best_retrieval",
-        expected_note="conditional, normally 3 x 100 = 300",
-        required_for_final=False,
     ),
     PhaseSpec(
         key="targeted_hard_cases",
@@ -251,6 +244,16 @@ def git_output(*args: str) -> str:
         return "unknown"
 
 
+def git_status_summary() -> str:
+    status = git_output("status", "--short")
+    if status in {"", "clean"}:
+        return "clean"
+    if status == "unknown":
+        return "unknown"
+    changed_path_count = len([line for line in status.splitlines() if line.strip()])
+    return f"dirty ({changed_path_count} changed paths)"
+
+
 def metric(metrics: dict[str, Any], key: str) -> float | None:
     value = metrics.get(key)
     if isinstance(value, (int, float)):
@@ -277,6 +280,46 @@ def quality_latency_score(metrics: dict[str, Any]) -> float:
     p95_ms = value("p95_latency_ms") or value("evaluation_total_p95_ms")
     latency_penalty = min(max(p95_ms, 0.0) / 60_000.0, 1.0) * 0.10
     return round(quality - latency_penalty, 6)
+
+
+def average_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Average scalar metric keys across completed config rows.
+
+    This is used only for transparent marginal summaries of the completed 3×3
+    factorial matrix.  It does not change or rewrite any raw evaluation result.
+    """
+
+    metrics_rows = [row.get("metrics") or {} for row in rows]
+    averaged: dict[str, Any] = {"cell_count": len(metrics_rows)}
+    keys = sorted({key for metrics in metrics_rows for key in metrics})
+    for key in keys:
+        values = [metrics.get(key) for metrics in metrics_rows]
+        numeric_values = [float(value) for value in values if isinstance(value, (int, float))]
+        if len(numeric_values) == len(metrics_rows) and numeric_values:
+            averaged[key] = sum(numeric_values) / len(numeric_values)
+    return averaged
+
+
+def marginal_rows(report_configs: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in report_configs:
+        value = row.get(key)
+        if not value:
+            continue
+        grouped.setdefault(str(value), []).append(row)
+
+    rows = []
+    for value, configs in grouped.items():
+        metrics = average_metrics(configs)
+        rows.append(
+            {
+                "value": value,
+                "cell_count": len(configs),
+                "score": quality_latency_score(metrics),
+                "metrics": metrics,
+            }
+        )
+    return sorted(rows, key=lambda row: row["score"], reverse=True)
 
 
 def fmt(value: Any, metric_key: str | None = None) -> str:
@@ -471,14 +514,93 @@ def summarize_phase(spec: PhaseSpec, base_dir: Path) -> dict[str, Any]:
     }
 
 
-def selected_prompt_phase(phases: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
-    best = phases.get("prompt_generation_best_retrieval")
-    current = phases.get("prompt_generation_current_retrieval")
-    if best and best.get("report"):
-        return best
-    if current and current.get("report"):
-        return current
-    return best or current
+def completed_count(phase: dict[str, Any]) -> int:
+    """Return a phase counter as zero when a source artifact omits it."""
+
+    value = phase.get("completed_config_count")
+    return value if isinstance(value, int) else 0
+
+
+def numeric_sum(*values: Any) -> int | float | None:
+    numbers = [value for value in values if isinstance(value, (int, float))]
+    return sum(numbers) if numbers else None
+
+
+def combine_chunking_prompt_matrix(phases: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Merge W6 + W8 source waves into the completed 3 x 3 matrix view."""
+
+    source = [phases[key] for key in CHUNKING_PROMPT_SOURCE_KEYS]
+    source_reports = [phase.get("report") or {} for phase in source]
+    report_configs = [row for report in source_reports for row in report.get("configs") or []]
+    inventory_rows = [row for phase in source for row in phase.get("inventory_rows") or []]
+    for row in inventory_rows:
+        row["phase"] = CHUNKING_PROMPT_MATRIX_KEY
+        row["phase_label"] = CHUNKING_PROMPT_MATRIX_LABEL
+        row["axis"] = "chunking_prompt_interaction"
+        row["main_variable"] = variable_summary("chunking_prompt_interaction", row)
+
+    ranked_configs = []
+    for phase in source:
+        ranked_configs.extend(phase.get("ranked_configs") or [])
+    ranked_configs.sort(key=lambda item: item["score"], reverse=True)
+
+    source_statuses = [phase.get("status") for phase in source]
+    if all(status == "completed" for status in source_statuses):
+        status = "completed"
+    elif any(status in {"in_progress", "partial_or_failed", "completed_pending_report"} for status in source_statuses):
+        status = "in_progress"
+    else:
+        status = "not_started"
+
+    source_output_dirs = [phase["output_dir"] for phase in source]
+    return {
+        "key": CHUNKING_PROMPT_MATRIX_KEY,
+        "label": CHUNKING_PROMPT_MATRIX_LABEL,
+        "axis": "chunking_prompt_interaction",
+        "required_for_final": True,
+        "expected_note": "3 chunking strategies x 3 prompt templates = 900",
+        "manifest": {
+            "status": "combined",
+            "path": " + ".join(phase["manifest"].get("path", "n/a") for phase in source),
+        },
+        "output_dir": " + ".join(source_output_dirs),
+        "report_path": " + ".join(phase["report_path"] for phase in source),
+        "checkpoint_path": " + ".join(phase["checkpoint_path"] for phase in source),
+        "report": {"configs": report_configs},
+        "status": status,
+        "judge_backend": "gemini" if all(phase.get("judge_backend") == "gemini" for phase in source) else "mixed_or_pending",
+        "dataset_item_count": max((phase.get("dataset_item_count") or 0 for phase in source), default=0) or None,
+        "config_count": numeric_sum(*(phase.get("config_count") for phase in source)),
+        "completed_config_count": numeric_sum(*(completed_count(phase) for phase in source)) or 0,
+        "expected_pair_count": numeric_sum(*(phase.get("expected_pair_count") for phase in source)),
+        "processed_pair_count": numeric_sum(*(phase.get("processed_pair_count") for phase in source)),
+        "failed_pair_count": numeric_sum(*(phase.get("failed_pair_count") for phase in source)),
+        "remaining_pair_count": numeric_sum(*(phase.get("remaining_pair_count") for phase in source)),
+        "current_config": None,
+        "current_item": None,
+        "inventory_rows": inventory_rows,
+        "ranked_configs": ranked_configs,
+        "marginal_winners": {
+            "by_chunk_strategy_id": marginal_rows(report_configs, "chunk_strategy_id"),
+            "by_prompt_template_id": marginal_rows(report_configs, "prompt_template_id"),
+        },
+        "source_phase_keys": list(CHUNKING_PROMPT_SOURCE_KEYS),
+        "source_output_dirs": source_output_dirs,
+    }
+
+
+def display_phases(summary: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return report phases, replacing W6/W8 source rows with their 3 x 3 view."""
+
+    phases = summary["phases"]
+    return [
+        summary["chunking_prompt_matrix"],
+        *[
+            phase
+            for key, phase in phases.items()
+            if key not in CHUNKING_PROMPT_SOURCE_KEYS
+        ],
+    ]
 
 
 def winner_text(phase: dict[str, Any] | None, fallback: str = "pending") -> str:
@@ -497,7 +619,7 @@ def build_summary(base_dir: Path) -> dict[str, Any]:
     summary = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "git_sha": git_output("rev-parse", "HEAD"),
-        "git_status_short": git_output("status", "--short") or "clean",
+        "git_status_short": git_status_summary(),
         "dataset": {
             "path": posix(DATASET),
             "item_count": dataset_count,
@@ -506,7 +628,11 @@ def build_summary(base_dir: Path) -> dict[str, Any]:
         "base_dir": posix(base_dir),
         "phases": phases,
     }
-    required = [phase for phase in phases.values() if phase["required_for_final"]]
+    summary["chunking_prompt_matrix"] = combine_chunking_prompt_matrix(phases)
+    required = [
+        summary["chunking_prompt_matrix"],
+        phases["retrieval_fusion_reranker"],
+    ]
     summary["status"] = "complete" if all(phase["status"] == "completed" for phase in required) else "in_progress"
     return summary
 
@@ -525,7 +651,7 @@ def append_phase_status(lines: list[str], summary: dict[str, Any]) -> None:
             "Output",
         ],
     )
-    for phase in summary["phases"].values():
+    for phase in display_phases(summary):
         processed = phase.get("processed_pair_count")
         expected = phase.get("expected_pair_count")
         current = ""
@@ -542,7 +668,7 @@ def append_phase_status(lines: list[str], summary: dict[str, Any]) -> None:
 def append_inventory(lines: list[str], summary: dict[str, Any]) -> None:
     lines.extend(["## 1. Experiment Inventory", ""])
     table(lines, ["Phase", "Config", "Manifest", "Config hash", "Main variable", "Items", "Status"])
-    for phase in summary["phases"].values():
+    for phase in display_phases(summary):
         rows = phase.get("inventory_rows") or []
         if not rows:
             lines.append(
@@ -561,7 +687,7 @@ def append_inventory(lines: list[str], summary: dict[str, Any]) -> None:
 
 def append_metric_tables(lines: list[str], summary: dict[str, Any]) -> None:
     lines.extend(["## 2. Metric Tables", ""])
-    for phase in summary["phases"].values():
+    for phase in display_phases(summary):
         report_configs = phase.get("report", {}).get("configs") or []
         lines.extend([f"### {phase['label']}", ""])
         if not report_configs:
@@ -587,22 +713,63 @@ def append_metric_tables(lines: list[str], summary: dict[str, Any]) -> None:
         lines.append("")
 
 
+def marginal_winner_text(matrix: dict[str, Any], group_key: str) -> str:
+    rows = (matrix.get("marginal_winners") or {}).get(group_key) or []
+    if not rows:
+        return "pending"
+    top = rows[0]
+    return f"`{top['value']}` (marginal score={top['score']:.3f}, cells={top['cell_count']})"
+
+
+def append_marginal_tables(lines: list[str], summary: dict[str, Any]) -> None:
+    matrix = summary["chunking_prompt_matrix"]
+    marginal = matrix.get("marginal_winners") or {}
+    if not marginal:
+        return
+
+    lines.extend(["## 3. Marginal Summary within Completed Chunking × Prompt Matrix", ""])
+    lines.append(
+        "These averages summarize the 9 completed factorial cells by one factor at a time. "
+        "They are descriptive marginal summaries of the same 3×3 study, not additional runs."
+    )
+    lines.append("")
+    for group_key, label in [
+        ("by_chunk_strategy_id", "By chunking strategy"),
+        ("by_prompt_template_id", "By prompt template"),
+    ]:
+        rows = marginal.get(group_key) or []
+        lines.extend([f"### {label}", ""])
+        table(lines, ["Rank", "Value", "Cells", "Score", "Faith", "Relev", "CtxRecall", "Citation", "RAG p95 ms", "Retr p95 ms"])
+        for idx, row in enumerate(rows, start=1):
+            metrics = row.get("metrics") or {}
+            lines.append(
+                f"| {idx} | `{row['value']}` | {row['cell_count']} | {row['score']:.3f} | "
+                f"{fmt(metrics.get('faithfulness_avg'))} | {fmt(metrics.get('answer_relevancy_avg'))} | "
+                f"{fmt(metrics.get('context_recall_avg'))} | {fmt(metrics.get('citation_coverage_rate'))} | "
+                f"{fmt(metrics.get('p95_latency_ms'), 'p95_latency_ms')} | "
+                f"{fmt(metrics.get('retrieval_p95_ms'), 'retrieval_p95_ms')} |"
+            )
+        lines.append("")
+
+
 def append_axis_winners(lines: list[str], summary: dict[str, Any]) -> None:
     phases = summary["phases"]
-    prompt_phase = selected_prompt_phase(phases)
-    lines.extend(["## 3. Winners by Axis", ""])
+    chunking_prompt_matrix = summary["chunking_prompt_matrix"]
+    lines.extend(["## 4. Winners by Axis", ""])
     table(lines, ["Axis", "Winner", "Evidence / interpretation"])
     lines.append(
-        f"| Best chunking strategy | {winner_text(phases.get('chunking_strategy'))} | "
-        "Chosen by the report heuristic over Context Recall, Faithfulness, Relevancy, Citation Coverage, Graph Hit and p95 latency. |"
+        f"| Best chunking × prompt configuration | {winner_text(chunking_prompt_matrix)} | "
+        "Full 3 × 3 matrix: source wave A in `10_chunking_strategy_ablation` supplies the 3 prompt-v3 cells; "
+        "source wave B in `11_chunking_prompt_interaction_v1_v2` supplies the 6 prompt-v1/v2 cells. Retrieval is held fixed. "
+        "Score ranks Context Recall, Faithfulness, Relevancy, Citation Coverage, Graph Hit, and p95 latency. |"
     )
-    interaction = phases.get("chunking_prompt_interaction_v1_v2")
-    interaction_detail = "supporting evidence only; this phase changes chunking and prompt jointly"
-    if interaction and interaction.get("ranked_configs"):
-        interaction_detail = variable_summary("chunking_prompt_interaction", interaction["ranked_configs"][0]["row"])
     lines.append(
-        f"| Best chunking × prompt interaction | {winner_text(interaction)} | "
-        f"{interaction_detail}; do not interpret as chunking-only or prompt-only evidence. |"
+        f"| Best chunking strategy within 3×3 matrix | {marginal_winner_text(chunking_prompt_matrix, 'by_chunk_strategy_id')} | "
+        "Marginal average across all 3 prompt templates in the completed matrix. |"
+    )
+    lines.append(
+        f"| Best prompt template within 3×3 matrix | {marginal_winner_text(chunking_prompt_matrix, 'by_prompt_template_id')} | "
+        "Marginal average across all 3 chunking strategies in the completed matrix. This replaces the old separate prompt-ablation placeholder for the current study. |"
     )
     retrieval = phases.get("retrieval_fusion_reranker")
     retrieval_winner = winner_text(retrieval)
@@ -613,10 +780,6 @@ def append_axis_winners(lines: list[str], summary: dict[str, Any]) -> None:
     lines.append(f"| Best retrieval path combination | {retrieval_winner} | {retrieval_detail} |")
     lines.append(f"| Best fusion method | {retrieval_winner} | Derived from the Phase 3 winning config; compare RRF vs weighted_sum vs graph_first in the Phase 3 table. |")
     lines.append(f"| Reranker on/off | {retrieval_winner} | Derived from baseline vs `baseline_no_reranker` once Phase 3 is complete. |")
-    lines.append(
-        f"| Best prompt template | {winner_text(prompt_phase)} | "
-        f"Prompt phase source: `{prompt_phase['key'] if prompt_phase else 'pending'}`. |"
-    )
     lines.append("")
 
 
@@ -649,8 +812,8 @@ def complexity_winner_rows(phase: dict[str, Any], complexity: str) -> list[dict[
 
 
 def append_family_winners(lines: list[str], summary: dict[str, Any]) -> None:
-    lines.extend(["## 4. Winners by Question Family", ""])
-    for phase in summary["phases"].values():
+    lines.extend(["## 5. Winners by Question Family", ""])
+    for phase in display_phases(summary):
         lines.extend([f"### {phase['label']}", ""])
         if not phase.get("report"):
             lines.append(f"Pending: no completed report yet for this phase (`{phase['status']}`).")
@@ -674,8 +837,8 @@ def append_family_winners(lines: list[str], summary: dict[str, Any]) -> None:
 
 
 def append_complexity_winners(lines: list[str], summary: dict[str, Any]) -> None:
-    lines.extend(["## 5. Winners by Question Complexity", ""])
-    for phase in summary["phases"].values():
+    lines.extend(["## 6. Winners by Question Complexity", ""])
+    for phase in display_phases(summary):
         if not phase.get("report"):
             continue
         lines.extend([f"### {phase['label']}", ""])
@@ -698,23 +861,21 @@ def append_complexity_winners(lines: list[str], summary: dict[str, Any]) -> None
 
 def append_candidate_section(lines: list[str], summary: dict[str, Any]) -> None:
     phases = summary["phases"]
-    prompt_phase = selected_prompt_phase(phases)
-    complete_core = phases["chunking_strategy"]["status"] == "completed" and phases["retrieval_fusion_reranker"]["status"] == "completed"
-    prompt_complete = bool(prompt_phase and prompt_phase.get("status") == "completed")
-    lines.extend(["## 6. Research/Eval Candidate", ""])
-    if complete_core and prompt_complete:
-        chunk = phases["chunking_strategy"]["ranked_configs"][0]["row"]
+    chunking_prompt_matrix = summary["chunking_prompt_matrix"]
+    complete_core = chunking_prompt_matrix["status"] == "completed" and phases["retrieval_fusion_reranker"]["status"] == "completed"
+    lines.extend(["## 7. Research/Eval Candidate", ""])
+    if complete_core:
+        best_cell = chunking_prompt_matrix["ranked_configs"][0]["row"]
         retrieval = phases["retrieval_fusion_reranker"]["ranked_configs"][0]["row"]
-        prompt = prompt_phase["ranked_configs"][0]["row"]
         lines.extend(
             [
                 "All required evidence is available. Create a new candidate config rather than overwriting `configs/default_production.yaml`.",
                 "",
                 "Recommended candidate ingredients:",
-                f"- chunk_strategy_id: `{chunk.get('chunk_strategy_id')}`",
+                f"- chunk_strategy_id: `{best_cell.get('chunk_strategy_id')}`",
+                f"- prompt_template_id: `{best_cell.get('prompt_template_id')}`",
+                f"- generation_model: `{best_cell.get('generation_model')}`",
                 f"- retrieval: `{variable_summary('retrieval', retrieval)}`",
-                f"- prompt_template_id: `{prompt.get('prompt_template_id')}`",
-                f"- generation_model: `{prompt.get('generation_model')}`",
                 "",
                 "Suggested file: `configs/eval_candidate_v3.yaml`, followed by a final full-100 or hard-case confirmation run.",
             ]
@@ -723,9 +884,9 @@ def append_candidate_section(lines: list[str], summary: dict[str, Any]) -> None:
         lines.extend(
             [
                 "Candidate selection is **pending** until the core full runs finish.",
-                f"- chunking phase: `{phases['chunking_strategy']['status']}`",
+                f"- chunking × prompt matrix: `{chunking_prompt_matrix['status']}`",
                 f"- retrieval/fusion/reranker phase: `{phases['retrieval_fusion_reranker']['status']}`",
-                f"- prompt phase: `{prompt_phase['status'] if prompt_phase else 'pending'}`",
+                "- prompt evidence: `completed inside the 3×3 chunking × prompt matrix`; no separate current-retrieval prompt phase is active.",
                 "- Do not overwrite `configs/default_production.yaml`; create `configs/eval_candidate_v3.yaml` once winners are known.",
             ]
         )
@@ -733,9 +894,9 @@ def append_candidate_section(lines: list[str], summary: dict[str, Any]) -> None:
 
 
 def append_next_steps(lines: list[str], summary: dict[str, Any]) -> None:
-    lines.extend(["## 7. Next Steps / Resume Commands", ""])
+    lines.extend(["## 8. Next Steps / Resume Commands", ""])
     phases = summary["phases"]
-    chunking = phases["chunking_strategy"]
+    chunking = summary["chunking_prompt_matrix"]
     if chunking["status"] == "in_progress":
         lines.extend(
             [
@@ -814,12 +975,14 @@ def write_markdown(summary: dict[str, Any], output_path: Path) -> None:
         "- Official conclusion rows require `judge_backend=gemini`; offline smoke is not used as final evidence.",
         "- Supabase persistence is intentionally non-blocking; local artifacts and checkpoints are the source of truth.",
         "- `Score` is a transparent report heuristic for ranking only, not a replacement for individual metrics.",
-        "- Interaction phases vary more than one factor jointly; use them as supporting evidence, not as replacements for single-axis ablations.",
+        "- `reports_final/10_chunking_strategy_ablation` and `reports_final/11_chunking_prompt_interaction_v1_v2` are immutable source waves for one canonical completed 3×3 Chunking × Prompt factorial matrix.",
+        "- No separate prompt/generation phase is active for the current study; prompt evidence is contained in the completed 3×3 matrix.",
         "",
     ]
     append_phase_status(lines, summary)
     append_inventory(lines, summary)
     append_metric_tables(lines, summary)
+    append_marginal_tables(lines, summary)
     append_axis_winners(lines, summary)
     append_family_winners(lines, summary)
     append_complexity_winners(lines, summary)

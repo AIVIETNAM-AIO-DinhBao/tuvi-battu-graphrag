@@ -1,6 +1,6 @@
 # Full Ablation Frozen Method Protocol
 
-Frozen before launching live ablation waves on 2026-07-28. Deploy/production operations are out of scope.
+Frozen before launching live ablation waves on 2026-07-28. Updated on 2026-08-03 to reflect the completed Chunking × Prompt 3×3 factorial interpretation. Deploy/production operations are out of scope.
 
 ## Scope
 
@@ -10,13 +10,14 @@ Frozen before launching live ablation waves on 2026-07-28. Deploy/production ope
 - Supabase `experiment_runs`: skipped by default with `--skip-persistence`; local report/checkpoint artifacts are source of truth.
 - Checkpoint/resume is mandatory for full live waves.
 
-## Ablation axes
+## Canonical ablation axes
 
-1. Chunking strategy ablation: `configs/w6_abl_03_chunking_matrix.yaml`, 3 configs x 100 items = 300 pairs.
-2. Retrieval / fusion / reranker matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, 10 configs x 100 items = 1000 pairs.
-3. Prompt / generation ablation: `configs/w7_abl_01_generation_prompt_matrix.yaml` or a v2 prompt matrix built on the Phase 3 retrieval winner, 3 configs x 100 items = 300 pairs.
-
-Supporting interaction wave (already completed): `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml`, 6 configs x 100 items = 600 pairs. This jointly varies chunking and prompt; it is supporting interaction evidence and must not replace the single-axis conclusions above.
+1. **Chunking × Prompt factorial matrix**: completed canonical 3×3 study, `9 configs x 100 items = 900/900` official Gemini pairs.
+   - Source wave A: `configs/w6_abl_03_chunking_matrix.yaml` → `reports_final/10_chunking_strategy_ablation`; 3 prompt-v3 cells.
+   - Source wave B: `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml` → `reports_final/11_chunking_prompt_interaction_v1_v2`; 6 prompt-v1/v2 cells.
+   - Interpretation rule: these are source waves of one study, not two separate final ablation studies.
+2. **Retrieval / fusion / reranker matrix**: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, `10 configs x 100 items = 1000 pairs`; active remaining matrix.
+3. **Targeted hard-case diagnostics**: optional, not pooled into full-100 aggregate metrics.
 
 ## Validity gates
 
@@ -42,5 +43,6 @@ Break down by `question_complexity` and `question_family`.
 
 ## Analysis decisions
 
-- Phase 4 prompt ablation should be run after Phase 3. If the retrieval winner differs from the default retrieval control in `w7_abl_01_generation_prompt_matrix.yaml`, create a new prompt-v2 manifest instead of mutating old results.
+- Completed source waves `10_...` and `11_...` must be synthesized as the 3×3 Chunking × Prompt matrix.
+- Retrieval/fusion/reranker conclusions require the active full matrix under `reports_final/20_retrieval_fusion_reranker_matrix`.
 - Targeted hard-case wave is optional and diagnostic; it must not be pooled into full-100 aggregate metrics.

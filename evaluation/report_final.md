@@ -1,5 +1,7 @@
 # W8-EVAL-01 Final Evaluation Report
 
+> Scope note: this file is the historical full-100 evaluation of one locked production config (`default_production_v2`). It is **not** the canonical comparative ablation report for the completed Chunking × Prompt 3×3 study. For comparative ablation conclusions, use `evaluation/ablation_final_report.md` and `benchmark/tuvi_golden_dataset/reports_final/ablation_final_summary.json`.
+
 - **Run verdict:** `RUN_VALID`
 - **Quality verdict:** `QUALITY_FAIL`
 - **Performance verdict:** `PERFORMANCE_FAIL`

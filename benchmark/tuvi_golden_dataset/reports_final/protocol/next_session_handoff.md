@@ -1,79 +1,66 @@
-# Next-session Handoff — Full Ablation
+# Next-session Handoff — Canonical Full Ablation Track
 
 Updated: `2026-08-03`  
-Scope: full ablation evidence only. Deploy/production ops are out of scope.
+Scope: comparative ablation evidence only. Deploy/production ops are out of scope.
 
 ## 1. Frozen identity
 
-- Git SHA at last report build: `0173f4605ec6c96c87fda5e3f50e9bfeaf6d64f5`
 - Dataset: `benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl`
 - Dataset items: `100`
 - Dataset SHA256: `90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c`
 - Official judge: `gemini`
-- Generation model in completed waves: `gemini-3.1-flash-lite-preview`
+- Generation model in completed 3×3 cells: `gemini-3.1-flash-lite-preview`
 - Persistence: `--skip-persistence`; local reports/checkpoints are source of truth
-- Final report: `evaluation/ablation_final_report.md`
+- Final comparative report: `evaluation/ablation_final_report.md`
 - Machine-readable summary: `benchmark/tuvi_golden_dataset/reports_final/ablation_final_summary.json`
 
 Do not mutate completed manifests/results. New controls require a new manifest and output directory.
 
-## 2. Completed evidence
+## 2. Canonical completed evidence
 
-### 2.1 Single-axis chunking — complete
+### Chunking × Prompt factorial matrix — complete
 
-- Manifest: `configs/w6_abl_03_chunking_matrix.yaml`
-- Output: `benchmark/tuvi_golden_dataset/reports_final/10_chunking_strategy_ablation`
-- Coverage: `3 configs x 100 = 300`; `300/300`; failed `0`
+The completed chunking/prompt evidence is **one canonical 3×3 factorial study**, not two separate ablation studies.
+
+- Factors:
+  - `chunk_strategy_id` in `{chunk_fixed_512, chunk_structure_parent_child, chunk_semantic_embedding_bge_m3}`
+  - `prompt_template_id` in `{tuvi_generation_v1, tuvi_generation_grounded_v2, tuvi_generation_structured_v3}`
+- Coverage: `9 configs x 100 = 900`; `900/900`; failed `0`
 - Judge: `gemini`
-- Current heuristic winner: `parent_child_graph_sparse_rrf`
-- Winner metrics: Score `0.749`; Faithfulness `0.900`; Answer Relevancy `0.799`; Context Recall `0.714`; Graph Hit `0.967`; Citation Coverage `0.989`
-- Winner p95: RAG `123459.1 ms`; Retrieval `118592.8 ms`; Generation `5595.9 ms`
+- Retrieval control: Graph + Sparse + RRF + reranker; dense off; balanced context; document grading on
 
-Interpretation: parent-child currently ranks first by the report heuristic. Latency is very high and must not be ignored.
+Source runs are preserved as immutable execution waves because they were run at different times:
 
-### 2.2 Chunking x Prompt interaction — complete supporting wave
+| Source wave | Manifest | Output | Cells | Role |
+|---|---|---|---:|---|
+| Wave A | `configs/w6_abl_03_chunking_matrix.yaml` | `benchmark/tuvi_golden_dataset/reports_final/10_chunking_strategy_ablation` | 3 prompt-v3 cells | Source cells for the canonical 3×3 matrix |
+| Wave B | `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml` | `benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2` | 6 prompt-v1/v2 cells | Source cells for the canonical 3×3 matrix |
 
-- Manifest: `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml`
-- Output: `benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2`
-- Coverage: `6 configs x 100 = 600`; `600/600`; failed `0`
-- Current winner: `semantic_bge_m3_prompt_v1_graph_sparse_rrf`
-- Winner metrics: Score `0.737`; Faithfulness `0.872`; Answer Relevancy `0.782`; Context Recall `0.706`; Graph Hit `0.967`; Citation Coverage `0.986`
+Interpretation rule: **do not** describe Wave A as a final standalone chunking ablation and Wave B as a separate supporting prompt interaction. They are two execution waves that together form the completed Chunking × Prompt 3×3 study.
 
-Interpretation: this wave varies chunking and prompt jointly. Use it only as interaction evidence; it does not replace single-axis prompt or retrieval conclusions.
+Current aggregate winner by report heuristic is `parent_child_graph_sparse_rrf` / `chunk_structure_parent_child` + `tuvi_generation_structured_v3`, but latency is very high and must be considered alongside quality.
 
 ## 3. Current state / remaining work
 
-The report is correctly **in_progress**. Registry/report currently show:
+The comparative report remains **in_progress** only because retrieval/fusion/reranker has not been run. Prompt evidence for the current chunking/prompt study is already complete inside the 3×3 matrix.
 
-| Wave | Status | Expected |
-|---|---|---:|
-| Preflight tests/probe/Neo4j/smoke | complete | `111 passed`; Gemini `4/4`; Neo4j `12/12`; smoke `6/6`, `20/20`, `6/6` |
-| Chunking single-axis | complete | 300 pairs |
-| Chunking x Prompt interaction | complete | 600 pairs |
-| Retrieval/Fusion/Reranker v2 | not started | 1000 pairs |
-| Prompt on current retrieval | not started | 300 pairs |
-| Prompt on best retrieval | conditional; manifest missing | 300 pairs if Phase 3 winner changes |
-| Targeted hard cases | optional; not started | diagnostic only |
+| Work item | Status | Expected | Notes |
+|---|---|---:|---|
+| Preflight tests/probe/Neo4j/smoke | complete | n/a | `111 passed`; Gemini `4/4`; Neo4j `12/12`; smoke artifacts are static-smoke only |
+| Chunking × Prompt 3×3 matrix | complete | 900 pairs | Canonical completed study, sourced from `10_...` + `11_...` |
+| Retrieval/Fusion/Reranker v2 | not started | 1000 pairs | Active remaining comparative matrix |
+| Targeted hard cases | optional; not started | diagnostic only | Run only after inspecting full matrix failures |
 
-Primary remaining live work: `1000 + 300 = 1300` pairs, plus conditional prompt-v2 and optional diagnostics.
+Primary remaining live work: `10 configs x 100 = 1000` pairs for retrieval/fusion/reranker.
 
 ## 4. Next session execution order
 
 ### Step 0 — Confirm frozen preflight, do not rerun completed waves blindly
 
 Read `benchmark/tuvi_golden_dataset/reports_final/protocol/run_registry.md` and inspect `00_preflight/`.
-Preflight completed on `2026-07-28`; read its summary/logs and ensure environment identity has not changed. Rerun Phase 1 in `protocol/commands.md` only after a material environment/configuration change. Recorded gates:
+Preflight completed on `2026-07-28`; rerun only after a material environment/configuration change.
 
-- backend regression subset passes;
-- Gemini probe works without leaking keys;
-- Neo4j chunk coverage is `12/12`;
-- three offline smoke manifests complete.
-
-Preflight is a gate for new live waves, not final evidence.
-
-### Step 1 — Run retrieval/fusion/reranker full matrix
-
-Official command from repo root (PowerShell):
+### Step 1 — Run/resume retrieval/fusion/reranker matrix
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -91,19 +78,9 @@ Resume after interruption/quota exhaustion: append `--resume --retry-failed`. Ne
 
 Expected: `10 configs x 100 = 1000` pairs. Before accepting results, check completion, failed count, backend fallback counts, dataset/config identity, and judge backend.
 
-### Step 2 — Decide prompt control using Phase 3 winner
+### Step 2 — Optional targeted hard-case wave
 
-Compare Phase 3 winner against the retrieval control used by `configs/w7_abl_01_generation_prompt_matrix.yaml`.
-
-- If current retrieval remains the valid control: run Phase 4A into `30_prompt_generation_current_retrieval/`.
-- If retrieval winner changes: create immutable `configs/w8_abl_02_prompt_matrix_on_best_retrieval.yaml`; run it into `31_prompt_generation_best_retrieval/`.
-- Do not overwrite the old prompt manifest or pool current-control and best-retrieval results together.
-
-Phase 4A command is in `protocol/commands.md`. Use the same `gemini`, `--skip-persistence`, checkpoint, retry, and resume policy.
-
-### Step 3 — Optional targeted hard-case wave
-
-Run only after inspecting full retrieval/prompt failures. Keep it diagnostic and separate from full-100 aggregates. Candidate focus:
+Run only after inspecting full retrieval failures. Keep it diagnostic and separate from full-100 aggregate conclusions. Candidate focus:
 
 - `dai_van_interpretation`
 - low Context Recall items
@@ -112,7 +89,7 @@ Run only after inspecting full retrieval/prompt failures. Keep it diagnostic and
 
 Use `configs/w8_abl_01_priority_wave.yaml` only after confirming its dataset/subset semantics and expected pair count.
 
-### Step 4 — Rebuild and review final report
+### Step 3 — Rebuild and review final report
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -125,16 +102,15 @@ Then inspect:
 - `benchmark/tuvi_golden_dataset/reports_final/ablation_final_summary.json`
 - `benchmark/tuvi_golden_dataset/reports_final/protocol/run_registry.md`
 
-Final status is complete only when all required single-axis waves have valid full coverage. The optional targeted wave must not block final status.
+Final status is complete when the canonical 3×3 Chunking × Prompt matrix and required Retrieval/Fusion/Reranker matrix both have valid full coverage. Optional targeted waves and legacy prompt placeholders must not block final status.
 
 ## 5. Decision questions for the next session
 
 1. Does any retrieval path/fusion/reranker variant improve Context Recall without unacceptable p95 regression?
 2. Is dense retrieval worth its latency cost versus graph+sparse baseline?
 3. Does reranking help, or does it remove evidence-role coverage?
-4. Which prompt wins after retrieval control is frozen?
-5. Do the winners remain stable by `question_family` and `question_complexity`?
-6. Is the current latency a real retrieval bottleneck or a backend/runtime condition requiring a separate diagnostic note?
+4. Are the 3×3 chunking/prompt winners stable by `question_family` and `question_complexity`?
+5. Is the current latency a real retrieval bottleneck or a backend/runtime condition requiring a separate diagnostic note?
 
 ## 6. Important interpretation constraints
 
@@ -143,13 +119,13 @@ Final status is complete only when all required single-axis waves have valid ful
 - `core_identity` chart-only rows can have zero graph/citation metrics by design; inspect them separately.
 - Do not use offline smoke/static judge as final evidence.
 - Supabase errors do not block the experiment unless local artifacts/checkpoints fail.
+- `evaluation/report_final.md` is historical W8 production-config evaluation evidence, not the canonical comparative report for the completed 3×3 Chunking × Prompt study.
 
 ## 7. Session-start checklist
 
-- [ ] Read this file and the latest final report.
+- [ ] Read this file and the latest final comparative report.
 - [ ] Check git status and preserve completed artifacts.
 - [ ] Confirm preflight artifacts remain valid for the current environment.
-- [ ] Start/resume Phase 3 retrieval matrix.
-- [ ] Analyze Phase 3 winner and choose Phase 4A vs prompt-v2.
-- [ ] Run prompt ablation, optional hard-case wave.
-- [ ] Rebuild report and update registry.
+- [ ] Start/resume retrieval/fusion/reranker matrix.
+- [ ] Analyze retrieval matrix against the completed 3×3 Chunking × Prompt evidence.
+- [ ] Rebuild report and update registry if new runs complete.

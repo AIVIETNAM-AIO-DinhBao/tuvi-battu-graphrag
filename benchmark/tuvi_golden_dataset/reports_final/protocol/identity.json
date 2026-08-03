@@ -25,21 +25,6 @@
       "name": "w6_abl_03_chunking_strategy_v1",
       "output_dir_in_manifest": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w6_abl_03"
     },
-    "configs/w7_abl_01_generation_prompt_matrix.yaml": {
-      "config_hashes": {
-        "baseline_v1_flash_lite": "db5251237290acbf3567a6c1da1ad4979a2d703e2c0b24a7de2d2ad972e655c3",
-        "grounded_v2_flash_lite": "3974b524b0f763262121715fd61e0d0374fdd6e42c72003941f69418139434e4",
-        "structured_v3_flash_lite": "c099aacc105da68acba15b06bb08fd456f3320f5d222350cd50a71a67deca2fe"
-      },
-      "config_names": [
-        "baseline_v1_flash_lite",
-        "grounded_v2_flash_lite",
-        "structured_v3_flash_lite"
-      ],
-      "manifest_fingerprint": "97f12503fecfe6097192a7d4d53ade6d44532483130b0dd69f85d6b2d0114c3b",
-      "name": "w7_abl_01_generation_prompt_v1",
-      "output_dir_in_manifest": "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports\\w7_abl_01"
-    },
     "configs/w8_abl_01_priority_wave.yaml": {
       "config_hashes": {
         "baseline_no_reranker": "eb65d183e8a38286e52fd75ca9ac1b7117c70273554e94c125fd9de588251bf7",

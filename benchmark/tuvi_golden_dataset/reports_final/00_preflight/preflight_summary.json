@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "completed_at_utc": "2026-07-28T12:33:32.760594+00:00",
-  "git_sha": "22ca387b11fec3b96a488fb42ed49a7cfc3b4d5e",
-  "git_status_short": "M backend/tests/test_experiment_config.py\n M backend/tests/test_rag_evaluation.py\n M backend/tests/test_rag_retrieval.py\n?? benchmark/tuvi_golden_dataset/reports_final/\n?? scripts/build_preflight_summary.py",
+  "completed_at_utc": "2026-08-03T08:56:09.703027+00:00",
+  "git_sha": "668b9f6691d505594b859629cd4249b2dbce75ac",
+  "git_status_short": "dirty (20 changed paths)",
   "dataset": {
     "path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
     "item_count": 100,
@@ -33,7 +33,7 @@
     }
   },
   "manifests": {
-    "chunking": {
+    "chunking_prompt_source_v3": {
       "path": "configs/w6_abl_03_chunking_matrix.yaml",
       "manifest_hash": "3f04bac9e8e825dc6c9e4d743fca4331b49a9970de8d27f7a7e5f43651698b6b",
       "name": "w6_abl_03_chunking_strategy_v1",
@@ -245,64 +245,10 @@
           "reranker_enabled": true
         }
       ]
-    },
-    "prompt_generation_current_retrieval": {
-      "path": "configs/w7_abl_01_generation_prompt_matrix.yaml",
-      "manifest_hash": "43e1c336e749a48b3b8af51d58cc127599a711328827f2a371a1db763b1c47ce",
-      "name": "w7_abl_01_generation_prompt_v1",
-      "dataset_path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
-      "config_count": 3,
-      "configs": [
-        {
-          "name": "baseline_v1_flash_lite",
-          "experiment_id": "w7_abl_01_baseline_v1_flash_lite",
-          "config_hash": "db5251237290acbf3567a6c1da1ad4979a2d703e2c0b24a7de2d2ad972e655c3",
-          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
-          "prompt_template_id": "tuvi_generation_v1",
-          "generation_model": "gemini-3.1-flash-lite-preview",
-          "retrieval_paths": {
-            "graph": true,
-            "dense": false,
-            "sparse": true
-          },
-          "fusion_method": "rrf",
-          "reranker_enabled": true
-        },
-        {
-          "name": "grounded_v2_flash_lite",
-          "experiment_id": "w7_abl_01_grounded_v2_flash_lite",
-          "config_hash": "3974b524b0f763262121715fd61e0d0374fdd6e42c72003941f69418139434e4",
-          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
-          "prompt_template_id": "tuvi_generation_grounded_v2",
-          "generation_model": "gemini-3.1-flash-lite-preview",
-          "retrieval_paths": {
-            "graph": true,
-            "dense": false,
-            "sparse": true
-          },
-          "fusion_method": "rrf",
-          "reranker_enabled": true
-        },
-        {
-          "name": "structured_v3_flash_lite",
-          "experiment_id": "w7_abl_01_structured_v3_flash_lite",
-          "config_hash": "c099aacc105da68acba15b06bb08fd456f3320f5d222350cd50a71a67deca2fe",
-          "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
-          "prompt_template_id": "tuvi_generation_structured_v3",
-          "generation_model": "gemini-3.1-flash-lite-preview",
-          "retrieval_paths": {
-            "graph": true,
-            "dense": false,
-            "sparse": true
-          },
-          "fusion_method": "rrf",
-          "reranker_enabled": true
-        }
-      ]
     }
   },
   "smokes": {
-    "chunking": {
+    "chunking_prompt_source_v3": {
       "status": "passed",
       "report": "benchmark/tuvi_golden_dataset/reports_final/00_preflight/smoke_chunking/evaluation_report.json",
       "manifest_name": "w6_abl_03_chunking_strategy_v1",
@@ -321,16 +267,6 @@
       "config_count": 10,
       "completed_config_count": 10,
       "expected_pairs": 20
-    },
-    "prompt_generation_current_retrieval": {
-      "status": "passed",
-      "report": "benchmark/tuvi_golden_dataset/reports_final/00_preflight/smoke_prompt_generation_current_retrieval/evaluation_report.json",
-      "manifest_name": "w7_abl_01_generation_prompt_v1",
-      "judge_backend": "static-smoke",
-      "dataset_item_count": 2,
-      "config_count": 3,
-      "completed_config_count": 3,
-      "expected_pairs": 6
     }
   },
   "notes": [
