@@ -51,7 +51,7 @@ The comparative report remains **in_progress** only because retrieval/fusion/rer
 | Retrieval/Fusion/Reranker v2 | not started | 1000 pairs | Active remaining comparative matrix |
 | Targeted hard cases | optional; not started | diagnostic only | Run only after inspecting full matrix failures |
 
-Primary remaining live work: `10 configs x 100 = 1000` pairs for retrieval/fusion/reranker.
+Primary remaining live work: `10 configs x 100 = 1000` pairs for retrieval/fusion/reranker. The preferred execution plan is split-by-config across three teammate shards, then merge into the canonical Phase 3 report on `main`.
 
 ## 4. Next session execution order
 
@@ -60,7 +60,76 @@ Primary remaining live work: `10 configs x 100 = 1000` pairs for retrieval/fusio
 Read `benchmark/tuvi_golden_dataset/reports_final/protocol/run_registry.md` and inspect `00_preflight/`.
 Preflight completed on `2026-07-28`; rerun only after a material environment/configuration change.
 
-### Step 1 — Run/resume retrieval/fusion/reranker matrix
+### Step 1 — Run/resume retrieval/fusion/reranker matrix shards
+
+Do not let multiple people write to the canonical root output/checkpoint directory concurrently. Each teammate writes only their assigned shard under `20_retrieval_fusion_reranker_matrix/shards/`.
+
+| Shard | Manifest | Output dir | Configs | Expected |
+|---|---|---|---|---:|
+| A controls | `configs/w8_abl_01_retrieval_matrix_v2_shard_a_controls.yaml` | `.../shards/shard_a_controls` | baseline, no-reranker, weighted-sum, graph-first | 400 |
+| B single paths | `configs/w8_abl_01_retrieval_matrix_v2_shard_b_single_paths.yaml` | `.../shards/shard_b_single_paths` | graph-only, sparse-only, dense-only | 300 |
+| C dense combos | `configs/w8_abl_01_retrieval_matrix_v2_shard_c_dense_combos.yaml` | `.../shards/shard_c_dense_combos` | dense+sparse, graph+dense, all paths | 300 |
+
+Shard A:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts/run_eval.py `
+  --manifest configs/w8_abl_01_retrieval_matrix_v2_shard_a_controls.yaml `
+  --judge-backend gemini `
+  --skip-persistence `
+  --checkpoint-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_a_controls/checkpoints `
+  --output-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_a_controls `
+  --max-item-attempts 2 `
+  --retry-base-seconds 2
+```
+
+Shard B:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts/run_eval.py `
+  --manifest configs/w8_abl_01_retrieval_matrix_v2_shard_b_single_paths.yaml `
+  --judge-backend gemini `
+  --skip-persistence `
+  --checkpoint-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_b_single_paths/checkpoints `
+  --output-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_b_single_paths `
+  --max-item-attempts 2 `
+  --retry-base-seconds 2
+```
+
+Shard C:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts/run_eval.py `
+  --manifest configs/w8_abl_01_retrieval_matrix_v2_shard_c_dense_combos.yaml `
+  --judge-backend gemini `
+  --skip-persistence `
+  --checkpoint-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_c_dense_combos/checkpoints `
+  --output-dir benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_c_dense_combos `
+  --max-item-attempts 2 `
+  --retry-base-seconds 2
+```
+
+Resume any shard after interruption/quota exhaustion: rerun its exact command and append `--resume --retry-failed`. Never delete shard checkpoints.
+
+### Step 1b — Merge completed shards on `main`
+
+Run only after all three shards have `status=completed`, `judge_backend=gemini`, `failed_pair_count=0`, and expected pair counts `400/300/300`.
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts/merge_w8_retrieval_shards.py
+```
+
+The merge writes the canonical Phase 3 artifacts to:
+
+- `benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/evaluation_report.json`
+- `benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/evaluation_report.md`
+- `benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/checkpoints/checkpoint_summary.json`
+
+### Single-run fallback — only if one operator runs the full matrix
 
 ```powershell
 $env:PYTHONPATH='backend'
@@ -74,9 +143,9 @@ $env:PYTHONPATH='backend'
   --retry-base-seconds 2
 ```
 
-Resume after interruption/quota exhaustion: append `--resume --retry-failed`. Never delete checkpoints.
+Resume after interruption/quota exhaustion: append `--resume --retry-failed`. Never delete checkpoints. Do not use the single-run fallback concurrently with shard runs.
 
-Expected: `10 configs x 100 = 1000` pairs. Before accepting results, check completion, failed count, backend fallback counts, dataset/config identity, and judge backend.
+Expected canonical total after merge: `10 configs x 100 = 1000` pairs. Before accepting results, check completion, failed count, backend fallback counts, dataset/config identity, and judge backend.
 
 ### Step 2 — Optional targeted hard-case wave
 

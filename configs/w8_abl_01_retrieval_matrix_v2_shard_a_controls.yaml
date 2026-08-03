@@ -1,27 +1,15 @@
-name: w8_abl_01_priority_wave_full100
-notes: "W8 priority full-100 retrieval/fusion/reranker wave. Reuse the behavior-equivalent default_production_v2 full-100 run as the Graph+Sparse+RRF+reranker control. This wave isolates sparse-only, planner-gated dense+sparse, reranker-off, and weighted-sum variants while holding semantic BGE-M3 chunking, structured prompt v3, Gemini Flash Lite, balanced context, query rewrite off, document grading on, and cache disabled constant."
+name: w8_abl_01_retrieval_fusion_reranker_v2_shard_a_controls
+notes: "Shard A of W8 retrieval/fusion/reranker matrix v2. Contains baseline, reranker, and fusion control variants. Merge into the canonical 10-config report after all shards complete."
 dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
-output_dir: benchmark/tuvi_golden_dataset/reports/w8_abl_01_priority_wave/full100
+output_dir: benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_a_controls
 configs:
-  - name: sparse_only_rrf
+  - name: baseline_graph_sparse_rrf
     base_config_path: configs/default_production.yaml
     overrides:
-      experiment_id: w8_abl_01_sparse_only_rrf
-      name: W8 ABL 01 - sparse only RRF
-      graph_retrieval_enabled: false
+      experiment_id: w8_abl_01_baseline_graph_sparse_rrf
+      name: W8 ABL 01 - baseline graph+sparse RRF
+      graph_retrieval_enabled: true
       dense_retrieval_enabled: false
-      sparse_retrieval_enabled: true
-      fusion_method: rrf
-      reranker_config:
-        enabled: true
-
-  - name: dense_sparse_rrf
-    base_config_path: configs/default_production.yaml
-    overrides:
-      experiment_id: w8_abl_01_dense_sparse_rrf
-      name: W8 ABL 01 - planner-gated dense+sparse RRF
-      graph_retrieval_enabled: false
-      dense_retrieval_enabled: true
       sparse_retrieval_enabled: true
       fusion_method: rrf
       reranker_config:
@@ -52,5 +40,17 @@ configs:
         graph: 1.45
         dense: 1.15
         sparse: 0.80
+      reranker_config:
+        enabled: true
+
+  - name: baseline_graph_first
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_baseline_graph_first
+      name: W8 ABL 01 - baseline graph+sparse graph-first fusion
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: graph_first
       reranker_config:
         enabled: true

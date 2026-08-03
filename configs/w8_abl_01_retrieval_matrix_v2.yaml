@@ -1,5 +1,5 @@
 name: w8_abl_01_retrieval_fusion_reranker_v2
-notes: "W8 retrieval/fusion/reranker matrix v2. All variants hold semantic BGE-M3 chunking, prompt v1, Gemini Flash Lite, balanced context assembly, query rewrite off, document grading on, and cache disabled constant. Dense remains planner-gated at runtime. This matrix removes the duplicate graph+sparse cell and isolates graph_first to fusion_method only."
+notes: "W8 retrieval/fusion/reranker matrix v2. All variants hold semantic BGE-M3 chunking, structured prompt v3, Gemini Flash Lite, balanced context assembly, query rewrite off, document grading on, and cache disabled constant. Dense remains planner-gated at runtime. This matrix removes the duplicate graph+sparse cell and isolates graph_first to fusion_method only."
 dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
 output_dir: benchmark/tuvi_golden_dataset/reports/w8_abl_01/retrieval_v2
 configs:

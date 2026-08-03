@@ -924,7 +924,22 @@ def append_next_steps(lines: list[str], summary: dict[str, Any]) -> None:
     if chunking["status"] == "completed" and phases["retrieval_fusion_reranker"]["status"] == "not_started":
         lines.extend(
             [
-                "Launch Phase 3 after reviewing Phase 2 winner:",
+                "Launch Phase 3 using config shards for multi-teammate execution. Each teammate writes only their assigned shard directory; merge on `main` after all three shards complete.",
+                "",
+                "Shard manifests:",
+                "",
+                "- `configs/w8_abl_01_retrieval_matrix_v2_shard_a_controls.yaml` -> `20_retrieval_fusion_reranker_matrix/shards/shard_a_controls` (`4 x 100 = 400`)",
+                "- `configs/w8_abl_01_retrieval_matrix_v2_shard_b_single_paths.yaml` -> `20_retrieval_fusion_reranker_matrix/shards/shard_b_single_paths` (`3 x 100 = 300`)",
+                "- `configs/w8_abl_01_retrieval_matrix_v2_shard_c_dense_combos.yaml` -> `20_retrieval_fusion_reranker_matrix/shards/shard_c_dense_combos` (`3 x 100 = 300`)",
+                "",
+                "Merge completed shards:",
+                "",
+                "```powershell",
+                "$env:PYTHONPATH='backend'",
+                r".\.venv\Scripts\python.exe scripts\merge_w8_retrieval_shards.py",
+                "```",
+                "",
+                "Single-run fallback, only if one operator runs all 10 configs alone:",
                 "",
                 "```powershell",
                 "$env:PYTHONPATH='backend'",

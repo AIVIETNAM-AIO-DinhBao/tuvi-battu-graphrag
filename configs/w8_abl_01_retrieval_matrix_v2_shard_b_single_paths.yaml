@@ -1,0 +1,40 @@
+name: w8_abl_01_retrieval_fusion_reranker_v2_shard_b_single_paths
+notes: "Shard B of W8 retrieval/fusion/reranker matrix v2. Contains single retrieval-path variants. Merge into the canonical 10-config report after all shards complete."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_b_single_paths
+configs:
+  - name: graph_only_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_graph_only_rrf
+      name: W8 ABL 01 - graph only RRF
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: sparse_only_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_sparse_only_rrf
+      name: W8 ABL 01 - sparse only RRF
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: dense_only_rrf
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_dense_only_rrf
+      name: W8 ABL 01 - planner-gated dense only RRF
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config:
+        enabled: true

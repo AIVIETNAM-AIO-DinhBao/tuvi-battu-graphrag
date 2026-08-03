@@ -1,13 +1,13 @@
 # Final Ablation Report
 
 Status: **in_progress**
-Generated UTC: `2026-08-03T08:56:10.156038+00:00`
-Git SHA: `668b9f6691d505594b859629cd4249b2dbce75ac`
+Generated UTC: `2026-08-03T13:12:51.527200+00:00`
+Git SHA: `87842736e6406a98e50030912ca0847c88ba6443`
 
 Git status:
 
 ```text
-dirty (20 changed paths)
+dirty (16 changed paths)
 ```
 
 ## Dataset / Identity
@@ -159,7 +159,22 @@ Candidate selection is **pending** until the core full runs finish.
 
 ## 8. Next Steps / Resume Commands
 
-Launch Phase 3 after reviewing Phase 2 winner:
+Launch Phase 3 using config shards for multi-teammate execution. Each teammate writes only their assigned shard directory; merge on `main` after all three shards complete.
+
+Shard manifests:
+
+- `configs/w8_abl_01_retrieval_matrix_v2_shard_a_controls.yaml` -> `20_retrieval_fusion_reranker_matrix/shards/shard_a_controls` (`4 x 100 = 400`)
+- `configs/w8_abl_01_retrieval_matrix_v2_shard_b_single_paths.yaml` -> `20_retrieval_fusion_reranker_matrix/shards/shard_b_single_paths` (`3 x 100 = 300`)
+- `configs/w8_abl_01_retrieval_matrix_v2_shard_c_dense_combos.yaml` -> `20_retrieval_fusion_reranker_matrix/shards/shard_c_dense_combos` (`3 x 100 = 300`)
+
+Merge completed shards:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts\merge_w8_retrieval_shards.py
+```
+
+Single-run fallback, only if one operator runs all 10 configs alone:
 
 ```powershell
 $env:PYTHONPATH='backend'

@@ -29,7 +29,11 @@
 
 ## Pending ablation work
 
-1. Retrieval/fusion/reranker full matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, expected `10 x 100 = 1000` pairs.
+1. Retrieval/fusion/reranker full matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, expected `10 x 100 = 1000` pairs. Preferred execution is three config shards:
+   - Shard A controls: `configs/w8_abl_01_retrieval_matrix_v2_shard_a_controls.yaml`, expected `400` pairs.
+   - Shard B single paths: `configs/w8_abl_01_retrieval_matrix_v2_shard_b_single_paths.yaml`, expected `300` pairs.
+   - Shard C dense combos: `configs/w8_abl_01_retrieval_matrix_v2_shard_c_dense_combos.yaml`, expected `300` pairs.
+   - Merge completed shards with `scripts/merge_w8_retrieval_shards.py` to produce the canonical Phase 3 report.
 2. Optional targeted hard-case diagnostic wave after full matrix analysis.
 3. Rebuild final report after each wave with:
 

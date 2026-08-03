@@ -16,7 +16,7 @@ Frozen before launching live ablation waves on 2026-07-28. Updated on 2026-08-03
    - Source wave A: `configs/w6_abl_03_chunking_matrix.yaml` → `reports_final/10_chunking_strategy_ablation`; 3 prompt-v3 cells.
    - Source wave B: `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml` → `reports_final/11_chunking_prompt_interaction_v1_v2`; 6 prompt-v1/v2 cells.
    - Interpretation rule: these are source waves of one study, not two separate final ablation studies.
-2. **Retrieval / fusion / reranker matrix**: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, `10 configs x 100 items = 1000 pairs`; active remaining matrix.
+2. **Retrieval / fusion / reranker matrix**: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, `10 configs x 100 items = 1000 pairs`; active remaining matrix. It may be executed as three config shards under `20_retrieval_fusion_reranker_matrix/shards/`, then merged into the canonical root report with `scripts/merge_w8_retrieval_shards.py`.
 3. **Targeted hard-case diagnostics**: optional, not pooled into full-100 aggregate metrics.
 
 ## Validity gates
@@ -27,6 +27,8 @@ A wave is valid for analysis only if:
 - no identity mismatch across resume;
 - no retrieval backend fallback, generation backend fallback, or judge backend systemic failure;
 - dataset SHA/config hashes/manifest fingerprint are recorded.
+
+For sharded retrieval execution, each shard must also satisfy `judge_backend=gemini`, full assigned pair count, and `failed_pair_count=0`; the merged canonical report must contain exactly the 10 configs from `configs/w8_abl_01_retrieval_matrix_v2.yaml` in canonical manifest order, with no duplicate or missing config.
 
 ## Main metrics
 

@@ -1040,7 +1040,7 @@ Mục tiêu: hệ thống ổn định, docs đầy đủ, final evaluation và 
 
 **What to do:**
 - Tạo matrix v2 gồm 10 config retrieval/fusion/reranker độc lập.
-- Giữ semantic BGE-M3 chunking, prompt v1, Gemini Flash Lite, balanced context, query rewrite off cố định.
+- Giữ semantic BGE-M3 chunking, structured prompt v3, Gemini Flash Lite, balanced context, query rewrite off cố định.
 - Loại duplicate graph+sparse và không trộn graph-first fusion với graph-first context assembly.
 - Giữ dense planner-gated nhưng dùng cùng chunk strategy với non-dense variants.
 

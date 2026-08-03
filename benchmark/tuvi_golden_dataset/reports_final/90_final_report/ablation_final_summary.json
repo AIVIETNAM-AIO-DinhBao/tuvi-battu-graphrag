@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-08-03T08:38:29.335862+00:00",
-  "git_sha": "668b9f6691d505594b859629cd4249b2dbce75ac",
-  "git_status_short": "M PLAN.md\n M PROGRESS.md\n M benchmark/tuvi_golden_dataset/reports_final/00_preflight/preflight_summary.json\n M benchmark/tuvi_golden_dataset/reports_final/00_preflight/preflight_summary.md\n M benchmark/tuvi_golden_dataset/reports_final/90_final_report/ablation_final_report.md\n M benchmark/tuvi_golden_dataset/reports_final/90_final_report/ablation_final_summary.json\n M benchmark/tuvi_golden_dataset/reports_final/ablation_final_summary.json\n M benchmark/tuvi_golden_dataset/reports_final/protocol/commands.md\n M benchmark/tuvi_golden_dataset/reports_final/protocol/method_protocol.md\n M benchmark/tuvi_golden_dataset/reports_final/protocol/next_session_handoff.md\n M benchmark/tuvi_golden_dataset/reports_final/protocol/run_registry.md\n M evaluation/ablation_final_report.md\n M evaluation/report_final.md\n M scripts/build_final_ablation_report.py\n M scripts/build_preflight_summary.py",
+  "generated_at_utc": "2026-08-03T13:12:51.540562+00:00",
+  "git_sha": "87842736e6406a98e50030912ca0847c88ba6443",
+  "git_status_short": "dirty (16 changed paths)",
   "dataset": {
     "path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
     "item_count": 100,
@@ -19513,7 +19513,7 @@
       "manifest": {
         "status": "loaded",
         "path": "configs/w8_abl_01_retrieval_matrix_v2.yaml",
-        "manifest_hash": "a1f299ebd93f16b7ac6e7f205da00e9147ba91e8f41cd92f0dc66efa1e179b37",
+        "manifest_hash": "422ea226688a998ef883f5c50fa55f0b625d2c39fd447cf79095326a241a9dcf",
         "name": "w8_abl_01_retrieval_fusion_reranker_v2",
         "dataset_path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
         "dataset_item_count": 100,
@@ -19758,7 +19758,7 @@
       "manifest": {
         "status": "loaded",
         "path": "configs/w8_abl_01_priority_wave.yaml",
-        "manifest_hash": "1e323460d852ebf741cbb38a9464ecb7a9cf6f7d72dfc9cc1c5c5729425fee6d",
+        "manifest_hash": "c2dda6c0fd5e01be98e7eebd763538fa78c3bc9eb21a6801fec40eada5a0a622",
         "name": "w8_abl_01_priority_wave_full100",
         "dataset_path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
         "dataset_item_count": 100,
