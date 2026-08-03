@@ -16,6 +16,8 @@ Frozen before launching live ablation waves on 2026-07-28. Deploy/production ope
 2. Retrieval / fusion / reranker matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, 10 configs x 100 items = 1000 pairs.
 3. Prompt / generation ablation: `configs/w7_abl_01_generation_prompt_matrix.yaml` or a v2 prompt matrix built on the Phase 3 retrieval winner, 3 configs x 100 items = 300 pairs.
 
+Supporting interaction wave (already completed): `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml`, 6 configs x 100 items = 600 pairs. This jointly varies chunking and prompt; it is supporting interaction evidence and must not replace the single-axis conclusions above.
+
 ## Validity gates
 
 A wave is valid for analysis only if:

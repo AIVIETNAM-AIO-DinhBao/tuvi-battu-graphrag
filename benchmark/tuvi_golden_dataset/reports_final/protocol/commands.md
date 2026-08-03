@@ -40,6 +40,24 @@ $env:PYTHONPATH='backend'
 
 Resume: same command plus `--resume --retry-failed`.
 
+## Phase 2B chunking × prompt interaction v1/v2
+
+This supporting wave varies `chunk_strategy_id` and `prompt_template_id` jointly. Treat it as interaction evidence, not as a replacement for the single-axis chunking or prompt ablations.
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts/run_eval.py `
+  --manifest configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml `
+  --judge-backend gemini `
+  --skip-persistence `
+  --checkpoint-dir benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2/checkpoints `
+  --output-dir benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2 `
+  --max-item-attempts 2 `
+  --retry-base-seconds 2
+```
+
+Resume: same command plus `--resume --retry-failed`.
+
 ## Phase 3 full retrieval/fusion/reranker matrix
 
 ```powershell

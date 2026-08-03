@@ -1,4 +1,56 @@
-﻿# Progress Report - Week 1 & Week 2 (Partial)
+﻿# Current Progress Update — Full Ablation Track
+
+**Scope update:** từ `2026-08-03`, project execution đã pivot từ deploy/production work sang **reproducible full ablation experiments**. Các mục deploy/production ops không còn là blocker cho tiến độ hiện tại.
+
+## Canonical artifacts
+
+- `benchmark/tuvi_golden_dataset/reports_final/protocol/next_session_handoff.md`
+- `benchmark/tuvi_golden_dataset/reports_final/protocol/run_registry.md`
+- `benchmark/tuvi_golden_dataset/reports_final/protocol/commands.md`
+- `benchmark/tuvi_golden_dataset/reports_final/ablation_final_summary.json`
+- `evaluation/ablation_final_report.md`
+
+## Current experiment identity
+
+- Dataset: `benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl`
+- Dataset size: `100` golden items
+- Official judge backend: `gemini`
+- Persistence policy: `--skip-persistence`; local checkpoint/report artifacts are source of truth
+- Deploy/production ops: **deferred/out of current scope**
+
+## Completed ablation evidence
+
+- Preflight gates completed: backend regression subset, Gemini probe, Neo4j chunk coverage, offline smoke manifests.
+- Chunking single-axis ablation completed: `3 configs x 100 = 300/300`, failed `0`.
+  - Manifest: `configs/w6_abl_03_chunking_matrix.yaml`
+  - Output: `benchmark/tuvi_golden_dataset/reports_final/10_chunking_strategy_ablation`
+- Chunking × prompt interaction supporting wave completed: `6 configs x 100 = 600/600`, failed `0`.
+  - Manifest: `configs/w8_abl_02_chunking_prompt_interaction_v1_v2.yaml`
+  - Output: `benchmark/tuvi_golden_dataset/reports_final/11_chunking_prompt_interaction_v1_v2`
+  - Note: this varies more than one factor jointly; use as supporting evidence only, not as a single-axis chunking or prompt conclusion.
+
+## Pending ablation work
+
+1. Retrieval/fusion/reranker full matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`, expected `10 x 100 = 1000` pairs.
+2. Prompt/generation ablation after retrieval control is frozen, expected `3 x 100 = 300` pairs.
+3. Optional targeted hard-case diagnostic wave after full matrix analysis.
+4. Rebuild final report after each wave with:
+
+```powershell
+$env:PYTHONPATH='backend'
+.\.venv\Scripts\python.exe scripts/build_final_ablation_report.py
+```
+
+## Documentation rule going forward
+
+- Do not overwrite completed manifests/results.
+- Do not treat Supabase `experiment_runs` as a blocker while local artifacts are valid.
+- Do not modify `configs/default_production.yaml` for experiment candidates; create a new eval candidate config after evidence is complete.
+- Keep deploy/production notes below as historical context only.
+
+---
+
+# Historical Progress Report - Week 1 & Week 2 (Partial)
 
 ## âœ“ Week 1 Completed Tasks
 

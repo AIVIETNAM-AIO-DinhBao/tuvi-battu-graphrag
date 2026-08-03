@@ -81,6 +81,15 @@ PHASES = [
         expected_note="3 x 100 = 300",
     ),
     PhaseSpec(
+        key="chunking_prompt_interaction_v1_v2",
+        label="Chunking × Prompt Interaction (v1/v2)",
+        axis="chunking_prompt_interaction",
+        manifest=ROOT / "configs" / "w8_abl_02_chunking_prompt_interaction_v1_v2.yaml",
+        output_dir=DEFAULT_BASE / "11_chunking_prompt_interaction_v1_v2",
+        expected_note="6 x 100 = 600",
+        required_for_final=False,
+    ),
+    PhaseSpec(
         key="retrieval_fusion_reranker",
         label="Retrieval / Fusion / Reranker Matrix v2",
         axis="retrieval",
@@ -339,6 +348,11 @@ def manifest_config_rows(manifest_path: Path) -> tuple[dict[str, Any], list[dict
 def variable_summary(axis: str, config: dict[str, Any]) -> str:
     if axis == "chunking":
         return f"chunk={config.get('chunk_strategy_id', 'n/a')}"
+    if axis == "chunking_prompt_interaction":
+        return (
+            f"chunk={config.get('chunk_strategy_id', 'n/a')}; "
+            f"prompt={config.get('prompt_template_id', 'n/a')}"
+        )
     if axis == "prompt":
         return (
             f"prompt={config.get('prompt_template_id', 'n/a')}; "
@@ -582,6 +596,14 @@ def append_axis_winners(lines: list[str], summary: dict[str, Any]) -> None:
         f"| Best chunking strategy | {winner_text(phases.get('chunking_strategy'))} | "
         "Chosen by the report heuristic over Context Recall, Faithfulness, Relevancy, Citation Coverage, Graph Hit and p95 latency. |"
     )
+    interaction = phases.get("chunking_prompt_interaction_v1_v2")
+    interaction_detail = "supporting evidence only; this phase changes chunking and prompt jointly"
+    if interaction and interaction.get("ranked_configs"):
+        interaction_detail = variable_summary("chunking_prompt_interaction", interaction["ranked_configs"][0]["row"])
+    lines.append(
+        f"| Best chunking × prompt interaction | {winner_text(interaction)} | "
+        f"{interaction_detail}; do not interpret as chunking-only or prompt-only evidence. |"
+    )
     retrieval = phases.get("retrieval_fusion_reranker")
     retrieval_winner = winner_text(retrieval)
     retrieval_detail = "pending"
@@ -792,6 +814,7 @@ def write_markdown(summary: dict[str, Any], output_path: Path) -> None:
         "- Official conclusion rows require `judge_backend=gemini`; offline smoke is not used as final evidence.",
         "- Supabase persistence is intentionally non-blocking; local artifacts and checkpoints are the source of truth.",
         "- `Score` is a transparent report heuristic for ranking only, not a replacement for individual metrics.",
+        "- Interaction phases vary more than one factor jointly; use them as supporting evidence, not as replacements for single-axis ablations.",
         "",
     ]
     append_phase_status(lines, summary)

@@ -6,6 +6,39 @@
 **Thời gian thực hiện:** 7-8 tuần
 **Định dạng:** Task chia theo tuần, không gán theo thành viên. Team tự phân công nội bộ.
 
+## Current Scope Override — Full Ablation Only
+
+**Cập nhật scope:** từ `2026-08-03`, toàn bộ task liên quan deploy/production ops được **defer**. Tài liệu kế hoạch gốc bên dưới vẫn được giữ để bảo toàn lịch sử/spec, nhưng kế hoạch thực thi hiện tại ưu tiên duy nhất cho **thực nghiệm ablation reproducible trên golden dataset 100 item**.
+
+### Out of scope hiện tại
+
+- Vercel/Render deployment.
+- Production hardening, production monitoring/ops, release checklist.
+- Supabase `experiment_runs` persistence nếu còn lỗi schema/cache; không được block thực nghiệm.
+- Ghi đè `configs/default_production.yaml` trước khi có evidence đầy đủ.
+
+### In scope hiện tại
+
+- Preflight local: backend regression subset, Gemini probe, Neo4j source/strategy coverage, offline smoke manifests.
+- Full chunking strategy ablation trên `benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl` đủ 100 item.
+- Full retrieval/fusion/reranker matrix với checkpoint/resume.
+- Prompt/generation ablation sau khi retrieval control được chọn.
+- Optional targeted hard-case diagnostic wave, tách riêng khỏi full-100 aggregate.
+- Final ablation report: `evaluation/ablation_final_report.md`.
+- Nếu cần candidate mới cho research/eval thì tạo file mới như `configs/eval_candidate_v3.yaml`; không ghi đè config production mặc định.
+
+### Roadmap thực thi hiện tại
+
+1. Đọc và giữ frozen protocol trong `benchmark/tuvi_golden_dataset/reports_final/protocol/`.
+2. Không rerun các wave đã complete nếu không có thay đổi môi trường/cấu hình vật chất.
+3. Chạy/resume retrieval/fusion/reranker full matrix: `configs/w8_abl_01_retrieval_matrix_v2.yaml`.
+4. Sau Phase 3, chọn prompt control: dùng manifest hiện tại hoặc tạo prompt matrix trên retrieval winner.
+5. Chạy prompt/generation ablation full-100.
+6. Optional: chạy targeted hard-case wave sau khi phân tích lỗi full matrix.
+7. Rebuild report sau mỗi wave bằng `scripts/build_final_ablation_report.py`.
+
+Canonical handoff hiện tại: `benchmark/tuvi_golden_dataset/reports_final/protocol/next_session_handoff.md`.
+
 ***
 
 ## Cách đọc tài liệu này
