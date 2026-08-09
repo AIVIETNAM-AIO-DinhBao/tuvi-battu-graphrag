@@ -1,0 +1,11 @@
+{
+  "current_config": "dense_only_rrf",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 248,
+  "expected_pair_count": 300,
+  "failed_pair_count": 0,
+  "processed_pair_count": 300,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 52,
+  "updated_at": "2026-08-09T17:59:50.730595Z"
+}
