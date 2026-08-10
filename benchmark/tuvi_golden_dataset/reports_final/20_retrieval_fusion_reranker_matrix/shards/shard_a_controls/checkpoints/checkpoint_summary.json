@@ -1,0 +1,11 @@
+{
+  "current_config": "baseline_graph_first",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 0,
+  "expected_pair_count": 400,
+  "failed_pair_count": 0,
+  "processed_pair_count": 400,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 400,
+  "updated_at": "2026-08-06T09:13:51.154261Z"
+}
