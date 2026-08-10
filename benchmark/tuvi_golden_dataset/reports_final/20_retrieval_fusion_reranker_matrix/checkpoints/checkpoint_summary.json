@@ -1,0 +1,71 @@
+{
+  "current_config": "baseline_graph_first",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 249,
+  "expected_pair_count": 1000,
+  "failed_pair_count": 0,
+  "merge_policy": {
+    "canonical_config_order": [
+      "baseline_graph_sparse_rrf",
+      "graph_only_rrf",
+      "sparse_only_rrf",
+      "dense_only_rrf",
+      "dense_sparse_rrf",
+      "graph_dense_rrf",
+      "all_paths_planner_dense_rrf",
+      "baseline_no_reranker",
+      "baseline_weighted_sum",
+      "baseline_graph_first"
+    ],
+    "require_completed": true,
+    "strategy": "config_shard_concatenation"
+  },
+  "processed_pair_count": 1000,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 751,
+  "source_shard_reports": [
+    {
+      "config_count": 4,
+      "execution_summary": {
+        "completed_pair_count": 400,
+        "executed_pair_count": 0,
+        "expected_pair_count": 400,
+        "failed_pair_count": 0,
+        "resumed_pair_count": 400
+      },
+      "manifest_name": "w8_abl_01_retrieval_fusion_reranker_v2_shard_a_controls",
+      "output_dir": "benchmark\\tuvi_golden_dataset\\reports_final\\20_retrieval_fusion_reranker_matrix\\shards\\shard_a_controls",
+      "path": "benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_a_controls/evaluation_report.json",
+      "status": "completed"
+    },
+    {
+      "config_count": 3,
+      "execution_summary": {
+        "completed_pair_count": 300,
+        "executed_pair_count": 248,
+        "expected_pair_count": 300,
+        "failed_pair_count": 0,
+        "resumed_pair_count": 52
+      },
+      "manifest_name": "w8_abl_01_retrieval_fusion_reranker_v2_shard_b_single_paths",
+      "output_dir": "benchmark\\tuvi_golden_dataset\\reports_final\\20_retrieval_fusion_reranker_matrix\\shards\\shard_b_single_paths",
+      "path": "benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_b_single_paths/evaluation_report.json",
+      "status": "completed"
+    },
+    {
+      "config_count": 3,
+      "execution_summary": {
+        "completed_pair_count": 300,
+        "executed_pair_count": 1,
+        "expected_pair_count": 300,
+        "failed_pair_count": 0,
+        "resumed_pair_count": 299
+      },
+      "manifest_name": "w8_abl_01_retrieval_fusion_reranker_v2_shard_c_dense_combos",
+      "output_dir": "benchmark\\tuvi_golden_dataset\\reports_final\\20_retrieval_fusion_reranker_matrix\\shards\\shard_c_dense_combos",
+      "path": "benchmark/tuvi_golden_dataset/reports_final/20_retrieval_fusion_reranker_matrix/shards/shard_c_dense_combos/evaluation_report.json",
+      "status": "completed"
+    }
+  ],
+  "updated_at": "2026-08-10T15:29:44.695847Z"
+}

@@ -62,6 +62,22 @@ def normalize_path(raw_path: Any) -> Path:
     return (ROOT / path).resolve()
 
 
+def dataset_path_matches(raw_path: Any, expected_path: Path) -> bool:
+    """Match a shard dataset path across independently located workspaces.
+
+    Evaluation reports may record an absolute Windows path from the teammate's
+    checkout.  The machine performing the canonical merge usually has a
+    different repository root, so absolute-path equality alone would reject a
+    valid shard.  Keep the comparison strict by requiring the canonical
+    project-relative dataset suffix whenever the absolute roots differ.
+    """
+
+    reported = str(raw_path or "").replace("\\", "/").rstrip("/").casefold()
+    expected_absolute = expected_path.resolve().as_posix().rstrip("/").casefold()
+    expected_relative = posix(expected_path.resolve()).rstrip("/").casefold()
+    return reported in {expected_absolute, expected_relative} or reported.endswith(f"/{expected_relative}")
+
+
 def manifest_fingerprint(manifest) -> str:
     return sha256_json(
         {
@@ -134,7 +150,7 @@ def validate_shard_report(
     errors: list[str] = []
     if report.get("judge_backend") != EXPECTED_JUDGE_BACKEND:
         errors.append(f"judge_backend must be {EXPECTED_JUDGE_BACKEND!r}, got {report.get('judge_backend')!r}")
-    if normalize_path(report.get("dataset_path")) != dataset_path.resolve():
+    if not dataset_path_matches(report.get("dataset_path"), dataset_path):
         errors.append(f"dataset_path mismatch: {report.get('dataset_path')!r} != {posix(dataset_path)!r}")
     if report.get("dataset_item_count") != expected_item_count:
         errors.append(f"dataset_item_count must be {expected_item_count}, got {report.get('dataset_item_count')!r}")

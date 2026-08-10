@@ -228,3 +228,17 @@ def test_w8_retrieval_merge_script_combines_completed_shards(tmp_path: Path) -> 
     assert (output_dir / "evaluation_report.json").exists()
     assert (output_dir / "evaluation_report.md").exists()
     assert (output_dir / "checkpoints" / "checkpoint_summary.json").exists()
+
+
+def test_w8_retrieval_merge_accepts_canonical_dataset_from_another_workspace() -> None:
+    module = load_merge_script_module()
+    expected_path = ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "release" / "tuviqa_v1_release.jsonl"
+
+    assert module.dataset_path_matches(
+        r"D:\other-workspace\tuvi-battu-graphrag\benchmark\tuvi_golden_dataset\release\tuviqa_v1_release.jsonl",
+        expected_path,
+    )
+    assert not module.dataset_path_matches(
+        r"D:\other-workspace\tuvi-battu-graphrag\benchmark\tuvi_golden_dataset\release\different_dataset.jsonl",
+        expected_path,
+    )
