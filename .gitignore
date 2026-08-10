@@ -26,3 +26,6 @@ models/
 benchmark/tuvi_golden_dataset/gemini_call/entities/
 benchmark/tuvi_golden_dataset/gemini_call/payloads/
 benchmark/tuvi_golden_dataset/gemini_call/embeddings/
+
+# Local model archive (never commit)
+models.zip
