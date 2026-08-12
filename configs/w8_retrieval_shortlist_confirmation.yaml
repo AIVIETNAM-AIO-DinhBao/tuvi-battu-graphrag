@@ -1,0 +1,43 @@
+name: w8_retrieval_shortlist_confirmation
+notes: "Controlled single-machine confirmation of the W8 retrieval shortlist. Holds semantic BGE-M3 chunking, structured prompt v3, Gemini Flash Lite, balanced context assembly, query rewrite off, document grading on, cache disabled, release dataset, and Gemini judging constant. It isolates Graph+Sparse RRF reranker on/off and Graph+Dense RRF reranker on. Artifacts are intentionally separate from the canonical W8 matrix."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports_final/50_retrieval_shortlist_confirmation
+configs:
+  - name: semantic_gs_rrf_rerank_on_control
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_shortlist_semantic_gs_rrf_rerank_on_control
+      name: W8 shortlist - semantic Graph+Sparse RRF reranker on control
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+
+  - name: semantic_gs_rrf_rerank_off_candidate
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_shortlist_semantic_gs_rrf_rerank_off_candidate
+      name: W8 shortlist - semantic Graph+Sparse RRF reranker off candidate
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: false
+
+  - name: semantic_gd_rrf_rerank_on_quality
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_shortlist_semantic_gd_rrf_rerank_on_quality
+      name: W8 shortlist - semantic Graph+Dense RRF reranker on quality challenger
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
