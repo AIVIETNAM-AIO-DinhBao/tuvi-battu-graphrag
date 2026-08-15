@@ -1,0 +1,283 @@
+{
+  "generated_at": "2026-08-15T01:35:28.786497Z",
+  "report_path": "benchmark/tuvi_golden_dataset/reports_final/52_reranker_top_k_sweep/evaluation_report.json",
+  "execution_summary": {
+    "completed_pair_count": 400,
+    "executed_pair_count": 0,
+    "expected_pair_count": 400,
+    "failed_pair_count": 0,
+    "resumed_pair_count": 400
+  },
+  "configs": {
+    "k10": {
+      "config_name": "semantic_gs_rrf_rerank_k10_control",
+      "reranker_enabled": true,
+      "faithfulness_avg": 0.888,
+      "answer_relevancy_avg": 0.795,
+      "context_recall_avg": 0.7088,
+      "citation_coverage_rate": 0.9863,
+      "graph_hit_rate": 0.967,
+      "retrieval_p95_ms": 163993.71,
+      "p95_latency_ms": 175499.24,
+      "mean_fused_candidates": 72.6154,
+      "mean_reranked_candidates": 9.8901,
+      "mean_graded_candidates": 8.9011,
+      "mean_context_selected": 7.4396
+    },
+    "k20": {
+      "config_name": "semantic_gs_rrf_rerank_k20",
+      "reranker_enabled": true,
+      "faithfulness_avg": 0.914,
+      "answer_relevancy_avg": 0.808,
+      "context_recall_avg": 0.7484,
+      "citation_coverage_rate": 0.989,
+      "graph_hit_rate": 0.967,
+      "retrieval_p95_ms": 143343.65,
+      "p95_latency_ms": 156730.69,
+      "mean_fused_candidates": 72.6154,
+      "mean_reranked_candidates": 19.7802,
+      "mean_graded_candidates": 16.978,
+      "mean_context_selected": 8.6044
+    },
+    "k40": {
+      "config_name": "semantic_gs_rrf_rerank_k40",
+      "reranker_enabled": true,
+      "faithfulness_avg": 0.906,
+      "answer_relevancy_avg": 0.83,
+      "context_recall_avg": 0.7571,
+      "citation_coverage_rate": 0.989,
+      "graph_hit_rate": 0.967,
+      "retrieval_p95_ms": 162516.16,
+      "p95_latency_ms": 168191.23,
+      "mean_fused_candidates": 72.6154,
+      "mean_reranked_candidates": 39.5604,
+      "mean_graded_candidates": 29.6374,
+      "mean_context_selected": 8.8571
+    },
+    "no_rerank": {
+      "config_name": "semantic_gs_rrf_no_rerank_reference",
+      "reranker_enabled": false,
+      "faithfulness_avg": 0.888,
+      "answer_relevancy_avg": 0.815,
+      "context_recall_avg": 0.7407,
+      "citation_coverage_rate": 0.989,
+      "graph_hit_rate": 0.967,
+      "retrieval_p95_ms": 8321.1,
+      "p95_latency_ms": 21543.56,
+      "mean_fused_candidates": 72.6154,
+      "mean_reranked_candidates": 72.6154,
+      "mean_graded_candidates": 40.6813,
+      "mean_context_selected": 8.8681
+    }
+  },
+  "paired_comparisons": [
+    {
+      "label": "Top-k 20 vs top-k 10",
+      "left_config": "semantic_gs_rrf_rerank_k10_control",
+      "right_config": "semantic_gs_rrf_rerank_k20",
+      "shared_item_count": 100,
+      "metrics": {
+        "faithfulness": {
+          "n": 100,
+          "mean_delta_right_minus_left": 0.026,
+          "bootstrap_95_ci": [
+            -0.01,
+            0.062
+          ],
+          "right_better_count": 22,
+          "same_count": 67,
+          "right_worse_count": 11
+        },
+        "answer_relevancy": {
+          "n": 100,
+          "mean_delta_right_minus_left": 0.013,
+          "bootstrap_95_ci": [
+            -0.028,
+            0.052
+          ],
+          "right_better_count": 34,
+          "same_count": 44,
+          "right_worse_count": 22
+        },
+        "context_recall": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.03956,
+          "bootstrap_95_ci": [
+            -0.006593,
+            0.085714
+          ],
+          "right_better_count": 32,
+          "same_count": 44,
+          "right_worse_count": 15
+        },
+        "citation_coverage": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.002747,
+          "bootstrap_95_ci": [
+            0.0,
+            0.008242
+          ],
+          "right_better_count": 1,
+          "same_count": 90,
+          "right_worse_count": 0
+        }
+      }
+    },
+    {
+      "label": "Top-k 40 vs top-k 10",
+      "left_config": "semantic_gs_rrf_rerank_k10_control",
+      "right_config": "semantic_gs_rrf_rerank_k40",
+      "shared_item_count": 100,
+      "metrics": {
+        "faithfulness": {
+          "n": 100,
+          "mean_delta_right_minus_left": 0.018,
+          "bootstrap_95_ci": [
+            -0.017,
+            0.052
+          ],
+          "right_better_count": 22,
+          "same_count": 67,
+          "right_worse_count": 11
+        },
+        "answer_relevancy": {
+          "n": 100,
+          "mean_delta_right_minus_left": 0.035,
+          "bootstrap_95_ci": [
+            -0.0,
+            0.072
+          ],
+          "right_better_count": 36,
+          "same_count": 45,
+          "right_worse_count": 19
+        },
+        "context_recall": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.048352,
+          "bootstrap_95_ci": [
+            0.003846,
+            0.093407
+          ],
+          "right_better_count": 35,
+          "same_count": 41,
+          "right_worse_count": 15
+        },
+        "citation_coverage": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.002747,
+          "bootstrap_95_ci": [
+            0.0,
+            0.008242
+          ],
+          "right_better_count": 1,
+          "same_count": 90,
+          "right_worse_count": 0
+        }
+      }
+    },
+    {
+      "label": "Top-k 20 vs no-rerank reference",
+      "left_config": "semantic_gs_rrf_no_rerank_reference",
+      "right_config": "semantic_gs_rrf_rerank_k20",
+      "shared_item_count": 100,
+      "metrics": {
+        "faithfulness": {
+          "n": 100,
+          "mean_delta_right_minus_left": 0.026,
+          "bootstrap_95_ci": [
+            -0.014,
+            0.066
+          ],
+          "right_better_count": 25,
+          "same_count": 63,
+          "right_worse_count": 12
+        },
+        "answer_relevancy": {
+          "n": 100,
+          "mean_delta_right_minus_left": -0.007,
+          "bootstrap_95_ci": [
+            -0.05,
+            0.034
+          ],
+          "right_better_count": 27,
+          "same_count": 48,
+          "right_worse_count": 25
+        },
+        "context_recall": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.007692,
+          "bootstrap_95_ci": [
+            -0.041786,
+            0.056044
+          ],
+          "right_better_count": 24,
+          "same_count": 47,
+          "right_worse_count": 20
+        },
+        "citation_coverage": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.0,
+          "bootstrap_95_ci": [
+            0.0,
+            0.0
+          ],
+          "right_better_count": 0,
+          "same_count": 91,
+          "right_worse_count": 0
+        }
+      }
+    },
+    {
+      "label": "Top-k 40 vs no-rerank reference",
+      "left_config": "semantic_gs_rrf_no_rerank_reference",
+      "right_config": "semantic_gs_rrf_rerank_k40",
+      "shared_item_count": 100,
+      "metrics": {
+        "faithfulness": {
+          "n": 100,
+          "mean_delta_right_minus_left": 0.018,
+          "bootstrap_95_ci": [
+            -0.023,
+            0.057
+          ],
+          "right_better_count": 23,
+          "same_count": 64,
+          "right_worse_count": 13
+        },
+        "answer_relevancy": {
+          "n": 100,
+          "mean_delta_right_minus_left": 0.015,
+          "bootstrap_95_ci": [
+            -0.018,
+            0.047
+          ],
+          "right_better_count": 30,
+          "same_count": 46,
+          "right_worse_count": 24
+        },
+        "context_recall": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.016484,
+          "bootstrap_95_ci": [
+            -0.028036,
+            0.06044
+          ],
+          "right_better_count": 30,
+          "same_count": 38,
+          "right_worse_count": 23
+        },
+        "citation_coverage": {
+          "n": 91,
+          "mean_delta_right_minus_left": 0.0,
+          "bootstrap_95_ci": [
+            0.0,
+            0.0
+          ],
+          "right_better_count": 0,
+          "same_count": 91,
+          "right_worse_count": 0
+        }
+      }
+    }
+  ]
+}
