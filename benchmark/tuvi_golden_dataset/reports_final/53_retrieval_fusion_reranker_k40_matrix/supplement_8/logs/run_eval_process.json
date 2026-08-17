@@ -1,0 +1,7 @@
+﻿{
+    "Pid":  13064,
+    "StartedAt":  "2026-08-15T13:51:20.3243428+07:00",
+    "OutputLog":  "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports_final\\53_retrieval_fusion_reranker_k40_matrix\\supplement_8\\logs\\run_eval.stdout.log",
+    "ErrorLog":  "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports_final\\53_retrieval_fusion_reranker_k40_matrix\\supplement_8\\logs\\run_eval.stderr.log",
+    "Command":  ".\\.venv\\Scripts\\python.exe scripts\\run_eval.py --manifest configs\\w8_abl_01_retrieval_matrix_v3_reranker_k40_supplement_8.yaml --judge-backend gemini --skip-persistence --checkpoint-dir benchmark\\tuvi_golden_dataset\\reports_final\\53_retrieval_fusion_reranker_k40_matrix\\supplement_8\\checkpoints --output-dir benchmark\\tuvi_golden_dataset\\reports_final\\53_retrieval_fusion_reranker_k40_matrix\\supplement_8 --max-item-attempts 2 --retry-base-seconds 2"
+}
