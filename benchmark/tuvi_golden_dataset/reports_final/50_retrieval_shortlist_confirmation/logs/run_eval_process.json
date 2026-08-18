@@ -1,7 +1,0 @@
-﻿{
-    "Pid":  16612,
-    "StartedAt":  "2026-08-12T08:26:09.7663572+07:00",
-    "OutputLog":  "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports_final\\50_retrieval_shortlist_confirmation\\logs\\run_eval.stdout.log",
-    "ErrorLog":  "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports_final\\50_retrieval_shortlist_confirmation\\logs\\run_eval.stderr.log",
-    "Command":  ".\\.venv\\Scripts\\python.exe scripts\\run_eval.py --manifest configs\\w8_retrieval_shortlist_confirmation.yaml --judge-backend gemini --skip-persistence --checkpoint-dir benchmark\\tuvi_golden_dataset\\reports_final\\50_retrieval_shortlist_confirmation\\checkpoints --output-dir benchmark\\tuvi_golden_dataset\\reports_final\\50_retrieval_shortlist_confirmation --max-item-attempts 2 --retry-base-seconds 2"
-}

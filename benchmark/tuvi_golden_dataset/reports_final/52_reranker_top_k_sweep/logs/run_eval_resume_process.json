@@ -1,7 +1,0 @@
-﻿{
-    "Pid":  7944,
-    "StartedAt":  "2026-08-14T19:49:48.5730847+07:00",
-    "OutputLog":  "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports_final\\52_reranker_top_k_sweep\\logs\\run_eval_resume.stdout.log",
-    "ErrorLog":  "D:\\University\\Năm 3 ĐH\\Kì 3 (18th6)\\Text Mining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\reports_final\\52_reranker_top_k_sweep\\logs\\run_eval_resume.stderr.log",
-    "Command":  ".\\.venv\\Scripts\\python.exe scripts\\run_eval.py --manifest configs\\w8_reranker_top_k_sweep.yaml --judge-backend gemini --skip-persistence --checkpoint-dir benchmark\\tuvi_golden_dataset\\reports_final\\52_reranker_top_k_sweep\\checkpoints --output-dir benchmark\\tuvi_golden_dataset\\reports_final\\52_reranker_top_k_sweep --max-item-attempts 2 --retry-base-seconds 2 --resume --retry-failed"
-}
