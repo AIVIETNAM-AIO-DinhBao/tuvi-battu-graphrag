@@ -1,0 +1,59 @@
+name: w8_reranker_top_k_sweep
+notes: "Controlled Phase 52 top-k sweep for the model-backed reranker. Holds semantic BGE-M3 chunking, structured prompt v3, Gemini Flash Lite, Graph+Sparse retrieval, RRF fusion, query rewrite off, document grading on, balanced context assembly, cache disabled, release dataset, and Gemini judging constant. It tests whether the Phase 50 reranker regression is caused by pruning the fused candidate pool to top 10 before document grading/context assembly. Artifacts are separate from W8 and Phase 50."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports_final/52_reranker_top_k_sweep
+configs:
+  - name: semantic_gs_rrf_rerank_k10_control
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_reranker_top_k_semantic_gs_rrf_k10_control
+      name: W8 reranker top-k sweep - semantic Graph+Sparse RRF top 10 control
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+        top_k: 10
+
+  - name: semantic_gs_rrf_rerank_k20
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_reranker_top_k_semantic_gs_rrf_k20
+      name: W8 reranker top-k sweep - semantic Graph+Sparse RRF top 20
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+        top_k: 20
+
+  - name: semantic_gs_rrf_rerank_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_reranker_top_k_semantic_gs_rrf_k40
+      name: W8 reranker top-k sweep - semantic Graph+Sparse RRF top 40
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+        top_k: 40
+
+  - name: semantic_gs_rrf_no_rerank_reference
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_reranker_top_k_semantic_gs_rrf_no_rerank_reference
+      name: W8 reranker top-k sweep - semantic Graph+Sparse RRF no-rerank reference
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: false

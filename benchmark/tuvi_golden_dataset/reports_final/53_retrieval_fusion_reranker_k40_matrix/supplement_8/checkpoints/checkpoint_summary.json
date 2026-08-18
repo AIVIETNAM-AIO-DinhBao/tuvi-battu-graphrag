@@ -1,0 +1,11 @@
+{
+  "current_config": "graph_sparse_graph_first_k40",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 69,
+  "expected_pair_count": 800,
+  "failed_pair_count": 0,
+  "processed_pair_count": 800,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 731,
+  "updated_at": "2026-08-16T19:02:15.639937Z"
+}

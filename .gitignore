@@ -29,3 +29,8 @@ benchmark/tuvi_golden_dataset/gemini_call/embeddings/
 
 # Local model archive (never commit)
 models.zip
+
+# Runtime logs for resumable ablation waves (reports/checkpoints remain tracked)
+benchmark/tuvi_golden_dataset/reports_final/50_retrieval_shortlist_confirmation/logs/
+benchmark/tuvi_golden_dataset/reports_final/52_reranker_top_k_sweep/logs/
+benchmark/tuvi_golden_dataset/reports_final/53_retrieval_fusion_reranker_k40_matrix/supplement_8/logs/

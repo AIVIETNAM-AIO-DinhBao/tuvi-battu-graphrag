@@ -1,0 +1,57 @@
+{
+  "current_config": "graph_sparse_graph_first_k40",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 69,
+  "expected_pair_count": 1000,
+  "failed_pair_count": 0,
+  "merge_policy": {
+    "canonical_config_order": [
+      "semantic_gs_rrf_rerank_k40",
+      "graph_only_rrf_k40",
+      "sparse_only_rrf_k40",
+      "dense_only_rrf_k40",
+      "dense_sparse_rrf_k40",
+      "graph_dense_rrf_k40",
+      "all_paths_planner_dense_rrf_k40",
+      "semantic_gs_rrf_no_rerank_reference",
+      "graph_sparse_weighted_sum_k40",
+      "graph_sparse_graph_first_k40"
+    ],
+    "require_completed": true,
+    "strategy": "config_shard_concatenation"
+  },
+  "processed_pair_count": 1000,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 931,
+  "source_shard_reports": [
+    {
+      "config_count": 2,
+      "execution_summary": {
+        "completed_pair_count": 200,
+        "executed_pair_count": 0,
+        "expected_pair_count": 200,
+        "failed_pair_count": 0,
+        "resumed_pair_count": 200
+      },
+      "manifest_name": "w8_abl_01_retrieval_fusion_reranker_v3_k40_reused_phase52_controls",
+      "output_dir": "benchmark/tuvi_golden_dataset/reports_final/53_retrieval_fusion_reranker_k40_matrix/reused_phase52_controls",
+      "path": "benchmark/tuvi_golden_dataset/reports_final/53_retrieval_fusion_reranker_k40_matrix/reused_phase52_controls/evaluation_report.json",
+      "status": "completed"
+    },
+    {
+      "config_count": 8,
+      "execution_summary": {
+        "completed_pair_count": 800,
+        "executed_pair_count": 69,
+        "expected_pair_count": 800,
+        "failed_pair_count": 0,
+        "resumed_pair_count": 731
+      },
+      "manifest_name": "w8_abl_01_retrieval_fusion_reranker_v3_k40_supplement_8",
+      "output_dir": "benchmark\\tuvi_golden_dataset\\reports_final\\53_retrieval_fusion_reranker_k40_matrix\\supplement_8",
+      "path": "benchmark/tuvi_golden_dataset/reports_final/53_retrieval_fusion_reranker_k40_matrix/supplement_8/evaluation_report.json",
+      "status": "completed"
+    }
+  ],
+  "updated_at": "2026-08-17T01:48:18.501613Z"
+}

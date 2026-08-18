@@ -1,0 +1,11 @@
+{
+  "current_config": "semantic_gd_rrf_rerank_on_quality",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 276,
+  "expected_pair_count": 300,
+  "failed_pair_count": 0,
+  "processed_pair_count": 300,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 24,
+  "updated_at": "2026-08-12T09:00:16.986025Z"
+}

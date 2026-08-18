@@ -1,0 +1,119 @@
+name: w8_abl_01_retrieval_fusion_reranker_v3_k40
+notes: "Hybrid W8 retrieval/fusion/reranker matrix v3. Reranker-enabled variants use BGE reranker top_k=40; two completed Graph+Sparse controls are reused with provenance from Phase 52. Semantic BGE-M3 chunking, structured prompt v3, Gemini Flash Lite, balanced context assembly, query rewrite off, document grading on, and cache disabled are held constant."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/reports_final/53_retrieval_fusion_reranker_k40_matrix
+configs:
+  - name: semantic_gs_rrf_rerank_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_reranker_top_k_semantic_gs_rrf_k40
+      name: W8 reranker top-k sweep - semantic Graph+Sparse RRF top 40
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config:
+        enabled: true
+        top_k: 40
+
+  - name: graph_only_rrf_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_graph_only_rrf_k40
+      name: W8 ABL 01 v3 - graph only RRF reranker top 40
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config: {enabled: true, top_k: 40}
+
+  - name: sparse_only_rrf_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_sparse_only_rrf_k40
+      name: W8 ABL 01 v3 - sparse only RRF reranker top 40
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config: {enabled: true, top_k: 40}
+
+  - name: dense_only_rrf_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_dense_only_rrf_k40
+      name: W8 ABL 01 v3 - dense only RRF reranker top 40
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config: {enabled: true, top_k: 40}
+
+  - name: dense_sparse_rrf_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_dense_sparse_rrf_k40
+      name: W8 ABL 01 v3 - dense+sparse RRF reranker top 40
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config: {enabled: true, top_k: 40}
+
+  - name: graph_dense_rrf_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_graph_dense_rrf_k40
+      name: W8 ABL 01 v3 - graph+dense RRF reranker top 40
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: false
+      fusion_method: rrf
+      reranker_config: {enabled: true, top_k: 40}
+
+  - name: all_paths_planner_dense_rrf_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_all_paths_planner_dense_rrf_k40
+      name: W8 ABL 01 v3 - graph+dense+sparse RRF reranker top 40
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config: {enabled: true, top_k: 40}
+
+  - name: semantic_gs_rrf_no_rerank_reference
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_reranker_top_k_semantic_gs_rrf_no_rerank_reference
+      name: W8 reranker top-k sweep - semantic Graph+Sparse RRF no-rerank reference
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      reranker_config: {enabled: false}
+
+  - name: graph_sparse_weighted_sum_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_graph_sparse_weighted_sum_k40
+      name: W8 ABL 01 v3 - graph+sparse weighted sum reranker top 40
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: weighted_sum
+      fusion_path_weights: {graph: 1.45, dense: 1.15, sparse: 0.80}
+      reranker_config: {enabled: true, top_k: 40}
+
+  - name: graph_sparse_graph_first_k40
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: w8_abl_01_graph_sparse_graph_first_k40
+      name: W8 ABL 01 v3 - graph+sparse graph-first reranker top 40
+      graph_retrieval_enabled: true
+      dense_retrieval_enabled: false
+      sparse_retrieval_enabled: true
+      fusion_method: graph_first
+      reranker_config: {enabled: true, top_k: 40}

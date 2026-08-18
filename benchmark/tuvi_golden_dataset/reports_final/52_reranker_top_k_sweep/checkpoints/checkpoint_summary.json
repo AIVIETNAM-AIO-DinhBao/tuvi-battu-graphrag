@@ -1,0 +1,11 @@
+{
+  "current_config": "semantic_gs_rrf_no_rerank_reference",
+  "current_item": "TVQA-074",
+  "executed_pair_count": 0,
+  "expected_pair_count": 400,
+  "failed_pair_count": 0,
+  "processed_pair_count": 261,
+  "remaining_pair_count": 139,
+  "resumed_pair_count": 261,
+  "updated_at": "2026-08-15T01:32:40.946594Z"
+}
