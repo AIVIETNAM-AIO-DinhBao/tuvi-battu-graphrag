@@ -130,6 +130,8 @@ is_complete = true
 
 Nếu OOM, restart session và xác nhận đúng GPU/wheelhouse. Không tự giảm token limit, truncate prompt hoặc đổi quantization vì sẽ phá tính so sánh.
 
+Nếu Gemma báo `Model returned an empty answer`, phải dùng notebook 02 từ commit có bản sửa BF16. Gemma 3 dùng BF16 cho phần tính toán 4-bit; Qwen vẫn dùng FP16. Xóa output smoke cũ hoặc mở session mới rồi chạy lại smoke. ZIP có `failed_pair_count > 0` chỉ là checkpoint chẩn đoán, không được đưa vào notebook 03.
+
 ## 4. B/C/D — chuẩn bị input judge trên local
 
 Mỗi người giữ hai prediction ZIP của chính mình và chép nguyên file vào:

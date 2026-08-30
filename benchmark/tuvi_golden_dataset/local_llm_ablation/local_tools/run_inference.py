@@ -59,14 +59,20 @@ def _load_latest_records(path: Path) -> dict[str, dict[str, Any]]:
     return latest
 
 
-def _quantization_kwargs(quantization: str, torch: Any, BitsAndBytesConfig: Any) -> dict[str, Any]:
+def _quantization_kwargs(
+    quantization: str,
+    torch: Any,
+    BitsAndBytesConfig: Any,
+    *,
+    compute_dtype: Any,
+) -> dict[str, Any]:
     if quantization == "4bit":
         return {
             "quantization_config": BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_use_double_quant=True,
-                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_compute_dtype=compute_dtype,
             )
         }
     if quantization in {"fp16", "float16"}:
@@ -172,6 +178,10 @@ def run_offline_inference(config: dict[str, Any]) -> dict[str, Any]:
     model_id = str(asset_manifest["model_id"])
     model_key = str(asset_manifest.get("model_key") or safe_slug(model_id))
     loader = str(asset_manifest.get("loader") or "causal_lm")
+    # Gemma 3 is released in BF16 and can overflow/produce NaNs with FP16.
+    # Qwen keeps the FP16 path used by the already validated run.
+    compute_dtype = torch.bfloat16 if loader == "gemma3_conditional" else torch.float16
+    compute_dtype_name = "bfloat16" if compute_dtype == torch.bfloat16 else "float16"
     selection_slug = (
         safe_slug(next(iter(selected_config_keys)).split("::")[-1])
         if len(selected_config_keys) == 1
@@ -208,8 +218,16 @@ def run_offline_inference(config: dict[str, Any]) -> dict[str, Any]:
         "local_files_only": True,
         "trust_remote_code": False,
         "low_cpu_mem_usage": True,
-        **_quantization_kwargs(quantization, torch, BitsAndBytesConfig),
+        **_quantization_kwargs(
+            quantization,
+            torch,
+            BitsAndBytesConfig,
+            compute_dtype=compute_dtype,
+        ),
     }
+    if loader == "gemma3_conditional":
+        # Keep Gemma's non-quantized vision/projector modules in BF16 too.
+        model_kwargs["torch_dtype"] = compute_dtype
     model, tokenizer, encode = _load_runtime(model_dir, loader, model_kwargs)
     model.eval()
 
@@ -242,7 +260,14 @@ def run_offline_inference(config: dict[str, Any]) -> dict[str, Any]:
             continuation = generated[0, input_tokens:]
             answer = decode_tokenizer.decode(continuation, skip_special_tokens=True).strip()
             if not answer:
-                raise RuntimeError("Model returned an empty answer")
+                token_ids = continuation.detach().cpu().tolist()
+                raw_decode = decode_tokenizer.decode(continuation, skip_special_tokens=False)
+                raise RuntimeError(
+                    "Model returned an empty answer; "
+                    f"compute_dtype={compute_dtype_name}; input_tokens={input_tokens}; "
+                    f"generated_shape={list(generated.shape)}; "
+                    f"continuation_token_ids={token_ids[:32]!r}; raw_decode={raw_decode[:200]!r}"
+                )
             prediction_id = stable_pair_id(
                 pair_id,
                 model_id,
@@ -264,6 +289,7 @@ def run_offline_inference(config: dict[str, Any]) -> dict[str, Any]:
                 "model_revision": asset_manifest["resolved_revision"],
                 "loader": loader,
                 "quantization": quantization,
+                "compute_dtype": compute_dtype_name,
                 "seed": seed,
                 "do_sample": False,
                 "input_tokens": input_tokens,
@@ -287,6 +313,7 @@ def run_offline_inference(config: dict[str, Any]) -> dict[str, Any]:
                 "model_revision": asset_manifest["resolved_revision"],
                 "loader": loader,
                 "quantization": quantization,
+                "compute_dtype": compute_dtype_name,
                 "error_type": type(exc).__name__,
                 "error": str(exc)[:2000],
                 "failed_at": utc_now(),
@@ -317,6 +344,7 @@ def run_offline_inference(config: dict[str, Any]) -> dict[str, Any]:
         "model_revision": asset_manifest["resolved_revision"],
         "loader": loader,
         "quantization": quantization,
+        "compute_dtype": compute_dtype_name,
         "seed": seed,
         "max_input_tokens": max_input_tokens,
         "max_new_tokens": max_new_tokens,
