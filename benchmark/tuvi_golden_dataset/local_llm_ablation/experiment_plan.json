@@ -1,0 +1,76 @@
+{
+  "schema_version": "local-llm-ablation-plan-v2",
+  "study_id": "report_shortlist_qwen25_gemma3",
+  "default_suites": ["report_shortlist_3"],
+  "models": {
+    "qwen25_7b": {
+      "model_id": "Qwen/Qwen2.5-7B-Instruct",
+      "loader": "causal_lm",
+      "gated": false,
+      "default_quantization": "4bit"
+    },
+    "gemma3_4b": {
+      "model_id": "google/gemma-3-4b-it",
+      "loader": "gemma3_conditional",
+      "gated": true,
+      "default_quantization": "4bit"
+    }
+  },
+  "suites": {
+    "report_shortlist_3": {
+      "description": "Three report-facing retrieval configurations over the same 100-item TuViQA release.",
+      "selection_rationale": "Best overall quality plus a controlled semantic Graph+Sparse RRF reranker on/off pair.",
+      "manifest_selections": [
+        {
+          "path": "configs/w8_abl_01_retrieval_matrix_v2.yaml",
+          "include_configs": ["graph_dense_rrf"]
+        },
+        {
+          "path": "configs/w8_abl_01_retrieval_matrix_v3_reranker_k40.yaml",
+          "include_configs": [
+            "semantic_gs_rrf_rerank_k40",
+            "semantic_gs_rrf_no_rerank_reference"
+          ]
+        }
+      ],
+      "expected_config_count": 3,
+      "expected_item_count": 100,
+      "expected_retrieval_pair_count": 300
+    }
+  },
+  "official_matrix": {
+    "retrieval_pair_count": 300,
+    "generation_model_count": 2,
+    "generation_pair_count": 600,
+    "gemini_judge_pair_count": 600
+  },
+  "team": {
+    "A": {
+      "role": "integration_owner",
+      "tasks": [
+        "prepare both offline model datasets",
+        "build and freeze the 300-case retrieval bundle once",
+        "merge three completed Gemini judge shards without new API calls",
+        "draft report and slides"
+      ]
+    },
+    "B": {
+      "role": "generation_runner",
+      "config_key": "report_shortlist_3::graph_dense_rrf",
+      "judge_pair_count": 200,
+      "initial_key_offset": 0
+    },
+    "C": {
+      "role": "generation_runner",
+      "config_key": "report_shortlist_3::semantic_gs_rrf_rerank_k40",
+      "judge_pair_count": 200,
+      "initial_key_offset": 1
+    },
+    "D": {
+      "role": "generation_runner",
+      "config_key": "report_shortlist_3::semantic_gs_rrf_no_rerank_reference",
+      "judge_pair_count": 200,
+      "initial_key_offset": 2
+    }
+  }
+}
