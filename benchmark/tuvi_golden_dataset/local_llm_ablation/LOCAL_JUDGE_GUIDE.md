@@ -22,13 +22,55 @@ Nếu clone chưa có `.venv`:
 py -3.12 -m venv .venv
 ```
 
-Luôn mở Jupyter bằng Python trong `.venv`; không dùng lệnh `jupyter lab` của Python hệ thống:
+Chưa mở Jupyter ở bước này. Sau khi tạo branch và nạp Gemini keys ở các mục tiếp theo, luôn mở Jupyter bằng Python trong `.venv`, không dùng lệnh `jupyter lab` của Python hệ thống.
+
+## 2. Tạo nhánh làm việc
+
+Mỗi người tạo nhánh riêng từ `main` mới nhất để cô lập mọi sửa đổi code/notebook nếu phát hiện lỗi:
+
+| Thành viên | Branch |
+|---|---|
+| B | `experiment/local-llm-b-graph-dense` |
+| C | `experiment/local-llm-c-rerank-k40` |
+| D | `experiment/local-llm-d-no-rerank` |
+
+Ví dụ cho B:
 
 ```powershell
-.\.venv\Scripts\python.exe -m jupyter lab
+git switch main
+git pull --ff-only origin main
+git switch -c experiment/local-llm-b-graph-dense
 ```
 
-## 2. Chép hai prediction ZIP vào đúng folder
+C và D thay tên branch theo bảng. Nếu branch đã tồn tại trên máy, không chạy lại `switch -c`; dùng:
+
+```powershell
+git switch experiment/local-llm-b-graph-dense
+git pull --ff-only origin experiment/local-llm-b-graph-dense
+```
+
+Chỉ chạy thí nghiệm sẽ không tạo tracked changes vì `artifacts/` đã được Git ignore. Không dùng `git add -f` và không commit prediction ZIP, judge ZIP, model weights, API key hoặc output trong `artifacts/`.
+
+Nếu thực sự phải sửa code, notebook hoặc tài liệu, kiểm tra và chỉ stage đúng file đã sửa:
+
+```powershell
+git status --short
+git diff --check
+git add -- path\toi\file-da-sua
+git diff --cached --stat
+git commit -m "Fix local LLM runner B"
+git push -u origin experiment/local-llm-b-graph-dense
+```
+
+Lần push sau trên cùng branch chỉ cần:
+
+```powershell
+git push
+```
+
+Sau khi push, gửi link branch hoặc mở Pull Request vào `main` để A review. B/C/D không tự merge vào `main`. Nếu không sửa tracked file nào thì không cần commit/push branch; chỉ bàn giao artifacts theo mục 7.
+
+## 3. Chép hai prediction ZIP vào đúng folder
 
 Không giải nén và không sửa JSONL bên trong ZIP.
 
@@ -45,7 +87,7 @@ Mỗi folder phải có đúng hai official prediction ZIP của người đó:
 
 Smoke ZIP không được dùng làm official judge input. Notebook sẽ tự giải nén vào vùng tạm, kiểm tra model/config và từ chối gọi Gemini nếu thiếu bất kỳ prediction nào.
 
-## 3. Nạp Gemini keys
+## 4. Nạp Gemini keys
 
 Trong cùng PowerShell session dùng để mở Jupyter, nạp ít nhất hai key:
 
@@ -58,7 +100,7 @@ Không ghi key vào notebook, source code, screenshot hoặc Git. Code cũng h�
 
 Notebook yêu cầu mặc định tối thiểu hai key để có round-robin và failover. Bình thường một answer dùng một Gemini request và request đó trả cả ba score. `retry_attempts=3` chỉ dùng khi request lỗi.
 
-## 4. Cấu hình và chạy notebook 03
+## 5. Cấu hình và chạy notebook 03
 
 Mở:
 
@@ -79,7 +121,7 @@ Giữ nguyên judge model, temperature, retry settings, mapping runner/config v�
 
 Trước API call, notebook phải tìm đủ 200 predictions của đúng runner. Trong quá trình chạy, kết quả được checkpoint theo `evaluation_id`; nếu mất mạng hoặc hết quota, mở lại đúng notebook và Run All để resume. Completed items không bị gọi lại.
 
-## 5. Điều kiện PASS
+## 6. Điều kiện PASS
 
 Cell cuối phải đạt:
 
@@ -107,7 +149,7 @@ artifacts/gemini_judge_shards/gemini_judge_shard_c.zip
 artifacts/gemini_judge_shards/gemini_judge_shard_d.zip
 ```
 
-## 6. Bàn giao cho A
+## 7. Bàn giao cho A
 
 Mỗi người gửi:
 
@@ -119,7 +161,7 @@ Mỗi người gửi:
 
 Không push folder `artifacts/` hoặc các ZIP lên Git. Nếu chỉ chạy thí nghiệm thì không cần tạo branch. Chỉ tạo branch riêng và PR khi thực sự sửa code/notebook.
 
-## 7. Lỗi thường gặp
+## 8. Lỗi thường gặp
 
 ### `ModuleNotFoundError`
 
@@ -145,7 +187,7 @@ Không xóa output/checkpoint. Bổ sung key hợp lệ hoặc đợi quota hồ
 
 Kiểm tra cell cuối có thật sự đạt 200/200 và `is_complete=true`. ZIP chỉ được tạo sau khi report/checkpoint/checksum đã ghi thành công.
 
-## 8. Sau khi A nhận đủ ba shard
+## 9. Sau khi A nhận đủ ba shard
 
 A chép ba ZIP vào:
 
