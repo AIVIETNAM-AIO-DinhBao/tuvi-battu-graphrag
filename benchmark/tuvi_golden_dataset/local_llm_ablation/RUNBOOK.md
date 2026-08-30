@@ -146,11 +146,13 @@ Không giải nén, đổi tên nội dung hoặc sửa JSONL. Notebook tự tì
 
 Notebook: `notebooks/03_gemini_judge_local.ipynb`.
 
+Hạng mục cài môi trường, chọn kernel, xử lý lỗi và checklist bàn giao được ghi chi tiết trong `LOCAL_JUDGE_GUIDE.md`.
+
 Trong PowerShell mở Jupyter, nạp tối thiểu hai key để có rotation/failover:
 
 ```powershell
 $env:GEMINI_API_KEYS = 'KEY_1,KEY_2,KEY_3'
-jupyter lab
+.\.venv\Scripts\python.exe -m jupyter lab
 ```
 
 Cũng hỗ trợ `.env`, `GEMINI_API_KEY` và các biến `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`, ... thông qua đúng loader của backend. Không ghi key trực tiếp vào notebook.

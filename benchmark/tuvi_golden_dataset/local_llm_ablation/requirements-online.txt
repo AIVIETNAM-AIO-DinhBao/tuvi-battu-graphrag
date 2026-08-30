@@ -9,3 +9,5 @@ supabase>=2,<3
 requests>=2.31,<3
 transformers>=4.51,<5
 torch>=2.2
+jupyterlab>=4,<5
+ipykernel>=6,<7

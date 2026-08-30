@@ -44,6 +44,7 @@ local_llm_ablation/
 ├── README.md
 ├── RUNBOOK.md
 ├── KAGGLE_DATASET_GUIDE.md
+├── LOCAL_JUDGE_GUIDE.md
 ├── TEAM_PLAN.md
 ├── requirements-offline.txt
 ├── requirements-online.txt
@@ -69,7 +70,7 @@ local_llm_ablation/
 2. A chạy notebook 01 local: smoke 6 cases, sau đó official 300 cases.
 3. A upload context bundle và chia sẻ hai model datasets theo [KAGGLE_DATASET_GUIDE.md](KAGGLE_DATASET_GUIDE.md).
 4. B/C/D nhận notebook 02, mỗi người chạy config được giao trên cả hai model.
-5. B/C/D tải hai prediction ZIP về máy mình, set `GEMINI_API_KEYS`, rồi chạy notebook 03 với `ACTION='judge'`.
+5. B/C/D tải hai prediction ZIP về máy mình, làm theo [LOCAL_JUDGE_GUIDE.md](LOCAL_JUDGE_GUIDE.md), rồi chạy notebook 03 với `ACTION='judge'`.
 6. A nhận ba `gemini_judge_shard_*.zip`, đặt `ACTION='merge'` và tạo report cuối.
 
 ## Output cuối
