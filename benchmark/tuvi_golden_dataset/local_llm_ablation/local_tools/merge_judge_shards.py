@@ -25,6 +25,13 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _portable_path(path: Path, repo_root: Path) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def _safe_extract_judge_zip(path: Path, destination: Path) -> Path:
     target = destination / path.stem
     target.mkdir(parents=True, exist_ok=True)
@@ -78,9 +85,10 @@ def merge_gemini_judge_shards(config: dict[str, Any]) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     selected_suites = {str(value) for value in config.get("suites") or []}
     expected_model_ids = {str(value) for value in config.get("expected_model_ids") or []}
-    shard_roots = discover_judge_shards(
-        config.get("judge_shard_roots") or [], output_dir / "_extracted_judge_shards"
-    )
+    extraction_dir = Path(
+        config.get("extraction_dir") or output_dir / "_extracted_judge_shards"
+    ).resolve()
+    shard_roots = discover_judge_shards(config.get("judge_shard_roots") or [], extraction_dir)
     if not shard_roots:
         raise FileNotFoundError("No judge_shard_manifest.json or gemini_judge_shard_*.zip found")
     shard_manifests = [_validate_shard(root) for root in shard_roots]
@@ -108,9 +116,10 @@ def merge_gemini_judge_shards(config: dict[str, Any]) -> dict[str, Any]:
         source_report = json.loads(source_report_path.read_text(encoding="utf-8"))
         source_reports.append(
             {
-                "path": str(source_report_path),
+                "path": f"{root.name}/evaluation_report.json",
+                "archive_name": f"{root.name}.zip",
                 "manifest_name": source_report.get("manifest_name"),
-                "output_dir": source_report.get("output_dir"),
+                "output_dir": root.name,
                 "config_count": source_report.get("config_count"),
                 "execution_summary": source_report.get("execution_summary"),
                 "status": source_report.get("status"),
@@ -225,6 +234,15 @@ def merge_gemini_judge_shards(config: dict[str, Any]) -> dict[str, Any]:
             "expected_models": sorted(expected_model_ids),
             "expected_config_count": len(configs),
         },
+    )
+    portable_output_dir = _portable_path(output_dir, repo_root)
+    legacy_report["output_dir"] = portable_output_dir
+    legacy_report["checkpoint_path"] = (
+        Path(portable_output_dir) / "checkpoints" / "evaluation_checkpoint.json"
+    ).as_posix()
+    atomic_write_json(output_dir / "evaluation_report.json", legacy_report)
+    (output_dir / "evaluation_report.md").write_text(
+        render_markdown_report(legacy_report), encoding="utf-8"
     )
     summary = {
         "schema_version": JUDGE_SCHEMA_VERSION,
