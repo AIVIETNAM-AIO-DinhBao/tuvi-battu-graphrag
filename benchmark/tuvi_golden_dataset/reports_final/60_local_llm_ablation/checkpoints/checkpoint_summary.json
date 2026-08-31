@@ -1,0 +1,11 @@
+{
+  "current_config": "gemma3_4b__semantic_gs_rrf_rerank_k40",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 0,
+  "expected_pair_count": 600,
+  "failed_pair_count": 0,
+  "processed_pair_count": 600,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 600,
+  "updated_at": "2026-08-31T07:58:58.993333+00:00"
+}

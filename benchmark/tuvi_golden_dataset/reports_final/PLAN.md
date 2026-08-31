@@ -7,6 +7,7 @@ This plan defines the active comparative ablation scope for `benchmark/tuvi_gold
 - Preflight local gates: backend regression subset, Gemini probe, Neo4j source/strategy coverage, and static smoke for active manifests.
 - Completed Chunking × Prompt factorial matrix on `benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl`: `3 chunking strategies × 3 prompt templates × 100 QA = 900/900` official Gemini pairs.
 - Active remaining retrieval/fusion/reranker matrix with checkpoint/resume: `configs/w8_abl_01_retrieval_matrix_v2.yaml`; preferred execution is three config shards merged into the canonical report.
+- Completed local-model generalization study: Qwen2.5-7B-Instruct and Gemma-3-4B-IT over three frozen retrieval configurations, with 600/600 Gemini-judged model-config pairs in `reports_final/60_local_llm_ablation/`.
 - Optional targeted hard-case diagnostics after full-matrix failure review; diagnostics are not pooled into the full-100 aggregate metrics.
 - Final comparative report: `evaluation/ablation_final_report.md` and snapshot `benchmark/tuvi_golden_dataset/reports_final/90_final_report/`.
 
@@ -16,6 +17,7 @@ This plan defines the active comparative ablation scope for `benchmark/tuvi_gold
 - `reports_final/11_chunking_prompt_interaction_v1_v2` is source wave B and contains the 6 prompt-v1/v2 cells.
 - Together, source waves A+B are one completed **Chunking × Prompt 3×3 factorial matrix**, not two separate studies.
 - No separate prompt/generation phase is active for the current study; prompt evidence is already represented inside the completed 3×3 matrix.
+- `reports_final/60_local_llm_ablation/` is the canonical tracked output for the 2-model × 3-retrieval-config local-LLM wave; Kaggle predictions and distributed judge ZIPs remain ignored handoff artifacts.
 
 ## Execution order
 

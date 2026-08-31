@@ -1,0 +1,88 @@
+{
+  "artifact_type": "merged_gemini_judge_report",
+  "completed_pair_count": 600,
+  "config_result_count": 6,
+  "expected_pair_count": 600,
+  "failed_pair_count": 0,
+  "files": {
+    "checkpoints/checkpoint_summary.json": "439a8dcd371be12aa2f46d00befe59756a4bce9ed558dbf712cf1f68471de090",
+    "checkpoints/evaluation_checkpoint.json": "ca83bb5bc8ab4ba5068d4bb61f7a81c5442616dd4baca8fd3ef72189472979e4",
+    "evaluation_report.json": "4b662f148a30d571f1b40c4d946db7a81e96652db305d1d31b167e048a56cda2",
+    "evaluation_report.md": "1aa1bcfdf7a1dfe996208c9cce8e8fbdc1ae4b7dd2aa5ec07122384f73e6de9e",
+    "judged_items.jsonl": "0a2670a9b4f6ab1de9eb4568a0f8432ae1d7358a816dadecde292af92c5c0efc",
+    "local_llm_metrics.csv": "868f425068faefc372fa78297f5c2517e67827233187ebdc22273b5a3d572e9c"
+  },
+  "is_complete": true,
+  "judge_model": "gemini-3.1-flash-lite-preview",
+  "key_rotation_by_shard": {
+    "b": {
+      "failure_counts": {
+        "key_1": 0,
+        "key_2": 0,
+        "key_3": 0,
+        "key_4": 0
+      },
+      "initial_offset": 0,
+      "key_count": 4,
+      "last_error_types": {},
+      "request_count": 200,
+      "success_counts": {
+        "key_1": 50,
+        "key_2": 50,
+        "key_3": 50,
+        "key_4": 50
+      },
+      "usage_counts": {
+        "key_1": 50,
+        "key_2": 50,
+        "key_3": 50,
+        "key_4": 50
+      }
+    },
+    "c": {
+      "failure_counts": {
+        "key_1": 0,
+        "key_2": 0
+      },
+      "initial_offset": 1,
+      "key_count": 2,
+      "last_error_types": {},
+      "request_count": 200,
+      "success_counts": {
+        "key_1": 100,
+        "key_2": 100
+      },
+      "usage_counts": {
+        "key_1": 100,
+        "key_2": 100
+      }
+    },
+    "d": {
+      "failure_counts": {
+        "key_1": 0,
+        "key_2": 0,
+        "key_3": 0,
+        "key_4": 0
+      },
+      "initial_offset": 2,
+      "key_count": 4,
+      "last_error_types": {},
+      "request_count": 200,
+      "success_counts": {
+        "key_1": 50,
+        "key_2": 50,
+        "key_3": 50,
+        "key_4": 50
+      },
+      "usage_counts": {
+        "key_1": 50,
+        "key_2": 50,
+        "key_3": 50,
+        "key_4": 50
+      }
+    }
+  },
+  "legacy_report_status": "completed",
+  "schema_version": "local-llm-gemini-judge-v2",
+  "source_shard_count": 3
+}
