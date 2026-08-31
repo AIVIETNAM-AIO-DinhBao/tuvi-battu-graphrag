@@ -51,7 +51,10 @@ def discover_prediction_files(roots: Iterable[str | Path], extraction_dir: Path)
             files.append(path)
             continue
         if path.is_file() and path.suffix == ".zip":
-            target = extraction_dir / path.stem
+            # Keep the extraction path short. The full experiment/archive names
+            # can otherwise exceed the legacy Windows MAX_PATH limit.
+            archive_tag = sha256_text(str(path.resolve()))[:12]
+            target = extraction_dir / archive_tag
             target.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(path) as archive:
                 for name in archive.namelist():
