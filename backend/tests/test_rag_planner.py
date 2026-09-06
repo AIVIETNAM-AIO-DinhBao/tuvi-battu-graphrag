@@ -60,3 +60,19 @@ def test_planner_prefers_dataset_labels_over_heuristics() -> None:
     assert plan["question_family_source"] == "provided"
     assert plan["question_complexity"] == "Two-hop"
     assert plan["question_complexity_source"] == "provided"
+
+
+def test_planner_routes_future_spouse_menh_question_to_phu_the_corpus_retrieval() -> None:
+    plan = build_retrieval_plan(
+        {
+            "query": "Chồng tương lai của tôi cung Mệnh có thể có sao gì?",
+            "query_entities": [{"canonical_name": "Mệnh", "entity_type": "Cung"}],
+            "chart_data": {},
+        }
+    )
+
+    assert plan["question_family"] == "topic_house_plus_relations"
+    assert plan["retrieval_depth"] == "deep"
+    assert plan["target_houses"] == ["Phu Thê"]
+    assert plan["enabled_retrieval_paths"]["graph"] is True
+    assert plan["enabled_retrieval_paths"]["sparse"] is True

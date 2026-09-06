@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
-from app.rag.house_ontology import HOUSE_NAMES, canonical_house_name, explicit_house_triad, normalize_text
+from app.rag.house_ontology import HOUSE_NAMES, canonical_house_name, explicit_house_triad, normalize_key, normalize_text
 from app.rag.state import RAGState
 
 
@@ -21,6 +22,14 @@ QUESTION_FAMILIES = {
     "synthesis_judgement",
 }
 QUESTION_COMPLEXITIES = {"Direct", "One-hop", "Two-hop"}
+SPOUSE_SUBJECT_PATTERNS = (
+    r"\bchong\b",
+    r"\bvo\b",
+    r"\bphoi ngau\b",
+    r"\bban doi\b",
+    r"\bhon phu\b",
+    r"\bhon the\b",
+)
 
 QUESTION_FAMILY_PLANS: dict[str, dict[str, Any]] = {
     "core_identity": {
@@ -181,6 +190,10 @@ def infer_question_family(query: str, query_entities: list[dict[str, Any]], char
         return "than_cu_interpretation"
     if any(term in text for term in ("dai van", "đại vận", "van han", "vận hạn", "giai doan", "giai đoạn")):
         return "dai_van_interpretation"
+    # "Mệnh của chồng/vợ" is not the native's Mệnh palace. The chart-grounded
+    # scope is Phu Thê and interpreting it requires corpus evidence.
+    if is_spouse_subject_query(query):
+        return "topic_house_plus_relations"
     if any(term in text for term in ("menh", "mệnh")) and any(term in text for term in ("cuc", "cục", "ngu hanh", "ngũ hành", "hop", "hợp", "khac", "khắc")):
         return "menh_cuc_relation"
     if any(term in text for term in ("tuan", "tuần", "triet", "triệt", "ham", "hãm", "mieu", "miếu", "dac", "đắc", "vuong", "vượng")):
@@ -216,6 +229,8 @@ def infer_target_houses(query: str, entities: list[dict[str, Any]], chart_data: 
     explicit_triad = explicit_house_triad(query)
     if explicit_triad:
         return list(explicit_triad["houses"])
+    if is_spouse_subject_query(query):
+        return ["Phu Thê"]
     text = normalize_text(query)
     for house in HOUSE_NAMES:
         if normalize_text(house) in text:
@@ -248,4 +263,9 @@ def infer_target_stars(query: str, entities: list[dict[str, Any]], chart_data: d
 def append_unique(values: list[str], value: str) -> None:
     if value and value not in values:
         values.append(value)
+
+
+def is_spouse_subject_query(query: str) -> bool:
+    text = normalize_key(query)
+    return any(re.search(pattern, text) for pattern in SPOUSE_SUBJECT_PATTERNS)
 

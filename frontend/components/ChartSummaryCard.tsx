@@ -27,7 +27,7 @@ export function ChartSummaryCard({ chart, onOpen }: ChartSummaryCardProps) {
       type="button"
       className="chart-summary-card"
       onClick={() => onOpen(chart.id)}
-      aria-label={`Mở chart ${chart.label}`}
+      aria-label={`Mở lá số ${chart.label}`}
     >
       <span className="chart-type-chip">{CHART_SYSTEM_LABELS[chart.chart_system]}</span>
       <strong>{chart.label}</strong>

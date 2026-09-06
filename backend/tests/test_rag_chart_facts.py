@@ -120,6 +120,44 @@ def test_extract_chart_facts_locks_explicit_house_triad_and_formats_relation() -
 
     assert facts["target_houses"] == ["Phúc Đức", "Phu Thê", "Thiên Di"]
     assert [house["house_name"] for house in facts["house_facts"]] == ["Phúc Đức", "Phu Thê", "Thiên Di"]
+    assert [house["house_name"] for house in facts["all_house_facts"]] == ["Phúc Đức", "Phu Thê", "Thiên Di", "Phụ Mẫu"]
     assert facts["relations"][0]["name"] == "Phúc-Phối-Di"
     assert "Tam hợp Phúc-Phối-Di" in block
-    assert "[CUNG Phụ Mẫu]" not in block
+    assert "[CUNG Phụ Mẫu]" in block
+
+
+def test_generation_context_keeps_complete_chart_without_expanding_retrieval_targets() -> None:
+    house_names = [
+        "Mệnh",
+        "Phụ Mẫu",
+        "Phúc Đức",
+        "Điền Trạch",
+        "Quan Lộc",
+        "Nô Bộc",
+        "Thiên Di",
+        "Tật Ách",
+        "Tài Bạch",
+        "Tử Tức",
+        "Phu Thê",
+        "Huynh Đệ",
+    ]
+    chart_data = {
+        "chart_type": "TUVI",
+        "houses": [
+            {
+                "house_name": name,
+                "earthly_branch": f"Chi {index}",
+                "major_stars": [{"name": f"Chính tinh {index}"}],
+            }
+            for index, name in enumerate(house_names, start=1)
+        ],
+    }
+
+    facts = extract_chart_facts(chart_data, [], {"target_houses": ["Mệnh"]})
+    block = build_chart_fact_context_block(facts)
+
+    assert [house["house_name"] for house in facts["house_facts"]] == ["Mệnh"]
+    assert len(facts["all_house_facts"]) == 12
+    assert "Phạm vi lá số: 12 cung đã được cung cấp" in block
+    assert "[CUNG Phu Thê]" in block
+    assert "[CUNG Thiên Di]" in block

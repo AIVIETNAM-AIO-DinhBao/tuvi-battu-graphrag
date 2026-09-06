@@ -1,6 +1,6 @@
 # Runbook chính thức: Local-LLM ablation
 
-Thí nghiệm dùng một retrieval bundle cố định cho 100 câu và 3 config, sau đó sinh câu trả lời bằng Qwen2.5-7B-Instruct và Gemma-3-4B-IT. B/C/D mỗi người chạy một config trên cả hai model và tự chấm 200 câu bằng Gemini. A chỉ gộp ba judge shard, không gọi Gemini lại.
+Thí nghiệm chính dùng một retrieval bundle cố định cho 100 câu và 3 config, sau đó sinh câu trả lời bằng Qwen2.5-7B-Instruct và Gemma-3-4B-IT. Phần bổ sung model-only dùng đúng 100 câu và dữ liệu lá số nhưng không dùng retrieval hay context sách, nhằm đo mức cải thiện khi thêm các kỹ thuật RAG.
 
 ## 0. Ma trận và phân công cố định
 
@@ -53,37 +53,37 @@ wheelhouse/*.whl
 
 Không zip model weights trước khi Add Input.
 
-## 2. A — notebook 01: build retrieval một lần trên local
+## 2. A — notebook 01: tạo model-only bundle trên local
 
 Notebook: `notebooks/01_build_retrieval_bundle_local.ipynb`.
 
 1. Mở notebook từ clone của repo; đặt `REPO_ROOT` thủ công nếu auto-detect thất bại.
-2. Kiểm tra `.env`, Neo4j, embedding model và reranker giống các ablation cũ.
-3. Đặt `RUN_MODE='smoke'`, Run All; phải đạt 6/6.
-4. Đặt `RUN_MODE='official'`, Run All; phải đạt 300/300 và zero failed.
+2. Không cần `.env`, Neo4j, embedding model hoặc reranker.
+3. Đặt `RUN_MODE='smoke'`, Run All; phải đạt 2/2.
+4. Đặt `RUN_MODE='official'`, Run All; phải đạt 100/100 và không có lỗi.
 
 Output:
 
 ```text
-benchmark/tuvi_golden_dataset/local_llm_ablation/artifacts/context_bundle_v1/
-benchmark/tuvi_golden_dataset/local_llm_ablation/artifacts/context_bundle_v1.zip
+benchmark/tuvi_golden_dataset/local_llm_ablation/artifacts/model_only_bundle_v1/
+benchmark/tuvi_golden_dataset/local_llm_ablation/artifacts/model_only_bundle_v1.zip
 ```
 
 Chỉ chia sẻ bundle khi manifest ghi:
 
 ```text
-config_count = 3
+bundle_type = model_only_question_plus_raw_chart
+config_count = 1
 item_count = 100
-planned_pair_count = 300
-completed_pair_count = 300
+planned_pair_count = 100
+completed_pair_count = 100
 failed_pair_count = 0
+retrieval_executed = false
+derived_chart_features_used = false
+corpus_context_used = false
 ```
 
-Upload `context_bundle_v1.zip` thành private Kaggle Dataset và share cho B/C/D. Xem thêm `KAGGLE_DATASET_GUIDE.md`.
-
-### Resume retrieval
-
-Nếu retrieval lỗi, đọc `bundle_errors.jsonl`, sửa backend rồi chạy lại cùng output directory với `retry_failed=True`. Checkpoint dùng `pair_id`, không cần chạy lại các pair đã hoàn tất.
+Upload `model_only_bundle_v1.zip` thành private Kaggle Dataset với tên gợi ý `tuviqa-model-only-bundle-v1`. Xem thêm `KAGGLE_DATASET_GUIDE.md`.
 
 ## 3. B/C/D — notebook 02: inference offline trên Kaggle
 
@@ -131,6 +131,46 @@ is_complete = true
 Nếu OOM, restart session và xác nhận đúng GPU/wheelhouse. Không tự giảm token limit, truncate prompt hoặc đổi quantization vì sẽ phá tính so sánh.
 
 Nếu Gemma báo `Model returned an empty answer`, phải dùng notebook 02 từ commit có bản sửa BF16. Gemma 3 dùng BF16 cho phần tính toán 4-bit; Qwen vẫn dùng FP16. Xóa output smoke cũ hoặc mở session mới rồi chạy lại smoke. ZIP có `failed_pair_count > 0` chỉ là checkpoint chẩn đoán, không được đưa vào notebook 03.
+
+### Chạy baseline chỉ dùng mô hình
+
+Mount `model_only_bundle_v1.zip` cùng một model dataset rồi đặt:
+
+```python
+RUNNER = 'M'
+MODEL_KEY = 'qwen25_7b'  # run thứ hai đổi thành gemma3_4b
+RUN_MODE = 'smoke'       # đạt 2/2 rồi đổi official
+```
+
+Chạy official một lần cho Qwen và một lần cho Gemma. Mỗi ZIP phải đạt 100/100 completed, 0 failed. Tên output chứa `question-chart-direct`. Baseline này chỉ dùng prompt tối thiểu, câu hỏi và dữ liệu lá số gốc; không có graph/dense/sparse retrieval, fusion, reranker, grading, chart-fact extraction, context sách hoặc citation.
+
+### Chạy Gemini model-only trên local
+
+Script: `run_gemini_model_only_local.py`.
+
+Notebook dùng cùng `model_only_bundle_v1` và cùng prompt với Qwen/Gemma. Trước khi mở notebook, đặt key trong `.env` hoặc PowerShell:
+
+```powershell
+$env:GEMINI_API_KEYS = 'KEY_1,KEY_2,KEY_3'
+```
+
+Từ repo root, chạy smoke và kiểm tra 2/2:
+
+```powershell
+.\.venv\Scripts\python.exe benchmark\tuvi_golden_dataset\local_llm_ablation\run_gemini_model_only_local.py --mode smoke
+```
+
+Sau đó chạy 100/100:
+
+```powershell
+.\.venv\Scripts\python.exe benchmark\tuvi_golden_dataset\local_llm_ablation\run_gemini_model_only_local.py --mode official
+```
+
+Runner xoay vòng điểm bắt đầu giữa các key, chuyển key khi lỗi, checkpoint theo `pair_id` và không ghi secret vào output. ZIP chính thức nằm dưới:
+
+```text
+artifacts/gemini_model_only_official/local_llm_predictions_gemini31_flash_lite_question-chart-direct_00_of_01.zip
+```
 
 ## 4. B/C/D — chuẩn bị input judge trên local
 

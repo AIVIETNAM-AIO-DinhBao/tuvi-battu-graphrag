@@ -593,6 +593,14 @@ MEANING_TEXT_TERMS = {"ý nghĩa", "nghĩa", "tượng trưng", "chủ về", "b
 
 
 def canonical_query_entities(state: RAGState) -> list[str]:
+    plan = state.get("retrieval_plan") or {}
+    semantic_targets = [
+        *list(plan.get("target_houses") or []),
+        *list(plan.get("target_stars") or []),
+    ]
+    if semantic_targets:
+        return unique_normalized_strings(semantic_targets)
+
     entities: list[str] = []
     seen: set[str] = set()
     for record in state.get("query_entities") or []:
@@ -605,6 +613,19 @@ def canonical_query_entities(state: RAGState) -> list[str]:
         seen.add(key)
         entities.append(name)
     return entities
+
+
+def unique_normalized_strings(values: Iterable[Any]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        key = normalize_for_match(text)
+        if not text or key in seen:
+            continue
+        seen.add(key)
+        result.append(text)
+    return result
 
 
 def entity_exact_score(canonical_entities: list[str], text: str) -> float:

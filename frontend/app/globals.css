@@ -34,9 +34,10 @@
   --color-action-blue: var(--color-primary);
   --color-focus-blue: var(--color-primary);
   --color-coral: var(--color-primary);
-  --font-display: "Cormorant Garamond", "EB Garamond", Garamond, "Times New Roman", serif;
-  --font-ui: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  /* Font hệ thống có đủ ký tự tiếng Việt, tránh trình duyệt trộn glyph từ nhiều font. */
+  --font-display: Cambria, "Times New Roman", serif;
+  --font-ui: "Segoe UI", Arial, sans-serif;
+  --font-mono: Consolas, "Courier New", monospace;
   --container-width: 1200px;
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -255,10 +256,9 @@ textarea {
 
 .system-row span {
   color: rgba(255, 255, 255, 0.62);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 0.76rem;
-  letter-spacing: 0;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .system-row strong {
@@ -298,11 +298,10 @@ textarea {
 .auth-kicker,
 .eyebrow {
   color: var(--color-slate);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 0.78rem;
-  letter-spacing: 0;
+  font-weight: 600;
   margin: 0 0 0.25rem;
-  text-transform: uppercase;
 }
 
 .auth-copy h1 {
@@ -493,6 +492,14 @@ textarea {
   color: var(--color-deep-green);
 }
 
+.notice-message p {
+  margin: 0;
+}
+
+.notice-message .secondary-button {
+  margin-top: 0.75rem;
+}
+
 .loading-state {
   align-items: center;
   color: var(--color-body-muted);
@@ -595,6 +602,101 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.chart-detail-main {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: none;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem);
+  width: 100%;
+}
+
+.chart-detail-page-header {
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.chart-detail-page-header h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  margin: 0;
+}
+
+.chart-workspace {
+  align-items: stretch;
+  display: grid;
+  flex: 1;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 1fr);
+  min-height: 0;
+}
+
+.chart-detail-panel {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  max-height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: clamp(0.75rem, 1.4vw, 1rem);
+}
+
+.chart-detail-panel > .section-heading-row {
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.chart-detail-panel > .section-heading-row h2 {
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  margin: 0;
+}
+
+.chart-detail-panel > .detail-list {
+  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.chart-detail-panel > .detail-list div {
+  background: color-mix(in srgb, var(--color-canvas) 55%, transparent);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.55rem;
+}
+
+.chart-detail-panel > .detail-list dt {
+  font-size: 0.72rem;
+}
+
+.chart-detail-panel > .detail-list dd {
+  font-size: 0.88rem;
+  margin-top: 0.08rem;
+}
+
+.chart-workspace .chat-section {
+  align-self: stretch;
+  height: 100%;
+  margin-top: 0;
+  max-height: 100%;
+  min-height: 0;
+}
+
+.chart-workspace .chat-shell {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chart-workspace .chat-message-list {
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-right: 0.4rem;
+  scrollbar-gutter: stable;
+}
+
 .json-preview {
   background: var(--color-surface-dark-soft);
   border-radius: var(--radius-lg);
@@ -609,9 +711,27 @@ textarea {
 
 .visualizer-section {
   border-top: 1px solid var(--color-border-light);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   margin-top: 1.25rem;
+  min-height: 0;
   min-width: 0;
   padding-top: 1.25rem;
+}
+
+.chart-detail-panel > .visualizer-section {
+  margin-top: 0.65rem;
+  padding-top: 0.6rem;
+}
+
+.chart-detail-panel .visualizer-heading {
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.chart-detail-panel .visualizer-heading .chart-actions {
+  margin-bottom: 0;
 }
 
 .visualizer-heading {
@@ -646,13 +766,31 @@ textarea {
   max-width: 30ch;
 }
 
-.tuvi-board-scroll {
-  -webkit-overflow-scrolling: touch;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-  width: 100%;
+.chart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.chart-action-button {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  color: var(--color-body);
+  min-height: 2.1rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.chart-action-button:hover:not(:disabled) {
+  background: var(--color-surface-cream-strong);
+}
+
+.chart-download-error {
+  color: var(--color-error);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+  text-align: right;
 }
 
 .tuvi-board {
@@ -663,6 +801,51 @@ textarea {
   grid-template-rows: repeat(4, minmax(260px, auto));
   min-width: 960px;
   width: 100%;
+}
+
+/* Prioritize readable text: fit the board to the column width, but never scale
+   below the readable floor. If the available height is shorter, this stage is
+   the only part of the left column that scrolls. */
+.tuvi-board-fit-stage {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  position: relative;
+  scrollbar-gutter: stable;
+  width: 100%;
+}
+
+.tuvi-board-fit-stage.is-full {
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+}
+
+.tuvi-board-scale-canvas {
+  margin: 0 auto;
+  position: relative;
+}
+
+.tuvi-board-scale-canvas .tuvi-board {
+  grid-template-columns: repeat(4, 240px);
+  grid-template-rows: repeat(4, 260px);
+  left: 0;
+  min-width: 960px;
+  position: absolute;
+  top: 0;
+  transform: scale(var(--tuvi-fit-scale));
+  transform-origin: top left;
+  width: 960px;
+}
+
+/* Keep any overflow inside the dedicated chart viewport. */
+.visualizer-section.chart-overview {
+  overflow: hidden;
 }
 
 .tuvi-center-cell {
@@ -1091,6 +1274,13 @@ textarea {
   font-size: clamp(1.8rem, 4vw, 2.6rem);
 }
 
+.chat-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.75rem;
+}
+
 .chat-shell .eyebrow,
 .chat-helper {
   color: var(--color-on-dark-soft);
@@ -1106,8 +1296,8 @@ textarea {
   border: 1px solid rgba(250, 249, 245, 0.1);
   border-radius: var(--radius-pill);
   color: var(--color-on-dark-soft);
-  font-size: 0.85rem;
-  padding: 0.45rem 0.8rem;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.65rem;
   width: fit-content;
 }
 
@@ -1151,6 +1341,57 @@ textarea {
 
 .chat-message.is-loading {
   color: var(--color-on-dark-soft);
+}
+
+.citation-toggle-wrap {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.citation-toggle {
+  background: transparent;
+  border: 1px solid rgba(232, 165, 90, 0.42);
+  color: var(--color-accent-amber);
+  justify-self: start;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.citation-toggle:hover:not(:disabled) {
+  background: rgba(232, 165, 90, 0.12);
+}
+
+.loading-dots {
+  display: inline-flex;
+  gap: 0.08rem;
+  margin-left: 0.12rem;
+}
+
+.loading-dots span {
+  animation: loading-dot 1.2s infinite ease-in-out;
+  display: inline-block;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes loading-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-0.18rem);
+  }
 }
 
 .chat-message-label {
@@ -1259,18 +1500,21 @@ textarea {
 }
 
 .source-citation-list {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  column-count: 2;
+  column-gap: 0.75rem;
+  column-width: 260px;
 }
 
 .source-citation-card {
   background: var(--color-surface-dark-soft);
   border: 1px solid rgba(250, 249, 245, 0.1);
   border-radius: var(--radius-lg);
+  break-inside: avoid;
   display: grid;
   gap: 0.65rem;
+  margin-bottom: 0.75rem;
   padding: 0.9rem;
+  width: 100%;
   transition:
     background-color 160ms ease,
     border-color 160ms ease;
@@ -1470,8 +1714,29 @@ textarea {
 
 @media (max-width: 900px) {
   .home-hero,
-  .auth-shell {
+  .auth-shell,
+  .chart-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .chart-workspace {
+    height: auto;
+    min-height: 0;
+  }
+
+  .chart-detail-main {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .chart-detail-panel,
+  .chart-workspace .chat-section,
+  .chart-workspace .chat-shell {
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .auth-side {

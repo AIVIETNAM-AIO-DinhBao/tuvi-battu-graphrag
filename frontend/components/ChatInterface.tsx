@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from "react";
 import {
   SourceCitationPanel,
   getSourceKey,
@@ -12,6 +12,7 @@ import { supabase } from "../lib/supabaseClient";
 interface ChatInterfaceProps {
   chartId: string;
   chartLabel: string;
+  chartData: unknown;
 }
 
 interface ChatSessionRow {
@@ -19,7 +20,7 @@ interface ChatSessionRow {
   messages: unknown;
 }
 
-export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
+export function ChatInterface({ chartId, chartLabel, chartData }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -28,11 +29,19 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
   const [error, setError] = useState<string | null>(null);
   const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null);
   const [selectedSourceByMessage, setSelectedSourceByMessage] = useState<Record<string, string | null>>({});
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
 
-  const helperText = useMemo(
-    () => `Hỏi trong ngữ cảnh lá số “${chartLabel}”. Lịch sử chat được lưu theo từng lá số và câu trả lời sẽ đi kèm nguồn nếu pipeline tìm được context phù hợp.`,
-    [chartLabel],
-  );
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    const messageList = messageListRef.current;
+    if (messageList) {
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+  }, [messages, loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +67,7 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
           .maybeSingle();
 
         if (fetchError) {
-          throw new Error(`Không thể tải lịch sử chat: ${fetchError.message}`);
+          throw new Error("Không thể tải lịch sử trò chuyện lúc này. Vui lòng thử lại.");
         }
 
         if (cancelled) return;
@@ -82,7 +91,7 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
           .single();
 
         if (insertError) {
-          throw new Error(`Không thể tạo lịch sử chat: ${insertError.message}`);
+          throw new Error("Không thể tạo lịch sử trò chuyện lúc này. Vui lòng thử lại.");
         }
 
         if (cancelled) return;
@@ -114,6 +123,15 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
     await submitQuestion(query);
   }
 
+  function handleQueryKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  }
+
   async function submitQuestion(rawQuery: string) {
     const trimmedQuery = rawQuery.trim();
     if (!trimmedQuery || loading || historyLoading) {
@@ -133,6 +151,8 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
     };
     const previousMessages = messages;
     setMessages([...previousMessages, userMessage]);
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -147,7 +167,8 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ chart_id: chartId, query: trimmedQuery }),
+        body: JSON.stringify({ chart_id: chartId, query: trimmedQuery, chart_data: chartData }),
+        signal: controller.signal,
       });
 
       const payload = await parseChatResponse(response);
@@ -168,14 +189,27 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
       setMessages(nextMessages);
       await persistMessages(nextMessages);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setQuery(trimmedQuery);
+        setMessages(previousMessages);
+        setError("Đã dừng luận giải. Bạn có thể chỉnh câu hỏi hoặc gửi câu hỏi khác.");
+        return;
+      }
       const message = err instanceof Error ? err.message : "Không thể gửi câu hỏi lúc này.";
       setError(message);
       setLastFailedQuery(trimmedQuery);
       setQuery(trimmedQuery);
       setMessages(previousMessages);
     } finally {
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+      }
       setLoading(false);
     }
+  }
+
+  function stopQuestion() {
+    requestControllerRef.current?.abort();
   }
 
   async function persistMessages(nextMessages: ChatMessage[]) {
@@ -189,7 +223,7 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
       .eq("id", sessionId);
 
     if (updateError) {
-      throw new Error(`Không thể lưu lịch sử chat: ${updateError.message}`);
+      throw new Error("Không thể lưu lịch sử trò chuyện lúc này. Vui lòng thử lại.");
     }
   }
 
@@ -198,26 +232,24 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
       <div className="chat-shell">
         <div className="chat-heading">
           <div>
-            <p className="eyebrow">GraphRAG chat</p>
-            <h2 id="chart-chat-title">Hỏi về lá số này</h2>
+            <p className="eyebrow">Trò chuyện cùng Tử Vi</p>
+            <div className="chat-title-row">
+              <h2 id="chart-chat-title">Hỏi về lá số này</h2>
+              <div className="chat-history-status" role="status">
+                {historyLoading
+                  ? "Đang tải lịch sử chat..."
+                  : messages.length > 0
+                    ? `Đã tải ${messages.length} tin nhắn từ lịch sử.`
+                    : "Chưa có lịch sử chat cho lá số này."}
+              </div>
+            </div>
           </div>
-          <span className="badge-pill">W5-FE-02/03</span>
         </div>
 
-        <p className="chat-helper">{helperText}</p>
-
-        <div className="chat-history-status" role="status">
-          {historyLoading
-            ? "Đang tải lịch sử chat..."
-            : messages.length > 0
-              ? `Đã tải ${messages.length} tin nhắn từ lịch sử.`
-              : "Chưa có lịch sử chat cho lá số này."}
-        </div>
-
-        <div className="chat-message-list" aria-live="polite">
+        <div className="chat-message-list" aria-live="polite" ref={messageListRef}>
           {!historyLoading && messages.length === 0 && (
             <div className="chat-empty-state">
-              <p>Gợi ý: “Cung Mệnh của lá số này nói gì?” hoặc “Các nguồn nào giải thích Thiên Di?”</p>
+              <p>Gợi ý: “Cung Mệnh của lá số này nói gì?” hoặc “Hãy luận giải cung Thiên Di của tôi.”</p>
             </div>
           )}
 
@@ -241,7 +273,12 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
           {loading && (
             <article className="chat-message assistant is-loading">
               <div className="chat-message-label">Trợ lý Tử Vi</div>
-              <p>Đang truy vấn graph, vector và nguồn trích dẫn...</p>
+              <p>
+                Đang tổng hợp thông tin để luận giải
+                <span className="loading-dots" aria-hidden="true">
+                  <span>.</span><span>.</span><span>.</span>
+                </span>
+              </p>
             </article>
           )}
         </div>
@@ -269,14 +306,20 @@ export function ChatInterface({ chartId, chartLabel }: ChatInterfaceProps) {
           <textarea
             id="chart-chat-query"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={historyLoading ? "Đang tải lịch sử chat..." : "Nhập câu hỏi về lá số hiện tại..."}
+            onKeyDown={handleQueryKeyDown}
+            placeholder={historyLoading ? "Đang tải lịch sử trò chuyện..." : "Nhập câu hỏi về lá số hiện tại..."}
             rows={3}
             value={query}
             disabled={loading || historyLoading}
           />
           <button type="submit" disabled={loading || historyLoading || !query.trim()}>
-            {loading ? "Đang hỏi..." : historyLoading ? "Đang tải..." : "Gửi câu hỏi"}
+            {loading ? "Đang luận giải..." : historyLoading ? "Đang tải..." : "Gửi câu hỏi"}
           </button>
+          {loading && (
+            <button className="secondary-button" onClick={stopQuestion} type="button">
+              Dừng
+            </button>
+          )}
         </form>
       </div>
     </section>
@@ -293,34 +336,51 @@ function AssistantMessage({
   onSelectSource: (sourceKey: string) => void;
 }) {
   const sources = message.sources ?? [];
+  const [showSources, setShowSources] = useState(false);
+  const handleSelectSource = (sourceKey: string) => {
+    setShowSources(true);
+    onSelectSource(sourceKey);
+  };
 
   return (
     <div className="assistant-message-content">
-      <div className="assistant-answer">{renderAnswerWithCitations(message.content, sources, onSelectSource)}</div>
+      <div className="assistant-answer">{renderAnswerWithCitations(message.content, sources, handleSelectSource)}</div>
 
       <AssistantFallbackNotice message={message} />
 
       {sources.length > 0 && (
-        <div className="citation-quick-list" aria-label="Mở nguồn trích dẫn">
-          <span>Nguồn:</span>
-          {sources.map((source, index) => {
-            const sourceKey = getSourceKey(source, index);
-            return (
-              <button key={sourceKey} onClick={() => onSelectSource(sourceKey)} type="button">
-                {getSourceMarker(source, index)}
-              </button>
-            );
-          })}
+        <div className="citation-toggle-wrap">
+          <button
+            aria-expanded={showSources}
+            className="citation-toggle"
+            onClick={() => setShowSources((current) => !current)}
+            type="button"
+          >
+            {showSources ? "Ẩn nguồn trích dẫn" : `Xem ${sources.length} nguồn trích dẫn`}
+          </button>
+
+          {showSources && (
+            <>
+              <div className="citation-quick-list" aria-label="Chọn nguồn trích dẫn">
+                <span>Nguồn:</span>
+                {sources.map((source, index) => {
+                  const sourceKey = getSourceKey(source, index);
+                  return (
+                    <button key={sourceKey} onClick={() => handleSelectSource(sourceKey)} type="button">
+                      {getSourceMarker(source, index)}
+                    </button>
+                  );
+                })}
+              </div>
+              <SourceCitationPanel
+                sources={sources}
+                selectedSourceKey={selectedSourceKey}
+                onSelectSource={handleSelectSource}
+              />
+            </>
+          )}
         </div>
       )}
-
-      <SourceCitationPanel
-        sources={sources}
-        selectedSourceKey={selectedSourceKey}
-        onSelectSource={onSelectSource}
-      />
-
-      <AssistantRunMeta message={message} />
     </div>
   );
 }
@@ -345,20 +405,6 @@ function AssistantFallbackNotice({ message }: { message: ChatMessage }) {
           Hệ thống đang hiển thị nguồn fallback gần nhất vì câu trả lời không nêu marker citation rõ ràng.
         </p>
       )}
-    </div>
-  );
-}
-
-function AssistantRunMeta({ message }: { message: ChatMessage }) {
-  if (!message.experimentId && !message.configHash && !message.chunkStrategyId) {
-    return null;
-  }
-
-  return (
-    <div className="chat-run-meta">
-      {message.experimentId && <span>Experiment: {message.experimentId}</span>}
-      {message.configHash && <span>Config: {message.configHash}</span>}
-      {message.chunkStrategyId && <span>Chunk: {message.chunkStrategyId}</span>}
     </div>
   );
 }

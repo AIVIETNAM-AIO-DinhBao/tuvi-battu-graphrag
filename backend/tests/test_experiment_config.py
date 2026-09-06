@@ -21,7 +21,7 @@ W7_GENERATION_CONFIG_PATHS = [
     ROOT_DIR / "configs" / "w7_generation_structured_v3_flash_lite.yaml",
 ]
 EXPERIMENT_RUNS_MIGRATION = ROOT_DIR / "infra" / "supabase" / "migrations" / "20260709_experiment_runs.sql"
-LOCKED_DEFAULT_CONFIG_HASH = "fb9a7a5be6c23824c5f5bd42115d94d70a6b508c6aa89102dabfa5615fd1ea47"
+LOCKED_DEFAULT_CONFIG_HASH = "3f666f97b6592ca8c149c4b488feb4de26e3046b5921e004d5bed5e0e0fee0b1"
 
 
 def default_payload() -> dict:
@@ -42,7 +42,7 @@ def test_default_production_config_loads_with_w7_evidence_locked_defaults() -> N
     assert config.embedding.vector_index == "chunkVectorBgeM3"
     assert config.embedding.dimension == 1024
     assert config.query_rewrite.backend == "gemini"
-    assert config.query_rewrite.model == "gemini-3.1-flash-lite-preview"
+    assert config.query_rewrite.model == "gemini-3.5-flash-lite-preview"
     assert config.runtime_entity_extraction.backend == "dictionary"
     assert config.runtime_entity_extraction.model == "dictionary-rule"
     assert config.graph_retrieval.top_k == 8
@@ -68,7 +68,7 @@ def test_default_production_config_loads_with_w7_evidence_locked_defaults() -> N
     assert config.reranker_config.max_length == 512
     assert config.reranker_config.local_files_only is True
     assert str(config.reranker_config.local_model_path).replace("\\", "/") == "models/bge-reranker-v2-m3"
-    assert config.prompt_template_id == "tuvi_generation_structured_v3"
+    assert config.prompt_template_id == "tuvi_generation_answer_first_v4"
     assert config.generation_model == "gemini-3.1-flash-lite-preview"
     assert config.context_assembly_strategy == "balanced"
     assert config.cache_disabled is True

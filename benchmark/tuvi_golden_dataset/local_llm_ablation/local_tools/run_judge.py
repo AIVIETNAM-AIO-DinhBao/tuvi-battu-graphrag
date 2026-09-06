@@ -154,6 +154,7 @@ def safe_slug(value: str) -> str:
 
 def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
     bundle_dir = resolve_directory(config.get("bundle_dir"), marker="bundle_manifest.json")
+    bundle_manifest = json.loads((bundle_dir / "bundle_manifest.json").read_text(encoding="utf-8"))
     repo_root = Path(config["repo_root"]).expanduser().resolve()
     output_dir = Path(config.get("output_dir") or "./local_llm_gemini_judge").resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -206,6 +207,17 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         for key, record in predictions.items()
         if key in expected_keys and record.get("status") == "completed"
     }
+    prompt_mismatches = sorted(
+        key
+        for key, prediction in completed_predictions.items()
+        if str(prediction.get("prompt_sha256") or "")
+        != str(cases[str(prediction["pair_id"])].get("prompt_sha256") or "")
+    )
+    if prompt_mismatches:
+        raise RuntimeError(
+            f"Prediction prompt checksum mismatch for {len(prompt_mismatches)} pair(s); "
+            f"examples={prompt_mismatches[:3]}"
+        )
     missing_keys = sorted(expected_keys - set(completed_predictions))
     unexpected_keys = sorted(set(predictions) - expected_keys)
     if missing_keys and not allow_incomplete:
@@ -356,7 +368,10 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         executed_pair_count += 1
         latest[evaluation_id] = result
         if index % 10 == 0 or index == len(ordered_predictions):
-            print(f"judged={index}/{len(ordered_predictions)} model={model_id} status={result['status']}")
+            print(
+                f"judged={index}/{len(ordered_predictions)} model={model_id} status={result['status']}",
+                flush=True,
+            )
 
     expected_evaluation_ids = {
         stable_pair_id(
@@ -396,6 +411,21 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    limitations = [
+        "Gemini is an LLM judge and may have model-family bias; model identity is excluded from the judge prompt.",
+        "Generation latency is comparable only when runtime settings and hardware/API conditions are held constant.",
+    ]
+    if bundle_manifest.get("bundle_type") == "model_only_question_plus_raw_chart":
+        limitations.append(
+            "This model-only bundle has no retrieved corpus context or citations; retrieval and citation metrics are not applicable."
+        )
+    else:
+        limitations.append(
+            "Exact chunk hit is unavailable because the release dataset contains no gold_chunk_ids."
+        )
+    if any(str(record.get("quantization")) == "4bit" for record in completed_predictions.values()):
+        limitations.append("Qwen and Gemma use 4-bit quantized inference, not full precision.")
+
     report = {
         "schema_version": JUDGE_SCHEMA_VERSION,
         "started_at": started_at,
@@ -406,6 +436,9 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         "selected_suites": sorted(selected_suites),
         "selected_config_keys": sorted(selected_config_keys),
         "expected_model_ids": sorted(expected_model_ids),
+        "bundle_type": bundle_manifest.get("bundle_type"),
+        "retrieval_executed": bundle_manifest.get("retrieval_executed"),
+        "evaluation_case_count": len(cases),
         "retrieval_pair_count": len(cases),
         "expected_prediction_count": len(expected_keys),
         "completed_prediction_count": len(completed_predictions),
@@ -417,12 +450,7 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         "prediction_files": [str(path) for path in prediction_files],
         "key_rotation": judge.diagnostics(),
         "config_results": config_results,
-        "limitations": [
-            "Gemini is an LLM judge and may have model-family bias; model identity is excluded from the judge prompt.",
-            "Generation latency is comparable only when Kaggle GPU type and runtime settings are held constant.",
-            "Exact chunk hit is unavailable because the release dataset contains no gold_chunk_ids.",
-            "Both local models are evaluated in 4-bit quantized inference, not full precision.",
-        ],
+        "limitations": limitations,
     }
     report_path = output_dir / "local_llm_evaluation_report.json"
     metrics_path = output_dir / "local_llm_metrics.csv"

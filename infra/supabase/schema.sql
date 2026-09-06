@@ -102,6 +102,7 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
 CREATE INDEX idx_la_so_user_id ON la_so(user_id);
+CREATE UNIQUE INDEX uq_la_so_user_label_normalized ON la_so(user_id, lower(btrim(label)));
 CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX idx_source_chunks_hash ON source_chunks(chunk_hash);
 CREATE INDEX idx_source_chunks_domain ON source_chunks(domain);

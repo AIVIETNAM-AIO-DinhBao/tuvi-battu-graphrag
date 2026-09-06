@@ -73,8 +73,13 @@ def build_role_queries(state: RAGState) -> list[RoleQuery]:
     target_stars = unique_strings([*(plan.get("target_stars") or []), *(chart_facts.get("target_stars") or [])])
     entity_houses = [entity["canonical_name"] for entity in query_entities if entity_type(entity) in HOUSE_ENTITY_TYPES]
     entity_stars = [entity["canonical_name"] for entity in query_entities if entity_type(entity) in STAR_ENTITY_TYPES]
-    target_houses = unique_strings([*target_houses, *entity_houses])
-    target_stars = unique_strings([*target_stars, *entity_stars])
+    # Planner targets already resolve semantic subject shifts such as
+    # "Mệnh của chồng" -> Phu Thê. Do not re-add the literal but unrelated
+    # Mệnh entity and dilute the role-specific retrieval query.
+    if not target_houses:
+        target_houses = unique_strings(entity_houses)
+    if not target_stars:
+        target_stars = unique_strings(entity_stars)
 
     roles = list(required_roles)
     text = normalize_text(query)
@@ -191,7 +196,11 @@ def make_role_query(
             "evidence_role": role,
             "retrieval_intent": "house_scope",
             "query": f"Cung {house} ý nghĩa phạm vi luận giải",
-            "entities": select_entities(query_entities, entity_types=HOUSE_ENTITY_TYPES) or name_entities(target_houses, "Cung"),
+            "entities": select_entities(
+                query_entities,
+                entity_types=HOUSE_ENTITY_TYPES,
+                names=target_houses,
+            ) or name_entities(target_houses, "Cung"),
             "target_houses": target_houses,
             "target_stars": target_stars,
         }

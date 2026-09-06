@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+import requests
+
 from app.rag.citations import map_citations
 from app.rag.config import ExperimentConfig, load_experiment_config
 from app.rag.context import assemble_context, order_candidates
 from app.rag.generation import (
     DeterministicGenerationClient,
     GENERATION_BACKEND_FALLBACK_PREFIX,
+    GeminiGenerationClient,
+    GenerationResult,
     NO_CONTEXT_ANSWER,
     build_generation_prompt,
     generate_answer,
@@ -53,6 +58,44 @@ def candidate(
 class FailingGenerationClient:
     def generate(self, prompt: str, *, config: ExperimentConfig, state: dict[str, Any]) -> Any:
         raise RuntimeError("test generation backend down")
+
+
+class SequencedGenerationClient:
+    def __init__(self, answers: list[str]) -> None:
+        self.answers = list(answers)
+        self.prompts: list[str] = []
+
+    def generate(self, prompt: str, *, config: ExperimentConfig, state: dict[str, Any]) -> GenerationResult:
+        self.prompts.append(prompt)
+        return GenerationResult(
+            answer=self.answers.pop(0),
+            model=config.generation_model,
+            raw_response="generated",
+        )
+
+
+class FakeGeminiResponse:
+    def __init__(self, status_code: int, payload: dict[str, Any], reason: str = "") -> None:
+        self.status_code = status_code
+        self.payload = payload
+        self.reason = reason
+        self.ok = 200 <= status_code < 300
+
+    def json(self) -> dict[str, Any]:
+        return self.payload
+
+
+class FakeHttpSession:
+    def __init__(self, outcomes: list[Any]) -> None:
+        self.outcomes = list(outcomes)
+        self.calls: list[dict[str, Any]] = []
+
+    def post(self, url: str, **kwargs: Any) -> FakeGeminiResponse:
+        self.calls.append({"url": url, **kwargs})
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
 
 
 def test_context_assembly_balanced_uses_relevance_before_multipath_and_preserves_provenance() -> None:
@@ -249,6 +292,57 @@ def test_generation_no_context_returns_safe_vietnamese_fallback() -> None:
     assert metadata["fallback_reason"] == "no_context"
 
 
+def test_gemini_rest_generation_uses_hard_timeout_and_api_key_header() -> None:
+    config = config_with()
+    session = FakeHttpSession(
+        [
+            FakeGeminiResponse(
+                200,
+                {"candidates": [{"content": {"parts": [{"text": "Câu trả lời [CHART]."}]}}]},
+            )
+        ]
+    )
+    client = GeminiGenerationClient(api_key="secret-test-key", session=session)  # type: ignore[arg-type]
+
+    result = client.generate("prompt", config=config, state={})
+
+    assert result.answer == "Câu trả lời [CHART]."
+    assert len(session.calls) == 1
+    call = session.calls[0]
+    assert "secret-test-key" not in call["url"]
+    assert call["headers"]["x-goog-api-key"] == "secret-test-key"
+    assert call["timeout"] == (5, 20)
+
+
+def test_gemini_transport_timeout_does_not_rotate_through_all_keys(monkeypatch) -> None:
+    config = config_with()
+    session = FakeHttpSession([requests.Timeout("network timeout")])
+    client = GeminiGenerationClient(session=session)  # type: ignore[arg-type]
+    monkeypatch.setattr(client, "_api_keys", lambda: ["key-one", "key-two", "key-three"])
+
+    with pytest.raises(RuntimeError, match="request timed out"):
+        client.generate("prompt", config=config, state={})
+
+    assert len(session.calls) == 1
+
+
+def test_gemini_quota_error_rotates_to_next_key(monkeypatch) -> None:
+    config = config_with()
+    session = FakeHttpSession(
+        [
+            FakeGeminiResponse(429, {"error": {"message": "Quota exceeded"}}, reason="Too Many Requests"),
+            FakeGeminiResponse(200, {"candidates": [{"content": {"parts": [{"text": "Đã thành công."}]}}]}),
+        ]
+    )
+    client = GeminiGenerationClient(session=session)  # type: ignore[arg-type]
+    monkeypatch.setattr(client, "_api_keys", lambda: ["key-one", "key-two"])
+
+    result = client.generate("prompt", config=config, state={})
+
+    assert result.answer == "Đã thành công."
+    assert [call["headers"]["x-goog-api-key"] for call in session.calls] == ["key-one", "key-two"]
+
+
 def test_generation_allows_chart_only_context_without_corpus_sources() -> None:
     config = config_with()
     state = {
@@ -363,6 +457,7 @@ def test_generation_prompt_templates_keep_chart_marker_policy() -> None:
             "tuvi_generation_v1",
             "tuvi_generation_grounded_v2",
             "tuvi_generation_structured_v3",
+            "tuvi_generation_answer_first_v4",
         )
     }
 
@@ -372,6 +467,61 @@ def test_generation_prompt_templates_keep_chart_marker_policy() -> None:
         assert "[[CHART]_FACTS]" not in prompt
     assert "Dữ kiện lá số" in prompts["tuvi_generation_structured_v3"]
     assert "corpus thiếu quy tắc" in prompts["tuvi_generation_grounded_v2"]
+    assert "Đọc toàn bộ khối [CHART]" in prompts["tuvi_generation_answer_first_v4"]
+    assert "không được xem những cung ngoài phạm vi ưu tiên là không tồn tại" in prompts["tuvi_generation_answer_first_v4"]
+
+
+def test_answer_first_generation_retries_false_missing_chart_claim() -> None:
+    config = config_with(prompt_template_id="tuvi_generation_answer_first_v4")
+    house_names = [
+        "Mệnh",
+        "Phụ Mẫu",
+        "Phúc Đức",
+        "Điền Trạch",
+        "Quan Lộc",
+        "Nô Bộc",
+        "Thiên Di",
+        "Tật Ách",
+        "Tài Bạch",
+        "Tử Tức",
+        "Phu Thê",
+        "Huynh Đệ",
+    ]
+    all_house_facts = [
+        {
+            "house_name": name,
+            "major_stars": [{"name": f"Chính tinh {index}"}],
+            "aux_stars": [],
+        }
+        for index, name in enumerate(house_names, start=1)
+    ]
+    state = {
+        "query": "Tôi có nên đi du học không?",
+        "final_context": "[CHART]\n[CUNG Thiên Di]\n- Chính tinh: Thiên Mã",
+        "context_chunks": [{"citation_marker": "CHART"}],
+        "chart_facts": {
+            "chart_available": True,
+            "all_house_facts": all_house_facts,
+            "house_facts": [all_house_facts[0]],
+            "target_houses": ["Mệnh"],
+        },
+    }
+    client = SequencedGenerationClient(
+        [
+            "Dữ kiện về cung Thiên Di chưa được cung cấp trong [CHART], nên chưa thể kết luận.",
+            "KẾT LUẬN: Lá số nghiêng về khả năng thích nghi khi đi xa, nhưng quyết định còn tùy học lực và tài chính [CHART].",
+        ]
+    )
+
+    answer, metadata = generate_answer(state, config, generation_client=client)
+
+    assert answer.startswith("KẾT LUẬN:")
+    assert len(client.prompts) == 2
+    assert "YÊU CẦU SỬA BẢN NHÁP" in client.prompts[1]
+    assert metadata["quality_retry_attempted"] is True
+    assert metadata["quality_retry_succeeded"] is True
+    assert metadata["quality_retry_reasons"] == ["false_missing_chart_data"]
+    assert metadata["quality_issues"] == []
 
 
 def test_citation_mapping_filters_explicit_markers_and_preserves_source_fields() -> None:

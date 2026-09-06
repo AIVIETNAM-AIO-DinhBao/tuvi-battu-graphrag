@@ -36,6 +36,15 @@
       "expected_config_count": 3,
       "expected_item_count": 100,
       "expected_retrieval_pair_count": 300
+    },
+    "model_only": {
+      "description": "Direct generation from the question and raw chart data, without retrieval or derived chart features.",
+      "selection_rationale": "Provides the no-technique baseline needed to measure the contribution of the RAG pipeline.",
+      "manifest_selections": [],
+      "expected_config_count": 1,
+      "expected_item_count": 100,
+      "expected_retrieval_pair_count": 0,
+      "expected_generation_pair_count": 100
     }
   },
   "official_matrix": {

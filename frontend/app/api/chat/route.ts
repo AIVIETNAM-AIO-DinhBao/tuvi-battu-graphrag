@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const CHAT_PROXY_TIMEOUT_MS = 300_000;
+const CHAT_PROXY_TIMEOUT_MS = 90_000;
 const CHAT_RATE_LIMIT_WINDOW_MS = 60_000;
 const CHAT_RATE_LIMIT_MAX_REQUESTS = 6;
 
@@ -20,13 +20,23 @@ export async function POST(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
-    return jsonError("Thiếu cấu hình xác thực Supabase cho chat proxy.", 500);
+    return jsonError("Chức năng luận giải hiện chưa sẵn sàng. Vui lòng thử lại sau.", 500);
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+  if (userError && isAuthConnectivityError(userError)) {
+    console.error("[chat-proxy] Supabase auth service is unreachable", {
+      errorName: userError.name,
+      status: userError.status,
+    });
+    return jsonError(
+      "Không thể xác minh phiên đăng nhập do không kết nối được dịch vụ xác thực. Vui lòng thử lại sau.",
+      503,
+    );
+  }
   if (userError || !userData.user) {
     return jsonError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   }
@@ -35,15 +45,16 @@ export async function POST(request: NextRequest) {
   try {
     payload = await request.json();
   } catch {
-    return jsonError("Request chat không đúng định dạng JSON.", 400);
+    return jsonError("Yêu cầu gửi đi chưa hợp lệ. Vui lòng thử lại.", 400);
   }
 
   const chartId = readString(payload, "chart_id");
   const query = readString(payload, "query");
   const experimentConfigPath = readString(payload, "experiment_config_path");
+  const chartData = readRecord(payload, "chart_data");
 
   if (!chartId) {
-    return jsonError("Thiếu chart_id cho câu hỏi.", 400);
+    return jsonError("Không xác định được lá số cần luận giải.", 400);
   }
   if (!query) {
     return jsonError("Câu hỏi không được để trống.", 400);
@@ -66,10 +77,12 @@ export async function POST(request: NextRequest) {
 
   const backendBaseUrl = process.env.BACKEND_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!backendBaseUrl) {
-    return jsonError("Thiếu cấu hình BACKEND_API_BASE_URL cho chat proxy.", 500);
+    return jsonError("Chức năng luận giải hiện chưa sẵn sàng. Vui lòng thử lại sau.", 500);
   }
 
   const controller = new AbortController();
+  const abortWhenClientStops = () => controller.abort();
+  request.signal.addEventListener("abort", abortWhenClientStops);
   const timeoutId = setTimeout(() => controller.abort(), CHAT_PROXY_TIMEOUT_MS);
 
   try {
@@ -83,6 +96,7 @@ export async function POST(request: NextRequest) {
         chart_id: chartId,
         query,
         user_id: userData.user.id,
+        ...(chartData ? { chart_data: chartData } : {}),
         ...(experimentConfigPath ? { experiment_config_path: experimentConfigPath } : {}),
       }),
       signal: controller.signal,
@@ -122,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     if (!isRecord(backendBody) || typeof backendBody.answer !== "string") {
       console.error("[chat-proxy] invalid backend payload", { chartId, userId: userData.user.id });
-      return jsonError("Backend chat trả về dữ liệu không đúng định dạng.", 502);
+      return jsonError("Không thể hoàn tất luận giải lúc này. Vui lòng thử lại sau.", 502);
     }
 
     return NextResponse.json({
@@ -148,6 +162,7 @@ export async function POST(request: NextRequest) {
     return jsonError(message, 502);
   } finally {
     clearTimeout(timeoutId);
+    request.signal.removeEventListener("abort", abortWhenClientStops);
   }
 }
 
@@ -195,7 +210,7 @@ function normalizeBackendErrorMessage(payload: unknown, status: number) {
   if (status === 404) {
     return "Không tìm thấy lá số hoặc dữ liệu chat tương ứng.";
   }
-  return message ?? "Request chat không hợp lệ.";
+  return message ?? "Yêu cầu gửi đi chưa hợp lệ.";
 }
 
 function readFallbackReason(payload: unknown): string | null {
@@ -247,4 +262,22 @@ function jsonError(message: string, status: number, headers?: HeadersInit, retry
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readRecord(payload: unknown, key: string): Record<string, unknown> | null {
+  if (!isRecord(payload)) {
+    return null;
+  }
+  const value = payload[key];
+  return isRecord(value) ? value : null;
+}
+
+function isAuthConnectivityError(error: { message?: string; name?: string; status?: number }) {
+  const message = error.message?.toLowerCase() ?? "";
+  return (
+    error.status === 0 ||
+    error.name === "AuthRetryableFetchError" ||
+    message.includes("fetch failed") ||
+    message.includes("failed to fetch")
+  );
 }

@@ -19,18 +19,23 @@ export default function LoginPage() {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    });
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
 
-    setLoading(false);
-    if (error) {
-      setError(getLoginErrorMessage(error.message));
-      return;
+      if (signInError) {
+        setError(getLoginErrorMessage(signInError.message));
+        return;
+      }
+
+      router.replace("/dashboard");
+    } catch {
+      setError("Không thể kết nối đến dịch vụ đăng nhập. Hãy kiểm tra mạng rồi thử lại.");
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/dashboard");
   };
 
   return (
@@ -38,7 +43,7 @@ export default function LoginPage() {
       <section className="auth-shell" aria-labelledby="login-title">
         <div className="auth-panel">
           <div className="auth-copy">
-            <p className="auth-kicker">TuVi GraphRAG</p>
+            <p className="auth-kicker">Tử Vi</p>
             <h1 id="login-title">Đăng nhập</h1>
             <p>Trở lại không gian lưu lá số Tử Vi và tiếp tục phân tích.</p>
           </div>
@@ -52,7 +57,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
-                placeholder="ban@example.com"
+                placeholder="NguyenVanA@gmail.com"
                 required
               />
             </div>
@@ -78,6 +83,12 @@ export default function LoginPage() {
           </form>
 
           <p className="auth-footer">
+            <Link className="text-link" href="/forgot-password">
+              Quên mật khẩu?
+            </Link>
+          </p>
+
+          <p className="auth-footer">
             Chưa có tài khoản?{" "}
             <Link className="text-link" href="/register">
               Đăng ký
@@ -85,28 +96,27 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <aside className="auth-side" aria-label="Tổng quan hệ thống">
+        <aside className="auth-side" aria-label="Không gian lá số">
           <div className="auth-side-content">
-            <p className="auth-kicker">Hybrid knowledge workspace</p>
-            <h2>Lá số rõ ràng, dữ liệu có ngữ cảnh.</h2>
+            <p className="auth-kicker">Lá số của bạn</p>
+            <h2>Lưu lá số, xem luận giải khi cần.</h2>
             <p>
-              Quản lý hồ sơ cá nhân, tạo lá số Tử Vi, rồi mở chi tiết để xem trực quan theo
-              từng cung và metadata đã lưu.
+              Quản lý hồ sơ, tạo lá số Tử Vi và xem luận giải chi tiết, trực quan theo từng cung.
             </p>
           </div>
 
           <div className="auth-console" aria-hidden="true">
             <div className="auth-console-row">
-              <span>Auth</span>
-              <strong>Supabase session</strong>
+              <span>Xác thực</span>
+              <strong>Duy trì đăng nhập</strong>
             </div>
             <div className="auth-console-row">
-              <span>Charts</span>
-              <strong>Tử Vi</strong>
+              <span>Kho lưu trữ lá số</span>
+              <strong>Lá số Tử Vi</strong>
             </div>
             <div className="auth-console-row">
-              <span>View</span>
-              <strong>Responsive boards</strong>
+              <span>Giao diện</span>
+              <strong>Đa nền tảng</strong>
             </div>
           </div>
         </aside>
@@ -117,7 +127,7 @@ export default function LoginPage() {
 
 function getLoginErrorMessage(message: string) {
   if (message.toLowerCase().includes("invalid login credentials")) {
-    return "Email hoặc mật khẩu không đúng, hoặc tài khoản chưa xác nhận email. Nếu vừa đăng ký, hãy mở email xác nhận từ Supabase rồi đăng nhập lại.";
+    return "Email hoặc mật khẩu không đúng, hoặc tài khoản chưa xác nhận email. Nếu vừa đăng ký, hãy mở email xác nhận rồi đăng nhập lại.";
   }
 
   return message;

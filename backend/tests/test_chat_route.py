@@ -73,3 +73,44 @@ def test_chat_route_returns_answer_sources_and_trace(monkeypatch) -> None:
     assert payload["retrieval_diagnostics"]["candidate_counts"]["graph"] == 1
     assert payload["experiment_id"] == config.experiment_id
     assert payload["chunk_strategy_id"] == config.chunk_strategy_id
+
+
+def test_chat_route_uses_supplied_chart_data_without_loading_supabase(monkeypatch) -> None:
+    supplied_chart = {
+        "chart_type": "TUVI",
+        "palaces": {"MENH": {"name": "Mệnh", "stars": ["Tử Vi"]}},
+    }
+
+    def fail_remote_chart_load(chart_id: str, user_id: str | None = None) -> dict[str, Any]:
+        raise AssertionError("Supabase chart loader must not run when chart_data is supplied")
+
+    def fake_run_rag_dry_run(initial_state: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        loaded = kwargs["chart_loader"](initial_state["chart_id"], initial_state.get("user_id"))
+        assert loaded == {"chart_system": "TUVI", "chart_data": supplied_chart}
+        return {
+            "answer": "Lá số đã được nhận trực tiếp.",
+            "sources": [],
+            "retrieval_trace": {},
+            "retrieval_diagnostics": {},
+            "experiment_id": "test",
+            "config_hash": "hash-test",
+            "experiment_config": load_experiment_config(),
+            "generation_metadata": {},
+            "citation_metadata": {},
+        }
+
+    monkeypatch.setattr(main_module, "resilient_chart_loader", fail_remote_chart_load)
+    monkeypatch.setattr(main_module, "run_rag_dry_run", fake_run_rag_dry_run)
+
+    response = client.post(
+        "/chat",
+        json={
+            "chart_id": "chart-1",
+            "query": "Luận giải cung Mệnh",
+            "user_id": "user-1",
+            "chart_data": supplied_chart,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "Lá số đã được nhận trực tiếp."

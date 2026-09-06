@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from queue import Empty, Queue
+from threading import Lock, Thread
 import time
 from typing import Any
 
@@ -36,6 +38,8 @@ from app.rag.state import RAGState
 
 ChartLoader = Callable[[str, str | None], dict[str, Any]]
 QueryEntityExtractor = Callable[[str, RuntimeEntityExtractionConfig], list[dict[str, Any]]]
+RERANK_TIMEOUT_SECONDS = 8.0
+_RERANK_EXECUTION_LOCK = Lock()
 
 DRY_RUN_NODE_ORDER = [
     "load_chart_context",
@@ -419,6 +423,7 @@ def chart_fact_extraction_node(state: RAGState) -> RAGState:
             "chart_available": chart_facts.get("chart_available"),
             "chart_schema_detected": chart_facts.get("chart_schema_detected"),
             "house_fact_count": len(chart_facts.get("house_facts") or []),
+            "all_house_fact_count": len(chart_facts.get("all_house_facts") or []),
             "target_houses": chart_facts.get("target_houses") or [],
             "target_stars": chart_facts.get("target_stars") or [],
         },
@@ -746,24 +751,100 @@ def make_rerank_node(candidate_reranker: CandidateReranker | None = None) -> Cal
     def rerank(state: RAGState) -> RAGState:
         started = time.perf_counter()
         config = state["experiment_config"]
-        reranked_candidates = apply_reranking(state, config, candidate_reranker=candidate_reranker)
+        fallback_reason = None
+        status = "completed" if config.reranker_enabled else "skipped"
+        try:
+            reranked_candidates = run_reranking_bounded(
+                state,
+                config,
+                candidate_reranker,
+            )
+        except TimeoutError:
+            fallback_reason = "reranker_timeout"
+            status = "fallback"
+            reranked_candidates = fallback_rerank_candidates(state, config)
+        except RerankerBusyError:
+            fallback_reason = "reranker_warming_up"
+            status = "fallback"
+            reranked_candidates = fallback_rerank_candidates(state, config)
+        except Exception as exc:
+            fallback_reason = f"reranker_error:{type(exc).__name__}"
+            status = "fallback"
+            reranked_candidates = fallback_rerank_candidates(state, config)
         state["reranked_candidates"] = reranked_candidates
         return append_trace_node(
             state,
             "rerank",
-            status="completed" if config.reranker_enabled else "skipped",
+            status=status,
             detail={
                 "duration_ms": elapsed_ms(started),
                 "enabled": config.reranker_enabled,
+                "fallback_reason": fallback_reason,
                 "input_count": len(state.get("fused_candidates") or []),
                 "model": config.reranker_config.model,
                 "output_count": len(reranked_candidates),
                 "rankings": ranking_trace_summary(reranked_candidates),
+                "timeout_seconds": RERANK_TIMEOUT_SECONDS,
                 "top_k": config.reranker_config.top_k,
             },
         )
 
     return rerank
+
+
+class RerankerBusyError(RuntimeError):
+    pass
+
+
+def run_reranking_bounded(
+    state: RAGState,
+    config: Any,
+    candidate_reranker: CandidateReranker | None,
+) -> list[dict[str, Any]]:
+    """Run the heavy local model without letting it block an HTTP request.
+
+    The daemon worker may finish warming the shared model cache after the first
+    request falls back. A single lock prevents parallel 2+ GB model loads.
+    """
+    result_queue: Queue[tuple[str, Any]] = Queue(maxsize=1)
+
+    def worker() -> None:
+        if not _RERANK_EXECUTION_LOCK.acquire(blocking=False):
+            result_queue.put(("busy", None))
+            return
+        try:
+            result_queue.put(
+                (
+                    "ok",
+                    apply_reranking(state, config, candidate_reranker=candidate_reranker),
+                )
+            )
+        except Exception as exc:
+            result_queue.put(("error", exc))
+        finally:
+            _RERANK_EXECUTION_LOCK.release()
+
+    Thread(target=worker, name="tuvi-reranker", daemon=True).start()
+    try:
+        outcome, payload = result_queue.get(timeout=RERANK_TIMEOUT_SECONDS)
+    except Empty as exc:
+        raise TimeoutError("Reranker exceeded the interactive time budget") from exc
+    if outcome == "busy":
+        raise RerankerBusyError("Reranker model is still warming up")
+    if outcome == "error":
+        raise payload
+    return payload
+
+
+def fallback_rerank_candidates(state: RAGState, config: Any) -> list[dict[str, Any]]:
+    candidates = [dict(candidate) for candidate in state.get("fused_candidates") or []]
+    capped = candidates[: config.reranker_config.top_k]
+    for index, candidate in enumerate(capped, start=1):
+        candidate.setdefault("fusion_rank", candidate.get("rank"))
+        candidate["rank"] = index
+        candidate["reranked"] = False
+        candidate["rerank_score"] = candidate.get("fusion_score", candidate.get("score", 0.0))
+    return capped
 
 
 def document_grading_node(state: RAGState) -> RAGState:

@@ -24,7 +24,6 @@ export default function ChartDetailPage() {
   const chartId = Array.isArray(rawChartId) ? rawChartId[0] : rawChartId ?? "";
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [chart, setChart] = useState<ChartRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chartMissing, setChartMissing] = useState(false);
@@ -43,19 +42,17 @@ export default function ChartDetailPage() {
       }
 
       if (!chartId) {
-        setError("Chart id không hợp lệ.");
+      setError("Không tìm thấy lá số cần mở.");
         setLoading(false);
         return;
       }
-
-      setSessionEmail(sessionData.session.user.email || null);
 
       const userId = sessionData.session.user.id;
 
       const { data, error: fetchError } = await supabase
         .from("la_so")
         .select(
-          "id,label,birth_date,birth_time,gender,chart_system,chart_version,chart_data,created_at",
+          "id,label,birth_date,birth_time,gender,chart_system,chart_data,created_at",
         )
         .eq("id", chartId)
         .eq("user_id", userId)
@@ -66,10 +63,10 @@ export default function ChartDetailPage() {
       }
 
       if (fetchError) {
-        setError(`Không thể tải chart: ${fetchError.message}`);
+        setError("Không thể tải lá số lúc này. Vui lòng thử lại.");
       } else if (!data) {
         setChartMissing(true);
-        setError("Lá số không tồn tại hoặc bạn không có quyền xem. Hãy quay lại dashboard để chọn một lá số khác.");
+        setError("Lá số không tồn tại hoặc bạn không có quyền xem. Hãy quay lại trang chủ để chọn một lá số khác.");
       } else {
         setChart(data as ChartRow);
       }
@@ -85,19 +82,15 @@ export default function ChartDetailPage() {
   }, [chartId, router]);
 
   if (loading) {
-    return <main className="loading-state">Đang tải chart...</main>;
+    return <main className="loading-state">Đang tải lá số...</main>;
   }
 
   return (
-    <main>
-      <header className="page-header">
-        <div>
-          <h1>Chi tiết chart</h1>
-          <p>Xem lá số, bảng 12 cung và lịch sử chat gắn theo từng lá số.</p>
-          {sessionEmail && <p>Người dùng: {sessionEmail}</p>}
-        </div>
+    <main className="chart-detail-main">
+      <header className="page-header chart-detail-page-header">
+        <h1>Chi tiết lá số</h1>
         <button type="button" className="secondary-button" onClick={() => router.push("/dashboard")}>
-          Về dashboard
+          Về trang chủ
         </button>
       </header>
 
@@ -107,7 +100,7 @@ export default function ChartDetailPage() {
           <p className="error-message">{error}</p>
           <div className="header-actions">
             <button type="button" className="secondary-button" onClick={() => router.push("/dashboard")}>
-              Quay lại dashboard
+              Quay lại trang chủ
             </button>
           </div>
         </section>
@@ -116,20 +109,14 @@ export default function ChartDetailPage() {
       {chartMissing && !chart && null}
 
       {chart && (
-        <section className="panel">
+        <div className="chart-workspace">
+        <section className="panel chart-detail-panel">
           <div className="section-heading-row">
-            <div>
-              <h2>{chart.label}</h2>
-              <p>Lịch sử chat sẽ tự gắn với lá số này và được khôi phục khi bạn quay lại.</p>
-            </div>
+            <h2>{chart.label}</h2>
             <span className="badge-pill">{formatChartSystem(chart.chart_system)}</span>
           </div>
 
           <dl className="detail-list">
-            <div>
-              <dt>Chart ID</dt>
-              <dd>{chart.id}</dd>
-            </div>
             <div>
               <dt>Ngày sinh</dt>
               <dd>{chart.birth_date}</dd>
@@ -143,14 +130,6 @@ export default function ChartDetailPage() {
               <dd>{formatGender(chart.gender)}</dd>
             </div>
             <div>
-              <dt>Loại chart</dt>
-              <dd>{formatChartSystem(chart.chart_system)}</dd>
-            </div>
-            <div>
-              <dt>Phiên bản chart</dt>
-              <dd>{chart.chart_version ?? "N/A"}</dd>
-            </div>
-            <div>
               <dt>Ngày tạo</dt>
               <dd>{formatDateTime(chart.created_at)}</dd>
             </div>
@@ -160,14 +139,10 @@ export default function ChartDetailPage() {
 
           <ChartVisualizer chartData={chart.chart_data} />
 
-          <details className="debug-details">
-            <summary>Dữ liệu debug của chart</summary>
-            <pre className="json-preview">{JSON.stringify(chart.chart_data, null, 2)}</pre>
-          </details>
         </section>
+        <ChatInterface chartId={chart.id} chartLabel={chart.label} chartData={chart.chart_data} />
+        </div>
       )}
-
-      {chart && <ChatInterface chartId={chart.id} chartLabel={chart.label} />}
     </main>
   );
 }
@@ -188,7 +163,7 @@ function VisualizerError({ message }: { message: string }) {
   return (
     <section className="visualizer-section">
       <div className="board-message">
-        <h3>Không thể hiển thị visualizer</h3>
+        <h3>Không thể hiển thị sơ đồ lá số</h3>
         <p>{message}</p>
       </div>
     </section>

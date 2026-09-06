@@ -36,7 +36,7 @@ class LangfuseClient:
             "public_key": self.public_key,
             "payload": payload,
         }
-        response = self.session.post(url, json=body)
+        response = self.session.post(url, json=body, timeout=(2.0, 3.0))
         response.raise_for_status()
         return response.json()
 

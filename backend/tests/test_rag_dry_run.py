@@ -104,7 +104,8 @@ def test_rag_dry_run_traverses_expected_nodes_and_preserves_query() -> None:
     assert "[CHART]" in state["final_context"]
     assert "[CHART_FACTS]" not in state["final_context"]
     assert state["answer"]
-    assert state["generation_metadata"]["fallback_reason"] is None
+    assert state["generation_metadata"]["fallback_reason"] == "no_corpus_context"
+    assert "không tự suy diễn" in state["answer"]
     assert state["sources"][0]["citation_marker"] == "CHART"
     assert state["citation_metadata"]["source_count"] == 1
     assert state["retrieval_diagnostics"]["candidate_counts"]["graph"] == 0

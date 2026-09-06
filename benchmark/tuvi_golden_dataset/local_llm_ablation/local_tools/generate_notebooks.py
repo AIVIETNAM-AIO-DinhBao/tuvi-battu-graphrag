@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,11 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS_DIR = ROOT / "local_tools"
 NOTEBOOK_DIR = ROOT / "notebooks"
+NOTEBOOK_FILTER = {
+    name.strip()
+    for name in os.environ.get("LOCAL_LLM_NOTEBOOK_FILTER", "").split(",")
+    if name.strip()
+}
 
 
 def lines(text: str) -> list[str]:
@@ -31,6 +37,8 @@ def code(text: str, *, tags: list[str] | None = None) -> dict[str, Any]:
 
 
 def write_notebook(name: str, cells: list[dict[str, Any]]) -> None:
+    if NOTEBOOK_FILTER and name not in NOTEBOOK_FILTER:
+        return
     metadata: dict[str, Any] = {
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
         "language_info": {"name": "python", "version": "3.x"},
@@ -159,9 +167,9 @@ write_notebook(
     [
         markdown(
             """
-# 01 — Build frozen retrieval bundle (LOCAL)
+# 01 — Build model-only bundle (LOCAL, không retrieval)
 
-Notebook này chạy từ clone của repo, dùng Neo4j/BGE/reranker hiện tại và `local_tools` trong repo. Nó capture 3 config × 100 prompt/context mà không gọi model generation.
+Notebook này tạo đúng 100 prompt gồm **câu hỏi + dữ liệu lá số gốc** để chạy baseline chỉ dùng mô hình. Không cần Neo4j, không chạy graph/dense/sparse retrieval, fusion, reranker, grading hay trích xuất chart facts. ZIP đầu ra được upload thành private Kaggle Dataset cho notebook 02.
 """
         ),
         code(
@@ -188,41 +196,43 @@ def find_repo(explicit=None):
 REPO_ROOT = find_repo(REPO_ROOT)
 KIT_ROOT = REPO_ROOT / 'benchmark' / 'tuvi_golden_dataset' / 'local_llm_ablation'
 sys.path.insert(0, str(KIT_ROOT))
+assert RUN_MODE in {'smoke', 'official'}
 print({'repo': str(REPO_ROOT), 'kit': str(KIT_ROOT), 'mode': RUN_MODE})
 """
         ),
         code(
             """
 is_official = RUN_MODE == 'official'
+output_name = 'model_only_bundle_v1' if is_official else 'model_only_bundle_v1_smoke'
 BUNDLE_CONFIG = {
     'repo_root': str(REPO_ROOT),
-    'kit_root': str(KIT_ROOT),
-    'plan_path': str(KIT_ROOT / 'experiment_plan.json'),
-    'suites': ['report_shortlist_3'],
+    'dataset_path': str(REPO_ROOT / 'benchmark' / 'tuvi_golden_dataset' / 'release' / 'tuviqa_v1_release.jsonl'),
     'item_limit': None if is_official else 2,
-    'candidate_log_k': 100,
-    'retry_failed': True,
-    'output_dir': str(KIT_ROOT / 'artifacts' / ('context_bundle_v1' if is_official else 'context_bundle_smoke')),
+    'output_dir': str(KIT_ROOT / 'artifacts' / output_name),
 }
-from local_tools.build_bundle import build_context_bundle
-manifest = build_context_bundle(BUNDLE_CONFIG)
+from local_tools.build_model_only_bundle import build_model_only_bundle
+manifest = build_model_only_bundle(BUNDLE_CONFIG)
 manifest
 """
         ),
         code(
             """
-expected = 300 if is_official else 6
-assert manifest['config_count'] == 3, manifest
+expected = 100 if is_official else 2
+assert manifest['bundle_type'] == 'model_only_question_plus_raw_chart', manifest
+assert manifest['selected_suites'] == ['model_only'], manifest
+assert manifest['config_count'] == 1, manifest
 assert manifest['planned_pair_count'] == expected, manifest
 assert manifest['completed_pair_count'] == expected, manifest
 assert manifest['failed_pair_count'] == 0, manifest
 assert manifest['is_complete'], manifest
-assert manifest['failed_this_run'] == 0, manifest
+assert manifest['retrieval_executed'] is False, manifest
+assert manifest['derived_chart_features_used'] is False, manifest
+assert manifest['corpus_context_used'] is False, manifest
 
 import shutil
 bundle_dir = Path(BUNDLE_CONFIG['output_dir'])
 archive = shutil.make_archive(str(bundle_dir), 'zip', root_dir=bundle_dir)
-print('PASS — upload file này thành private Kaggle Dataset:', archive)
+print('PASS — upload ZIP này thành private Kaggle Dataset:', archive)
 """
         ),
     ],
@@ -236,20 +246,33 @@ write_notebook(
             """
 # 02 — Offline generation (Kaggle GPU, Internet OFF)
 
-Notebook **standalone**: không cần repo hay code dataset. Add Input gồm frozen context dataset và đúng private model dataset, rồi đổi ba biến config bên dưới.
+Notebook **standalone**: không cần repo hay code dataset. Với baseline chỉ dùng mô hình, Add Input gồm `model_only_bundle_v1.zip` và đúng private model dataset, sau đó giữ `RUNNER='M'`.
 """
         ),
         code(
             """
 # ===== CONFIG DUY NHẤT CẦN ĐỔI =====
-RUNNER = 'B'               # B | C | D
+RUNNER = 'M'               # M (model-only) | B | C | D
 MODEL_KEY = 'qwen25_7b'    # qwen25_7b | gemma3_4b
 RUN_MODE = 'smoke'         # smoke | official
 
 RUNNER_CONFIGS = {
-    'B': 'report_shortlist_3::graph_dense_rrf',
-    'C': 'report_shortlist_3::semantic_gs_rrf_rerank_k40',
-    'D': 'report_shortlist_3::semantic_gs_rrf_no_rerank_reference',
+    'M': {
+        'suite': 'model_only',
+        'config_key': 'model_only::question_chart_direct',
+    },
+    'B': {
+        'suite': 'report_shortlist_3',
+        'config_key': 'report_shortlist_3::graph_dense_rrf',
+    },
+    'C': {
+        'suite': 'report_shortlist_3',
+        'config_key': 'report_shortlist_3::semantic_gs_rrf_rerank_k40',
+    },
+    'D': {
+        'suite': 'report_shortlist_3',
+        'config_key': 'report_shortlist_3::semantic_gs_rrf_no_rerank_reference',
+    },
 }
 MODEL_REGISTRY = {
     'qwen25_7b': 'Qwen/Qwen2.5-7B-Instruct',
@@ -257,12 +280,13 @@ MODEL_REGISTRY = {
 }
 
 # Chỉ điền khi auto-detect báo nhiều hơn một input phù hợp.
-BUNDLE_INPUT = None       # folder chứa bundle_manifest.json hoặc file context_bundle_v1.zip
+BUNDLE_INPUT = None       # model-only: folder/ZIP model_only_bundle_v1
 MODEL_ASSET_DIR = None    # folder chứa asset_manifest.json
 
 assert RUNNER in RUNNER_CONFIGS
 assert MODEL_KEY in MODEL_REGISTRY
 assert RUN_MODE in {'smoke', 'official'}
+RUN_SPEC = RUNNER_CONFIGS[RUNNER]
 """
         ),
         code(
@@ -316,7 +340,16 @@ def resolve_model_asset(expected_model_id, explicit=None):
 
 BUNDLE_DIR = resolve_bundle(BUNDLE_INPUT)
 MODEL_ASSET_DIR = resolve_model_asset(MODEL_REGISTRY[MODEL_KEY], MODEL_ASSET_DIR)
-print({'bundle': str(BUNDLE_DIR), 'model_assets': str(MODEL_ASSET_DIR)})
+bundle_manifest = json.loads((BUNDLE_DIR / 'bundle_manifest.json').read_text(encoding='utf-8'))
+assert RUN_SPEC['suite'] in bundle_manifest.get('selected_suites', []), (
+    f"Bundle không chứa suite {RUN_SPEC['suite']}: {bundle_manifest.get('selected_suites')}"
+)
+print({
+    'bundle': str(BUNDLE_DIR),
+    'bundle_suites': bundle_manifest.get('selected_suites'),
+    'model_assets': str(MODEL_ASSET_DIR),
+    'run_spec': RUN_SPEC,
+})
 """
         ),
         code(INFERENCE_RUNTIME, tags=["standalone-runtime"]),
@@ -326,8 +359,8 @@ INFERENCE_CONFIG = {
     'bundle_dir': str(BUNDLE_DIR),
     'model_asset_dir': str(MODEL_ASSET_DIR),
     'expected_model_id': MODEL_REGISTRY[MODEL_KEY],
-    'suites': ['report_shortlist_3'],
-    'selected_config_keys': [RUNNER_CONFIGS[RUNNER]],
+    'suites': [RUN_SPEC['suite']],
+    'selected_config_keys': [RUN_SPEC['config_key']],
     'shard_id': 0,
     'num_shards': 1,
     'limit': 2 if RUN_MODE == 'smoke' else None,
@@ -469,5 +502,4 @@ else:
         ),
     ],
 )
-
-print(f"Generated four notebooks in {NOTEBOOK_DIR}")
+print(f"Generated notebooks in {NOTEBOOK_DIR}")

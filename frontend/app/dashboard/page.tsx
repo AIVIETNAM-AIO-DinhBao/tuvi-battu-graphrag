@@ -62,7 +62,7 @@ export default function DashboardPage() {
       }
 
       if (error) {
-        setChartsError(`Không thể tải danh sách chart: ${error.message}`);
+        setChartsError("Không thể tải danh sách lá số lúc này. Vui lòng thử lại.");
         setCharts([]);
       } else {
         setCharts((data ?? []) as ChartSummary[]);
@@ -143,6 +143,13 @@ export default function DashboardPage() {
         label: form.label.trim(),
       };
 
+      const hasDuplicateLabel = charts.some(
+        (chart) => chart.label.trim().localeCompare(normalizedForm.label, "vi", { sensitivity: "accent" }) === 0,
+      );
+      if (hasDuplicateLabel) {
+        throw new Error("Bạn đã có lá số với họ tên này. Hãy dùng tên khác để dễ tìm lại.");
+      }
+
       const chartData = await calculateChartData(normalizedForm);
 
       const { error: profileError } = await supabase.from("profiles").upsert({
@@ -151,7 +158,7 @@ export default function DashboardPage() {
       });
 
       if (profileError) {
-        throw new Error(`Không thể tạo profile: ${profileError.message}`);
+        throw new Error("Không thể lưu thông tin tài khoản lúc này. Vui lòng thử lại.");
       }
 
       const { data: newRow, error: insertError } = await supabase
@@ -170,35 +177,41 @@ export default function DashboardPage() {
         .single();
 
       if (insertError) {
-        throw new Error(`Không thể lưu chart: ${insertError.message}`);
+        if (insertError.code === "23505") {
+          throw new Error("Bạn đã có lá số với họ tên này. Hãy dùng tên khác để dễ tìm lại.");
+        }
+        throw new Error("Không thể lưu lá số lúc này. Vui lòng thử lại.");
       }
 
       if (!newRow?.id) {
-        throw new Error("Supabase không trả về id chart mới.");
+        throw new Error("Không thể tạo lá số mới. Vui lòng thử lại.");
       }
 
       router.push(`/chart/${newRow.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Tạo chart thất bại.");
+      setError(err instanceof Error ? err.message : "Tạo lá số thất bại.");
     } finally {
       setSubmitLoading(false);
     }
   };
 
   if (loading) {
-    return <main className="loading-state">Đang tải dữ liệu người dùng...</main>;
+    return <main className="loading-state">Đang tải thông tin của bạn...</main>;
   }
 
   return (
     <main>
       <header className="page-header">
         <div>
-          <h1>Dashboard</h1>
+          <h1>Lá số của bạn</h1>
           <p>Xin chào, {userEmail ?? "người dùng"}.</p>
         </div>
         <div className="header-actions">
+          <button type="button" className="secondary-button" onClick={() => router.push("/profile")}>
+            Hồ sơ
+          </button>
           <button type="button" className="secondary-button" onClick={scrollToCreateChart}>
-            Tạo chart mới
+            Tạo lá số
           </button>
           <button type="button" className="secondary-button" onClick={handleLogout}>
             Đăng xuất
@@ -207,15 +220,15 @@ export default function DashboardPage() {
       </header>
 
       <section className="panel" id="create-chart">
-        <h2>Tạo chart mới</h2>
+        <h2>Tạo lá số Tử Vi</h2>
         <form className="chart-form" onSubmit={handleSubmit}>
           <label>
-            Tên chart
+            Họ tên
             <input
               type="text"
               value={form.label}
               onChange={(event) => updateField("label", event.target.value)}
-              placeholder="Lá số của tôi"
+              placeholder="Ví dụ: Nguyễn Văn A"
               disabled={submitLoading}
               required
             />
@@ -273,7 +286,7 @@ export default function DashboardPage() {
           </div>
 
           <button type="submit" disabled={submitLoading}>
-            {submitLoading ? "Đang tính và lưu chart..." : "Tạo chart"}
+            {submitLoading ? "Đang lập và lưu lá số..." : "Tạo lá số"}
           </button>
         </form>
 
@@ -283,27 +296,27 @@ export default function DashboardPage() {
       <section className="panel">
         <div className="section-heading-row">
           <div>
-            <h2>Charts đã lưu</h2>
+            <h2>Lá số đã lưu</h2>
             <p>
               {charts.length > 0
-                ? `${charts.length} chart đã lưu.`
-                : "Danh sách chart của bạn."}
+                ? `${charts.length} lá số đã lưu.`
+                : "Danh sách lá số của bạn."}
             </p>
           </div>
           <button type="button" className="secondary-button" onClick={scrollToCreateChart}>
-            Tạo chart mới
+            Tạo lá số
           </button>
         </div>
 
-        {chartsLoading && <p className="form-note">Đang tải danh sách chart...</p>}
+        {chartsLoading && <p className="form-note">Đang tải danh sách lá số...</p>}
         {chartsError && <p className="error-message">{chartsError}</p>}
 
         {!chartsLoading && !chartsError && charts.length === 0 && (
           <div className="empty-state">
-            <h3>Chưa có chart nào</h3>
-            <p>Tạo chart đầu tiên để xem bảng Tử Vi tại trang chi tiết.</p>
+            <h3>Bạn chưa có lá số nào</h3>
+            <p>Tạo lá số đầu tiên để xem sơ đồ 12 cung và nhận luận giải.</p>
             <button type="button" onClick={scrollToCreateChart}>
-              Tạo chart mới
+              Tạo lá số
             </button>
           </div>
         )}
@@ -322,12 +335,12 @@ export default function DashboardPage() {
 
 function validateForm(form: CreateChartFormState): string | null {
   if (!form.label.trim()) {
-    return "Tên chart không được để trống.";
+    return "Họ tên không được để trống.";
   }
 
   const dateParts = parseBirthDate(form.birth_date);
   if (!dateParts) {
-    return "Ngày sinh phải là ngày Gregorian hợp lệ.";
+    return "Ngày sinh chưa hợp lệ.";
   }
 
   if (!/^\d{2}:\d{2}$/.test(form.birth_time)) {
@@ -354,7 +367,7 @@ async function calculateChartData(form: CreateChartFormState) {
 async function calculateTuVi(form: CreateChartFormState) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!apiBaseUrl) {
-    throw new Error("Thiếu cấu hình NEXT_PUBLIC_API_BASE_URL cho Tử Vi engine.");
+    throw new Error("Chức năng lập lá số hiện chưa sẵn sàng. Vui lòng thử lại sau.");
   }
 
   const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/chart/tuvi`, {
@@ -369,7 +382,7 @@ async function calculateTuVi(form: CreateChartFormState) {
     }),
   });
 
-  return parseEngineResponse(response, "Tử Vi");
+  return parseEngineResponse(response, "Lập lá số");
 }
 
 async function parseEngineResponse(response: Response, engineName: string) {
@@ -383,7 +396,7 @@ async function parseEngineResponse(response: Response, engineName: string) {
 
   if (!response.ok) {
     const message = extractErrorMessage(body);
-    throw new Error(`${engineName} engine lỗi: ${message || response.statusText}`);
+    throw new Error(`${engineName} không thành công: ${message || response.statusText}`);
   }
 
   return body;

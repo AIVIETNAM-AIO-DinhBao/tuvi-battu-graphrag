@@ -53,32 +53,11 @@ export function SourceCitationPanel({
 
               <p className="source-citation-excerpt">{source.excerpt || "Không có excerpt."}</p>
 
-              <div className="source-citation-metadata">
-                {source.source_page ? <span>Trang {source.source_page}</span> : <span>Trang N/A</span>}
-                {typeof source.score === "number" && <span>Score {source.score.toFixed(3)}</span>}
-                {typeof source.confidence === "number" && <span>Conf {source.confidence.toFixed(2)}</span>}
-                {Array.isArray(source.retrieval_paths) && source.retrieval_paths.length > 0 && (
-                  <span>{source.retrieval_paths.join(" + ")}</span>
-                )}
-              </div>
-
-              <details className="source-provenance-details">
-                <summary>Provenance kỹ thuật</summary>
-                <dl>
-                  <div>
-                    <dt>source_id</dt>
-                    <dd>{source.source_id || "N/A"}</dd>
-                  </div>
-                  <div>
-                    <dt>chunk_id</dt>
-                    <dd>{source.chunk_id || "N/A"}</dd>
-                  </div>
-                  <div>
-                    <dt>chunk_hash</dt>
-                    <dd>{source.chunk_hash || "N/A"}</dd>
-                  </div>
-                </dl>
-              </details>
+              {source.source_page && (
+                <div className="source-citation-metadata">
+                  <span>Trang {source.source_page}</span>
+                </div>
+              )}
             </article>
           );
         })}

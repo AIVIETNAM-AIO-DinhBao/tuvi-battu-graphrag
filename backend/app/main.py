@@ -1,9 +1,11 @@
 from typing import Any
 import logging
+import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 from app.clients import get_neo4j_driver, get_langfuse_client, get_supabase_client
 from app.config import settings
@@ -99,6 +101,14 @@ def log_chat_retrieval_diagnostics(state: dict[str, Any]) -> None:
         )
 
 
+def log_langfuse_event(event_name: str, payload: dict[str, Any]) -> None:
+    """Keep optional observability failures off the chat request's critical path."""
+    try:
+        langfuse.log_event(event_name, payload)
+    except Exception as exc:
+        logger.debug("Langfuse event failed: event=%s error_type=%s", event_name, type(exc).__name__)
+
+
 def resilient_chart_loader(chart_id: str, user_id: str | None = None) -> dict[str, Any]:
     """Load chart from Supabase, but do not fail the whole chat if unavailable.
 
@@ -136,7 +146,27 @@ class ChatRequest(BaseModel):
     chart_id: str
     query: str
     user_id: str | None = None
+    chart_data: dict[str, Any] | None = None
     experiment_config_path: str | None = None
+
+
+def chart_loader_for_request(req: ChatRequest):
+    """Prefer the authenticated frontend's chart snapshot over another remote load."""
+    if not req.chart_data:
+        return resilient_chart_loader
+
+    chart_data = req.chart_data
+    chart_system = str(chart_data.get("chart_type") or "TUVI")
+
+    def load_request_chart(chart_id: str, user_id: str | None = None) -> dict[str, Any]:
+        if chart_id != req.chart_id:
+            return resilient_chart_loader(chart_id, user_id)
+        return {
+            "chart_system": chart_system,
+            "chart_data": chart_data,
+        }
+
+    return load_request_chart
 
 
 @app.get("/debug/rag-runtime")
@@ -234,8 +264,8 @@ async def rag_runtime_debug():
 async def rag_smoke_debug(req: ChatRequest):
     """Run the chat RAG path with deterministic generation for diagnostics.
 
-    It still loads the real chart and real Neo4j retrieval, but it avoids the
-    final Gemini generation call so we can isolate retrieval/context problems.
+    It uses supplied chart data when available and real Neo4j retrieval, but it
+    avoids the final Gemini call so we can isolate retrieval/context problems.
     """
     initial_state: dict[str, Any] = {
         "chart_id": req.chart_id,
@@ -247,8 +277,10 @@ async def rag_smoke_debug(req: ChatRequest):
         initial_state["experiment_config_path"] = req.experiment_config_path
 
     try:
-        state = run_rag_dry_run(
+        state = await run_in_threadpool(
+            run_rag_dry_run,
             initial_state,
+            chart_loader=chart_loader_for_request(req),
             neo4j_driver=neo4j_driver,
             generation_client=DeterministicGenerationClient(),
             retrieval_fallback_on_error=True,
@@ -285,7 +317,8 @@ async def rag_smoke_no_chart_debug(query: str = "Thiên Mã tại Quan Lộc th�
     def fake_chart_loader(chart_id: str, user_id: str | None = None) -> dict[str, Any]:
         return {"chart_system": "TUVI", "chart_data": {"id": chart_id, "chart_type": "TUVI"}}
 
-    state = run_rag_dry_run(
+    state = await run_in_threadpool(
+        run_rag_dry_run,
         {"chart_id": "debug-chart", "query": query},
         chart_loader=fake_chart_loader,
         neo4j_driver=neo4j_driver,
@@ -310,15 +343,18 @@ async def rag_smoke_no_chart_debug(query: str = "Thiên Mã tại Quan Lộc th�
     }
 
 @app.post("/chat")
-async def chat(req: ChatRequest):
-    try:
-        langfuse.log_event("chat_request", {
+async def chat(req: ChatRequest, background_tasks: BackgroundTasks):
+    started = time.perf_counter()
+    logger.info("Chat request received: chart_id=%s user_id=%s", req.chart_id, req.user_id)
+    background_tasks.add_task(
+        log_langfuse_event,
+        "chat_request",
+        {
             "chart_id": req.chart_id,
             "user_id": req.user_id,
             "query": req.query,
-        })
-    except Exception:
-        pass
+        },
+    )
 
     try:
         initial_state: dict[str, Any] = {
@@ -330,11 +366,18 @@ async def chat(req: ChatRequest):
         if req.experiment_config_path:
             initial_state["experiment_config_path"] = req.experiment_config_path
 
-        state = run_rag_dry_run(
+        state = await run_in_threadpool(
+            run_rag_dry_run,
             initial_state,
-            chart_loader=resilient_chart_loader,
+            chart_loader=chart_loader_for_request(req),
             neo4j_driver=neo4j_driver,
             retrieval_fallback_on_error=True,
+        )
+        logger.info(
+            "Chat RAG completed: chart_id=%s user_id=%s elapsed_ms=%.2f",
+            req.chart_id,
+            req.user_id,
+            (time.perf_counter() - started) * 1000,
         )
         log_chat_retrieval_diagnostics(state)
         config = state.get("experiment_config")
@@ -351,17 +394,18 @@ async def chat(req: ChatRequest):
             "generation_metadata": state.get("generation_metadata") or {},
             "citation_metadata": state.get("citation_metadata") or {},
         }
-        try:
-            langfuse.log_event("chat_response", {
+        background_tasks.add_task(
+            log_langfuse_event,
+            "chat_response",
+            {
                 "chart_id": req.chart_id,
                 "user_id": req.user_id,
                 "experiment_id": response["experiment_id"],
                 "config_hash": response["config_hash"],
                 "chunk_strategy_id": response["chunk_strategy_id"],
                 "source_count": len(response["sources"]),
-            })
-        except Exception:
-            pass
+            },
+        )
         return response
     except HTTPException:
         raise
@@ -372,14 +416,15 @@ async def chat(req: ChatRequest):
             req.user_id,
             type(exc).__name__,
         )
-        try:
-            langfuse.log_event("chat_error", {
+        background_tasks.add_task(
+            log_langfuse_event,
+            "chat_error",
+            {
                 "chart_id": req.chart_id,
                 "user_id": req.user_id,
                 "error_type": type(exc).__name__,
-            })
-        except Exception:
-            pass
+            },
+        )
         raise HTTPException(status_code=500, detail="Không thể xử lý câu hỏi lúc này.") from exc
 
 

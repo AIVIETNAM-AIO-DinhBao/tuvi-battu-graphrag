@@ -627,7 +627,8 @@ def test_dry_run_retrieval_backend_failure_can_still_answer_from_chart_facts() -
     assert state["dense_candidates"] == []
     assert state["sparse_candidates"] == []
     assert state["answer"]
-    assert state["generation_metadata"]["fallback_reason"] is None
+    assert state["generation_metadata"]["fallback_reason"] == "no_corpus_context"
+    assert "không tự suy diễn" in state["answer"]
     assert state["context_chunks"][0]["citation_marker"] == "CHART"
     assert trace_entry(state, "graph_retrieval")["status"] == "fallback"
     assert trace_entry(state, "graph_retrieval")["fallback_reason"] == "retrieval_backend_unavailable"

@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,9 +42,34 @@ export default function RegisterPage() {
       return;
     }
 
-    setNotice(
-      "Tài khoản đã được tạo nhưng cần xác nhận email trước khi đăng nhập. Hãy mở email xác nhận từ Supabase, rồi quay lại đăng nhập.",
-    );
+    setNotice("Tài khoản đã được tạo. Hãy kiểm tra hộp thư để xác nhận email trước khi đăng nhập.");
+  };
+
+  const handleResendConfirmation = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError("Hãy nhập email trước khi gửi lại thư xác nhận.");
+      return;
+    }
+
+    setResendLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: normalizedEmail,
+      options: {
+        emailRedirectTo:
+          typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined,
+      },
+    });
+    setResendLoading(false);
+
+    if (error) {
+      setError("Không thể gửi lại email xác nhận lúc này. Vui lòng thử lại sau.");
+      return;
+    }
+
+    setNotice("Email xác nhận mới đã được gửi. Hãy kiểm tra hộp thư đến và thư rác.");
   };
 
   return (
@@ -51,9 +77,9 @@ export default function RegisterPage() {
       <section className="auth-shell" aria-labelledby="register-title">
         <div className="auth-panel">
           <div className="auth-copy">
-            <p className="auth-kicker">TuVi GraphRAG</p>
+            <p className="auth-kicker">Tử Vi</p>
             <h1 id="register-title">Tạo tài khoản</h1>
-            <p>Bắt đầu lưu lá số cá nhân và mở lại các phân tích Tử Vi khi cần.</p>
+            <p>Tạo tài khoản để lưu lá số và xem lại các luận giải của riêng bạn.</p>
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
@@ -65,7 +91,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
-                placeholder="ban@example.com"
+                placeholder="NguyenVanA@gmail.com"
                 required
               />
             </div>
@@ -82,7 +108,7 @@ export default function RegisterPage() {
                 placeholder="Tối thiểu 6 ký tự"
                 required
               />
-              <p className="field-hint">Dùng ít nhất 6 ký tự để đáp ứng cấu hình Supabase.</p>
+              <p className="field-hint">Đặt mật khẩu ít nhất 6 ký tự để bảo vệ tài khoản của bạn.</p>
             </div>
 
             <button type="submit" disabled={loading}>
@@ -90,7 +116,14 @@ export default function RegisterPage() {
             </button>
 
             {error && <p className="error-message">{error}</p>}
-            {notice && <p className="notice-message">{notice}</p>}
+            {notice && (
+              <div className="notice-message">
+                <p>{notice}</p>
+                <button type="button" className="secondary-button" disabled={resendLoading} onClick={handleResendConfirmation}>
+                  {resendLoading ? "Đang gửi lại..." : "Gửi lại email xác nhận"}
+                </button>
+              </div>
+            )}
           </form>
 
           <p className="auth-footer">
@@ -101,28 +134,27 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <aside className="auth-side" aria-label="Tổng quan hệ thống">
+        <aside className="auth-side" aria-label="Thông tin tài khoản">
           <div className="auth-side-content">
-            <p className="auth-kicker">Personal chart library</p>
+            <p className="auth-kicker">Lưu lại hành trình của bạn</p>
             <h2>Một nơi gọn để giữ và đọc lá số.</h2>
             <p>
-              Sau khi xác nhận email, bạn có thể tạo lá số, lưu lịch sử và mở lại bảng
-              trực quan trên mọi kích thước màn hình.
+              Sau khi xác nhận email, bạn có thể tạo lá số, lưu lịch sử và xem lại những lần luận giải.
             </p>
           </div>
 
           <div className="auth-console" aria-hidden="true">
             <div className="auth-console-row">
-              <span>Account</span>
-              <strong>Email confirmation</strong>
+              <span>Hội viên</span>
+              <strong>Xác nhận email</strong>
             </div>
             <div className="auth-console-row">
-              <span>Storage</span>
-              <strong>Saved chart records</strong>
+              <span>Không gian lưu trữ</span>
+              <strong>Quản lý lá số</strong>
             </div>
             <div className="auth-console-row">
-              <span>Engine</span>
-              <strong>Tử Vi calculation</strong>
+              <span>Bộ phân tích</span>
+              <strong>Lập lá số</strong>
             </div>
           </div>
         </aside>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 export interface TuViStarDetail {
   name?: string;
@@ -45,6 +45,10 @@ export interface TuViChartData {
 interface TuViBoardProps {
   chart: TuViChartData;
 }
+
+const BOARD_WIDTH = 960;
+const BOARD_HEIGHT = 1040;
+const MIN_READABLE_SCALE = 0.62;
 
 interface NormalizedPalace {
   key: string;
@@ -171,45 +175,122 @@ const TRANG_SINH_STAR_NAMES = new Set([
 export function TuViBoard({ chart }: TuViBoardProps) {
   const palaces = normalizePalaces(chart);
   const centerRows = buildCenterRows(chart);
+  const [fitScale, setFitScale] = useState(MIN_READABLE_SCALE);
+  const [showFullChart, setShowFullChart] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const fitStageRef = useRef<HTMLDivElement | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const stage = fitStageRef.current;
+    if (!stage) {
+      return;
+    }
+
+    const updateScale = () => {
+      const availableWidth = stage.clientWidth;
+      const availableHeight = stage.clientHeight;
+      if (availableWidth > 0 && availableHeight > 0) {
+        const widthScale = availableWidth / BOARD_WIDTH;
+        const nextScale = showFullChart
+          ? Math.min(widthScale, availableHeight / BOARD_HEIGHT, 1)
+          : Math.min(Math.max(widthScale, MIN_READABLE_SCALE), 1);
+        setFitScale(nextScale);
+      }
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [showFullChart]);
+
+  async function handleDownload() {
+    const board = boardRef.current;
+    if (!board || isDownloading) {
+      return;
+    }
+
+    setDownloadError(null);
+    setIsDownloading(true);
+    try {
+      const label = chart.metadata?.label ?? "la-so-tu-vi";
+      await downloadBoardAsPng(board, `la-so-${fileSlug(label)}.png`);
+    } catch {
+      setDownloadError("Không thể tạo ảnh lá số. Vui lòng thử lại.");
+    } finally {
+      setIsDownloading(false);
+    }
+  }
 
   if (palaces.length !== 12) {
     return (
       <BoardMessage title="Không thể hiển thị bảng Tử Vi">
-        Dữ liệu chart hiện có không đủ 12 cung.
+        Dữ liệu lá số hiện có không đủ 12 cung.
       </BoardMessage>
     );
   }
 
   return (
-    <section className="visualizer-section" aria-labelledby="tuvi-board-title">
+    <section className="visualizer-section chart-overview" aria-labelledby="tuvi-board-title">
       <div className="visualizer-heading">
         <div>
           <p className="eyebrow">Tử Vi</p>
           <h3 id="tuvi-board-title">Bảng 12 cung</h3>
         </div>
-        <div className="visualizer-heading-meta">
-          <p>
-            {chart.metadata?.birth_date ?? "N/A"} - {chart.metadata?.birth_time ?? "N/A"}
-          </p>
-          <p className="visualizer-caption">Mỗi ô hiển thị Cung số, Đại hạn, Địa chi và các sao để dễ định vị nhanh.</p>
+        <div className="chart-actions" aria-label="Tùy chọn lá số">
+          <button
+            aria-pressed={showFullChart}
+            className="chart-action-button"
+            onClick={() => setShowFullChart((current) => !current)}
+            type="button"
+          >
+            {showFullChart ? "Xem cỡ dễ đọc" : "Xem toàn bộ lá số"}
+          </button>
+          <button
+            className="chart-action-button"
+            disabled={isDownloading}
+            onClick={handleDownload}
+            type="button"
+          >
+            {isDownloading ? "Đang tạo ảnh..." : "Tải ảnh PNG"}
+          </button>
         </div>
       </div>
+      {downloadError && <p className="chart-download-error" role="alert">{downloadError}</p>}
 
-      <div className="tuvi-board-scroll">
-        <div className="tuvi-board" role="img" aria-label="Bảng Tử Vi 12 cung">
-          <section className="tuvi-center-cell" style={centerCellStyle()}>
-            <h4>{truncateText(chart.metadata?.label ?? "Lá số Tử Vi", 32)}</h4>
-            <dl className="tuvi-center-table">
-              {centerRows.map((row, index) => (
-                <div key={`${row.label}-${index}`}>
-                  <dt>{row.label}</dt>
-                  <dd title={row.value}>{truncateText(row.value, 34)}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
+      <div
+        className={showFullChart ? "tuvi-board-fit-stage is-full" : "tuvi-board-fit-stage"}
+        ref={fitStageRef}
+      >
+        <div
+          className="tuvi-board-scale-canvas"
+          style={{
+            "--tuvi-fit-scale": fitScale,
+            height: BOARD_HEIGHT * fitScale,
+            width: BOARD_WIDTH * fitScale,
+          } as CSSProperties}
+        >
+          <div
+            className="tuvi-board"
+            ref={boardRef}
+            role="img"
+            aria-label="Bảng Tử Vi 12 cung"
+          >
+            <section className="tuvi-center-cell" style={centerCellStyle()}>
+              <h4>{truncateText(chart.metadata?.label ?? "Lá số Tử Vi", 32)}</h4>
+              <dl className="tuvi-center-table">
+                {centerRows.map((row, index) => (
+                  <div key={`${row.label}-${index}`}>
+                    <dt>{row.label}</dt>
+                    <dd title={row.value}>{truncateText(row.value, 34)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
 
-          {palaces.map((palace, index) => {
+            {palaces.map((palace, index) => {
             const cell = GRID_CELLS[index];
             const starLayout = splitStars(palace.stars);
             const isHighlighted = isMenhOrThan(palace);
@@ -284,7 +365,8 @@ export function TuViBoard({ chart }: TuViBoardProps) {
                 </footer>
               </section>
             );
-          })}
+            })}
+          </div>
         </div>
       </div>
     </section>
@@ -556,6 +638,104 @@ function stripAccents(value: string) {
 
 function truncateText(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
+}
+
+function fileSlug(value: string) {
+  return stripAccents(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "tu-vi";
+}
+
+async function downloadBoardAsPng(board: HTMLDivElement, fileName: string) {
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const htmlNamespace = "http://www.w3.org/1999/xhtml";
+  const exportScale = 2;
+  const clonedBoard = board.cloneNode(true) as HTMLDivElement;
+
+  Object.assign(clonedBoard.style, {
+    height: `${BOARD_HEIGHT}px`,
+    left: "0",
+    minWidth: `${BOARD_WIDTH}px`,
+    position: "relative",
+    top: "0",
+    transform: "none",
+    width: `${BOARD_WIDTH}px`,
+  });
+
+  const svg = document.createElementNS(svgNamespace, "svg");
+  svg.setAttribute("width", String(BOARD_WIDTH));
+  svg.setAttribute("height", String(BOARD_HEIGHT));
+  svg.setAttribute("viewBox", `0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`);
+
+  const foreignObject = document.createElementNS(svgNamespace, "foreignObject");
+  foreignObject.setAttribute("width", "100%");
+  foreignObject.setAttribute("height", "100%");
+
+  const container = document.createElement("div");
+  container.setAttribute("xmlns", htmlNamespace);
+  container.style.height = `${BOARD_HEIGHT}px`;
+  container.style.width = `${BOARD_WIDTH}px`;
+
+  const style = document.createElement("style");
+  style.textContent = collectDocumentCss();
+  container.append(style, clonedBoard);
+  foreignObject.append(container);
+  svg.append(foreignObject);
+
+  const svgBlob = new Blob([new XMLSerializer().serializeToString(svg)], {
+    type: "image/svg+xml;charset=utf-8",
+  });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Unable to render chart image."));
+      image.src = svgUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = BOARD_WIDTH * exportScale;
+    canvas.height = BOARD_HEIGHT * exportScale;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Canvas is unavailable.");
+    }
+
+    context.scale(exportScale, exportScale);
+    context.fillStyle = "#faf9f5";
+    context.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+    context.drawImage(image, 0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Unable to encode chart image."));
+      }, "image/png");
+    });
+    const pngUrl = URL.createObjectURL(pngBlob);
+    const link = document.createElement("a");
+    link.download = fileName;
+    link.href = pngUrl;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(pngUrl), 0);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+}
+
+function collectDocumentCss() {
+  return Array.from(document.styleSheets)
+    .map((sheet) => {
+      try {
+        return Array.from(sheet.cssRules, (rule) => rule.cssText).join("\n");
+      } catch {
+        return "";
+      }
+    })
+    .join("\n");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -37,22 +37,36 @@ Nếu giao diện Kaggle chỉ cho Add Input từ Notebook Output, có thể chi
 - Không đưa `HF_TOKEN` vào output, metadata, notebook cell hoặc tên file.
 - Notebook 00 xóa local Hugging Face transfer cache trước khi tạo manifest.
 
-## B. Context bundle từ máy local bằng giao diện
+## B. Model-only bundle từ notebook 01
 
-Sau notebook 01, file cần upload là:
+Để chạy baseline chỉ dùng mô hình, notebook 01 không gọi Neo4j hay retrieval. File cần upload là:
 
 ```text
-artifacts/context_bundle_v1.zip
+artifacts/model_only_bundle_v1.zip
 ```
 
 1. Vào Kaggle → Datasets → New Dataset.
-2. Upload `context_bundle_v1.zip`.
-3. Title gợi ý: `tuvi-local-llm-context-bundle-v1`.
+2. Upload `model_only_bundle_v1.zip`.
+3. Title gợi ý: `tuviqa-model-only-bundle-v1`.
 4. Visibility: Private.
 5. Tạo dataset và share với B/C/D.
 6. Không upload `.env`, Neo4j credentials hoặc toàn bộ repo.
 
 Notebook 02 tự phát hiện ZIP có `bundle_manifest.json` và giải nén an toàn vào `/kaggle/working`.
+
+Manifest hợp lệ phải ghi:
+
+```text
+bundle_type = model_only_question_plus_raw_chart
+selected_suites = ["model_only"]
+item_count = 100
+completed_pair_count = 100
+retrieval_executed = false
+derived_chart_features_used = false
+corpus_context_used = false
+```
+
+Bundle chỉ chứa câu hỏi, dữ liệu lá số, nhãn vàng phục vụ đánh giá và prompt tối thiểu. Nó không chứa context sách hoặc kết quả retrieval.
 
 ## C. Context bundle bằng Kaggle CLI
 
@@ -60,7 +74,7 @@ Cài và đăng nhập Kaggle CLI theo hướng dẫn tài khoản Kaggle, sau �
 
 ```powershell
 New-Item -ItemType Directory -Force .\kaggle_context_dataset
-Copy-Item .\artifacts\context_bundle_v1.zip .\kaggle_context_dataset\
+Copy-Item .\artifacts\model_only_bundle_v1.zip .\kaggle_context_dataset\
 kaggle datasets init -p .\kaggle_context_dataset
 ```
 
@@ -74,9 +88,9 @@ Nếu CLI yêu cầu thiết lập visibility trên website, tạo xong rồi ch
 
 ## D. Add Input cho notebook 02
 
-Mỗi official run chỉ nên mount:
+Mỗi lần chạy baseline model-only chỉ nên mount:
 
-1. `tuvi-local-llm-context-bundle-v1`;
+1. `tuviqa-model-only-bundle-v1`;
 2. một trong hai model datasets.
 
 Không mount cả Qwen và Gemma nếu không cần; việc này làm tăng disk usage và dễ chọn nhầm asset.
@@ -92,6 +106,8 @@ Sau khi Add Input, chạy cell resolver. Output mong đợi:
 
 Nếu resolver tìm thấy nhiều input, điền thủ công `BUNDLE_INPUT` hoặc `MODEL_ASSET_DIR` ở cell config.
 
+Đặt `RUNNER='M'`. Cell resolver sẽ kiểm tra bundle thật sự chứa suite `model_only`; nếu gắn nhầm bundle RAG 300 cặp, notebook dừng trước khi tải model.
+
 ## E. Kiểm tra trước khi chia sẻ
 
 Model dataset:
@@ -102,10 +118,11 @@ Model dataset:
 - [ ] Có wheelhouse Transformers >=4.51.
 - [ ] Không có token hoặc `.cache` transfer metadata.
 
-Context dataset:
+Model-only dataset:
 
 - [ ] ZIP chứa đúng một `bundle_manifest.json`.
-- [ ] Manifest báo 3 configs, 100 items, 300 completed pairs.
+- [ ] Manifest báo 1 config, 100 items, 100 completed pairs.
+- [ ] Ba cờ `retrieval_executed`, `derived_chart_features_used`, `corpus_context_used` đều là `false`.
 - [ ] Không có `.env` hoặc credentials.
 
 ## F. Tải prediction ZIP sau official run

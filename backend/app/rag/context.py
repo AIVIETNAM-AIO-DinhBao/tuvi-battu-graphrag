@@ -54,6 +54,7 @@ def assemble_context(state: RAGState, config: ExperimentConfig) -> tuple[str, li
         "has_chart_summary": bool(chart_summary.strip()),
         "has_chart_facts": bool(chart_fact_block.strip()),
         "chart_fact_house_count": len((state.get("chart_facts") or {}).get("house_facts") or []),
+        "chart_all_house_count": len((state.get("chart_facts") or {}).get("all_house_facts") or []),
         "chart_fact_target_houses": (state.get("chart_facts") or {}).get("target_houses") or [],
         "chart_fact_target_stars": (state.get("chart_facts") or {}).get("target_stars") or [],
         "max_chunks": DEFAULT_MAX_CHUNKS,

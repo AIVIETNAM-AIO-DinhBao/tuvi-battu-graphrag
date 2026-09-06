@@ -36,7 +36,12 @@ def extract_chart_facts(
     normalized["summary"] = enrich_summary_with_derived_chart_values(normalized.get("summary") or {}, houses)
     target_houses = find_target_houses(normalized, houses, query_entities or [], retrieval_plan or {})
     target_stars = find_target_stars(houses, query_entities or [], retrieval_plan or {}, target_houses=target_houses)
-    selected_houses = [build_house_fact(house, normalized) for house in houses if should_include_house(house, target_houses, target_stars)]
+    all_house_facts = [build_house_fact(house, normalized) for house in houses]
+    selected_houses = [
+        fact
+        for house, fact in zip(houses, all_house_facts)
+        if should_include_house(house, target_houses, target_stars)
+    ]
     relations = build_relation_placeholders(retrieval_plan or {}, target_houses)
     claims_verified, unverified_claims = verify_fact_claims(selected_houses, target_houses, target_stars)
     warnings: list[str] = list(normalized.get("warnings") or [])
@@ -49,6 +54,10 @@ def extract_chart_facts(
         "target_houses": target_houses,
         "target_stars": target_stars,
         "summary": normalized["summary"],
+        # Keep the query-focused subset for retrieval/ranking, but expose the
+        # complete chart separately to answer generation.  This prevents the
+        # model from mistaking planner scope for missing chart data.
+        "all_house_facts": all_house_facts,
         "house_facts": selected_houses,
         "relations": relations,
         "claims_verified": claims_verified,
@@ -379,7 +388,24 @@ def build_house_fact(house: dict[str, Any], normalized_chart: dict[str, Any]) ->
 def build_chart_fact_context_block(chart_facts: dict[str, Any]) -> str:
     if not isinstance(chart_facts, dict) or not chart_facts.get("chart_available"):
         return ""
+    all_house_facts = chart_facts.get("all_house_facts") or chart_facts.get("house_facts") or []
+    target_house_facts = chart_facts.get("house_facts") or []
     lines = ["[CHART] Dữ kiện lá số đã trích xuất"]
+    if all_house_facts:
+        house_names = [str(house.get("house_name") or "Không rõ") for house in all_house_facts if isinstance(house, dict)]
+        lines.append(f"- Phạm vi lá số: {len(all_house_facts)} cung đã được cung cấp")
+        lines.append(f"- Danh sách cung: {', '.join(house_names)}")
+        lines.append(
+            "- Lưu ý dữ liệu: các cung liệt kê bên dưới đều có trong lá số; "
+            "không được xem phạm vi cung mục tiêu của retrieval là phần dữ liệu bị thiếu"
+        )
+        if target_house_facts and len(target_house_facts) < len(all_house_facts):
+            target_names = [
+                str(house.get("house_name") or "Không rõ")
+                for house in target_house_facts
+                if isinstance(house, dict)
+            ]
+            lines.append(f"- Cung được ưu tiên theo câu hỏi: {', '.join(target_names)}")
     summary = chart_facts.get("summary") or {}
     labels = {
         "menh_position": "Mệnh",
@@ -403,7 +429,7 @@ def build_chart_fact_context_block(chart_facts: dict[str, Any]) -> str:
     for key, label in labels.items():
         if summary.get(key) not in (None, "", []):
             lines.append(f"- {label}: {summary.get(key)}")
-    for house in chart_facts.get("house_facts") or []:
+    for house in all_house_facts:
         lines.append("")
         lines.append(f"[CUNG {house.get('house_name') or 'Không rõ'}]")
         if house.get("is_current_dai_van"):
