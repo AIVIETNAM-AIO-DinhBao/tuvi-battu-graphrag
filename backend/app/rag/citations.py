@@ -16,23 +16,36 @@ def map_citations(state: RAGState, config: ExperimentConfig) -> tuple[list[dict[
     markers = normalize_markers(CITATION_MARKER_RE.findall(answer))
     marker_set = set(markers)
 
-    sources: list[dict[str, Any]] = []
+    all_sources: list[dict[str, Any]] = []
     for chunk in context_chunks:
         marker = str(chunk.get("citation_marker") or "")
         used = marker in marker_set if marker_set else False
-        sources.append(make_source(chunk, config=config, used_in_answer=used))
+        all_sources.append(make_source(chunk, config=config, used_in_answer=used))
 
     unmatched_markers: list[str] = []
+    book_evidence_available_but_not_cited = False
+    sources = list(all_sources)
     if marker_set:
-        matched_sources = [source for source in sources if source.get("used_in_answer")]
+        matched_sources = [source for source in all_sources if source.get("used_in_answer")]
         matched_marker_set = {str(source.get("citation_marker") or "") for source in matched_sources}
         unmatched_markers = [marker for marker in markers if marker not in matched_marker_set]
         sources = matched_sources
-        if not sources and context_chunks:
-            sources = [make_source(chunk, config=config, used_in_answer=False) for chunk in context_chunks]
+        corpus_sources = [source for source in all_sources if str(source.get("source_id") or "").upper() != "CHART"]
+        if corpus_sources and not any(source in corpus_sources for source in matched_sources):
+            # Preserve retrieved book evidence when Gemini cites [CHART] only.
+            # The UI distinguishes these cards from sources cited in the answer.
+            sources = all_sources
+            book_evidence_available_but_not_cited = True
+        elif not sources and context_chunks:
+            sources = all_sources
 
     metadata = {
-        "citation_fallback": (not bool(marker_set) and bool(context_chunks)) or (bool(marker_set) and bool(unmatched_markers) and bool(sources) and not any(source.get("used_in_answer") for source in sources)),
+        "citation_fallback": (
+            (not bool(marker_set) and bool(context_chunks))
+            or book_evidence_available_but_not_cited
+            or (bool(marker_set) and bool(unmatched_markers) and bool(sources) and not any(source.get("used_in_answer") for source in sources))
+        ),
+        "book_evidence_available_but_not_cited": book_evidence_available_but_not_cited,
         "context_chunk_count": len(context_chunks),
         "evidence_warnings": build_evidence_warnings(state, sources, context_chunks),
         "marker_count": len(markers),

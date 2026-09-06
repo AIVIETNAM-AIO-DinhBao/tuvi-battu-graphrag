@@ -398,14 +398,21 @@ def answer_quality_issues(answer: str, state: RAGState) -> list[str]:
     palace (or its stars) was not supplied although the generation context
     contains the complete twelve-palace chart.
     """
-    chart_facts = state.get("chart_facts") or {}
-    all_houses = chart_facts.get("all_house_facts") or []
-    if len(all_houses) < 12:
-        return []
-
     normalized = " ".join(str(answer or "").casefold().split())
     if not normalized:
         return ["empty_answer"]
+
+    issues: list[str] = []
+    # A chart marker alone is insufficient for an interpretive answer when the
+    # retrieval pipeline supplied book passages. Force one repair attempt so
+    # the answer uses the evidence it was given instead of silently ignoring it.
+    if has_corpus_context(state.get("context_chunks") or []) and not re.search(r"\[S\d+\]", str(answer), flags=re.IGNORECASE):
+        issues.append("missing_book_citation")
+
+    chart_facts = state.get("chart_facts") or {}
+    all_houses = chart_facts.get("all_house_facts") or []
+    if len(all_houses) < 12:
+        return issues
 
     missing_chart_patterns = (
         r"(?:lá số|\[chart\]).{0,120}(?:chưa|không).{0,40}(?:cung cấp|liệt kê|có dữ kiện|có thông tin).{0,100}(?:cung|sao)",
@@ -413,8 +420,8 @@ def answer_quality_issues(answer: str, state: RAGState) -> list[str]:
         r"(?:dữ kiện|thông tin).{0,80}(?:cung|sao).{0,120}(?:chưa|không).{0,40}(?:cung cấp|liệt kê).{0,40}(?:lá số|\[chart\])",
     )
     if any(re.search(pattern, normalized) for pattern in missing_chart_patterns):
-        return ["false_missing_chart_data"]
-    return []
+        issues.append("false_missing_chart_data")
+    return issues
 
 
 def build_answer_repair_prompt(prompt: str, draft: str, issues: list[str], state: RAGState) -> str:
@@ -425,6 +432,13 @@ def build_answer_repair_prompt(prompt: str, draft: str, issues: list[str], state
         for house in all_houses
         if isinstance(house, dict) and str(house.get("house_name") or "").strip()
     ]
+    corpus_markers = citation_markers(state.get("context_chunks") or [], limit=3)
+    citation_requirement = ""
+    if "missing_book_citation" in issues and corpus_markers:
+        citation_requirement = (
+            f"Bản nháp đã bỏ qua nguồn sách. Khi viết lại, phải dùng ít nhất một trong các marker {', '.join(corpus_markers)} "
+            "ngay sau nhận định luận giải mà nguồn đó hỗ trợ; không được chỉ ghi [CHART].\n"
+        )
     return (
         f"{prompt}\n\n"
         "YÊU CẦU SỬA BẢN NHÁP:\n"
@@ -432,6 +446,7 @@ def build_answer_repair_prompt(prompt: str, draft: str, issues: list[str], state
         f"[CHART] đã cung cấp đủ {len(house_names)} cung ({', '.join(house_names)}). "
         "Không được nói một cung hoặc các sao của cung đó bị thiếu nếu chúng đã xuất hiện trong [CHART]. "
         "Nếu thiếu căn cứ từ sách, chỉ được nói tài liệu luận giải chưa đủ cho nhận định đó.\n"
+        f"{citation_requirement}"
         "Hãy viết lại từ đầu: kết luận trực tiếp trong 1--2 câu đầu, sau đó chỉ giữ 2--4 căn cứ liên quan nhất, "
         "không dùng Markdown và không nhắc đến việc đang sửa bản nháp.\n\n"
         f"BẢN NHÁP KHÔNG ĐẠT:\n{draft}"

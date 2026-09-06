@@ -120,6 +120,7 @@ def build_tuvi_generation_answer_first_v4(state: RAGState, config: ExperimentCon
         "2. Phạm vi cung mục tiêu chỉ giúp tập trung câu hỏi; tuyệt đối không được xem những cung ngoài phạm vi ưu tiên là không tồn tại. "
         "Nếu [CUNG X] có trong [CHART], không được nói lá số chưa cung cấp cung X hoặc các sao tại cung X.\n"
         "3. Dữ kiện lá số lấy từ [CHART] và ghi [CHART]. Quy tắc hoặc ý nghĩa luận giải lấy từ đúng khối [S1], [S2], ... và ghi marker tương ứng.\n"
+        "3a. Nếu CONTEXT có bất kỳ nguồn sách [Sx] nào và câu trả lời có nhận định luận giải, bắt buộc phải dùng ít nhất 1 [Sx] phù hợp ngay sau nhận định đó. Không được chỉ dùng [CHART] để thay thế nguồn sách. Nếu không nguồn [Sx] nào hỗ trợ được nhận định, nói rõ tài liệu hiện có chưa đủ thay vì tự luận.\n"
         "4. Phân biệt rõ hai trường hợp: thiếu dữ kiện lá số và thiếu tài liệu luận giải. Có cung/sao trong [CHART] nhưng chưa có quy tắc phù hợp trong [Sx] "
         "thì phải nói 'tài liệu hiện có chưa đủ để luận sâu', không được nói '[CHART] chưa cung cấp dữ kiện'.\n"
         "5. Không suy diễn một chi tiết không thể xác định, như tên, tuổi, nghề hoặc ngũ hành bản mệnh chính xác của người phối ngẫu tương lai. "

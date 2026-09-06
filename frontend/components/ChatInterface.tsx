@@ -20,12 +20,20 @@ interface ChatSessionRow {
   messages: unknown;
 }
 
+const CHAT_PROGRESS_STEPS = [
+  { startsAt: 0, label: "Đọc thông tin lá số" },
+  { startsAt: 2, label: "Truy vấn tri thức trong đồ thị" },
+  { startsAt: 6, label: "Tổng hợp ngữ cảnh RAG" },
+  { startsAt: 10, label: "Mô hình sinh câu trả lời" },
+];
+
 export function ChatInterface({ chartId, chartLabel, chartData }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null);
   const [selectedSourceByMessage, setSelectedSourceByMessage] = useState<Record<string, string | null>>({});
@@ -42,6 +50,21 @@ export function ChatInterface({ chartId, chartLabel, chartData }: ChatInterfaceP
       messageList.scrollTop = messageList.scrollHeight;
     }
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!loading) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    setElapsedSeconds(0);
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 250);
+
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,12 +296,32 @@ export function ChatInterface({ chartId, chartLabel, chartData }: ChatInterfaceP
           {loading && (
             <article className="chat-message assistant is-loading">
               <div className="chat-message-label">Trợ lý Tử Vi</div>
-              <p>
-                Đang tổng hợp thông tin để luận giải
-                <span className="loading-dots" aria-hidden="true">
-                  <span>.</span><span>.</span><span>.</span>
-                </span>
-              </p>
+              <div className="chat-progress" aria-live="off">
+                <div className="chat-progress-heading">
+                  <p>
+                    Đang luận giải
+                    <span className="loading-dots" aria-hidden="true">
+                      <span>.</span><span>.</span><span>.</span>
+                    </span>
+                  </p>
+                  <time dateTime={`PT${elapsedSeconds}S`}>{formatElapsedTime(elapsedSeconds)}</time>
+                </div>
+                <ol className="chat-progress-steps">
+                  {CHAT_PROGRESS_STEPS.map((step, index) => {
+                    const activeIndex = getActiveProgressStep(elapsedSeconds);
+                    const state = index < activeIndex ? "is-complete" : index === activeIndex ? "is-active" : "is-pending";
+                    return (
+                      <li className={state} key={step.label}>
+                        <span className="chat-progress-marker" aria-hidden="true">
+                          {index < activeIndex ? "✓" : index + 1}
+                        </span>
+                        <span>{step.label}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <p className="chat-progress-note">Tiến trình hiển thị theo thời gian ước tính.</p>
+              </div>
             </article>
           )}
         </div>
@@ -336,6 +379,10 @@ function AssistantMessage({
   onSelectSource: (sourceKey: string) => void;
 }) {
   const sources = message.sources ?? [];
+  const showingRetrievedEvidence = readBooleanFromRecord(
+    message.citationMetadata,
+    "book_evidence_available_but_not_cited",
+  );
   const [showSources, setShowSources] = useState(false);
   const handleSelectSource = (sourceKey: string) => {
     setShowSources(true);
@@ -356,7 +403,11 @@ function AssistantMessage({
             onClick={() => setShowSources((current) => !current)}
             type="button"
           >
-            {showSources ? "Ẩn nguồn trích dẫn" : `Xem ${sources.length} nguồn trích dẫn`}
+            {showSources
+              ? "Ẩn minh chứng"
+              : showingRetrievedEvidence
+                ? `Xem ${sources.length} minh chứng đã truy xuất`
+                : `Xem ${sources.length} nguồn trích dẫn`}
           </button>
 
           {showSources && (
@@ -383,6 +434,21 @@ function AssistantMessage({
       )}
     </div>
   );
+}
+
+function getActiveProgressStep(elapsedSeconds: number): number {
+  for (let index = CHAT_PROGRESS_STEPS.length - 1; index >= 0; index -= 1) {
+    if (elapsedSeconds >= CHAT_PROGRESS_STEPS[index].startsAt) {
+      return index;
+    }
+  }
+  return 0;
+}
+
+function formatElapsedTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function AssistantFallbackNotice({ message }: { message: ChatMessage }) {
@@ -530,6 +596,7 @@ function normalizeSources(value: unknown): ChatSource[] {
     retrieval_paths: Array.isArray(source.retrieval_paths)
       ? source.retrieval_paths.filter((path): path is string => typeof path === "string")
       : undefined,
+    used_in_answer: typeof source.used_in_answer === "boolean" ? source.used_in_answer : undefined,
   }));
 }
 

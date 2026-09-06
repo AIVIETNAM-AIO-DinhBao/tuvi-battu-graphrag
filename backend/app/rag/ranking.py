@@ -17,6 +17,13 @@ GRAPH_FIRST_PRIORITY = {"graph": 3.0, "dense": 2.0, "sparse": 1.0}
 TOKEN_RE = re.compile(r"\w+", re.UNICODE)
 _RERANKER_BACKEND_CACHE: dict[tuple[str, str | None, int, int, bool], tuple[str, Any]] = {}
 
+# A strict lexical grade is useful for putting strong evidence first, but it is
+# too brittle as the only gate in Vietnamese Tử Vi questions: a relevant book
+# passage may explain a house/star indirectly without repeating every entity
+# extracted from the chart.  Keep a small evidence set for generation instead
+# of collapsing a well-retrieved candidate pool to one source.
+MIN_GRADED_CANDIDATES = 3
+
 
 class CandidateReranker(Protocol):
     def rerank(
@@ -538,12 +545,29 @@ def apply_document_grading(state: RAGState, config: ExperimentConfig) -> list[di
     query_terms = tokenize(retrieval_query_text(state))
     required_entities = canonical_query_entities(state)
     graded: list[dict[str, Any]] = []
+    supplementary: list[dict[str, Any]] = []
     for candidate in candidates:
         item = dict(candidate)
         grade = grade_candidate(query_terms, item, required_entities=required_entities)
         item["document_grade"] = grade
         item["grade_score"] = grade["score"]
         if grade["accepted"]:
+            graded.append(item)
+        elif grade["label"] != "empty":
+            supplementary.append(item)
+
+    # Preserve the reranker order for strong candidates; only backfill when
+    # strict grading left too little textual evidence for a useful answer.
+    if len(graded) < MIN_GRADED_CANDIDATES:
+        for item in supplementary:
+            if len(graded) >= MIN_GRADED_CANDIDATES:
+                break
+            item["document_grade"] = {
+                **dict(item["document_grade"]),
+                "accepted": True,
+                "reason": "supplementary_evidence_after_strict_grade",
+                "supplementary": True,
+            }
             graded.append(item)
 
     for index, candidate in enumerate(graded, start=1):

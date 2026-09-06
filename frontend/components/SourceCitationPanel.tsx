@@ -53,6 +53,10 @@ export function SourceCitationPanel({
 
               <p className="source-citation-excerpt">{source.excerpt || "Không có excerpt."}</p>
 
+              {source.used_in_answer === false && (
+                <p className="source-citation-status">Đã truy xuất, chưa được mô hình viện dẫn trực tiếp.</p>
+              )}
+
               {source.source_page && (
                 <div className="source-citation-metadata">
                   <span>Trang {source.source_page}</span>

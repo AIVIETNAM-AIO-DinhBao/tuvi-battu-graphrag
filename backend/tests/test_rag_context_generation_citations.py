@@ -578,9 +578,12 @@ def test_citation_mapping_supports_chart_facts_marker_without_corpus_fallback() 
 
     sources, metadata = map_citations(state, config)
 
-    assert [source["citation_marker"] for source in sources] == ["CHART"]
+    assert [source["citation_marker"] for source in sources] == ["CHART", "S1"]
     assert sources[0]["source_name"] == "Dữ kiện lá số"
-    assert metadata["citation_fallback"] is False
+    assert sources[0]["used_in_answer"] is True
+    assert sources[1]["used_in_answer"] is False
+    assert metadata["citation_fallback"] is True
+    assert metadata["book_evidence_available_but_not_cited"] is True
     assert metadata["markers"] == ["CHART"]
 
 

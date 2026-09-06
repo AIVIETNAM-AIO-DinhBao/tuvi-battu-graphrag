@@ -9,6 +9,7 @@ export interface ChatSource {
   score?: number | null;
   confidence?: number | null;
   retrieval_paths?: string[];
+  used_in_answer?: boolean;
 }
 
 export interface ChatProxyResponse {
