@@ -1,0 +1,23 @@
+{
+  "corpus_dir": "benchmark/tuvi_golden_dataset/corpus",
+  "dataset_path": "benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl",
+  "dataset_sha256": "90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c",
+  "gold_item_count": 91,
+  "item_count": 100,
+  "items_with_mapped_span": 90,
+  "items_without_mapped_span": [
+    "TVQA-061"
+  ],
+  "mapped_span_count": 621,
+  "mapping_coverage": 0.860111,
+  "min_mapping_coverage": 0.8,
+  "output_path": "benchmark/tuvi_golden_dataset/sequential_ablation/gold_span_anchors.jsonl",
+  "output_sha256": "9db1797693026471b6c2f813107d872c405da10cb2d13f3ff48270dc1a3d28be",
+  "ready_for_official_run": true,
+  "scoring_policy": "Only exact/manual-approved anchors enter metric denominators. Unmapped spans are reported as annotation coverage limitations and are never fuzzy-matched silently.",
+  "span_count": 722,
+  "status_counts": {
+    "exact": 621,
+    "unmapped": 101
+  }
+}

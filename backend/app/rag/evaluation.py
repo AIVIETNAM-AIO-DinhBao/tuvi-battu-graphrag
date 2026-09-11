@@ -28,6 +28,7 @@ from app.rag.config import ExperimentConfig, config_hash
 from app.rag.evaluation_checkpoint import EvaluationCheckpointStore, atomic_write_json
 from app.rag.gemini_keys import get_primary_runtime_gemini_api_key, load_runtime_gemini_api_keys
 from app.rag.generation import DeterministicGenerationClient
+from app.rag.gold_evidence import score_citation_evidence
 from app.rag.graph import run_rag_dry_run
 from app.rag.rewrite import PassthroughQueryRewriter
 
@@ -35,6 +36,8 @@ from app.rag.rewrite import PassthroughQueryRewriter
 ROOT_DIR = Path(__file__).resolve().parents[3]
 DEFAULT_W6_EVAL_OUTPUT_DIR = ROOT_DIR / "benchmark" / "tuvi_golden_dataset" / "reports" / "w6_eval_02"
 DEFAULT_JUDGE_MODEL = "gemini-3.1-flash-lite-preview"
+JUDGE_PROTOCOL_LEGACY_V1 = "legacy-v1"
+JUDGE_PROTOCOL_BLIND_V2 = "blind-v2"
 JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 RETRIEVAL_NODE_NAMES = {
     "graph_retrieval",
@@ -125,6 +128,7 @@ class EvaluationJudgeResult:
     backend: str = "unknown"
     model: str | None = None
     raw_response: str | None = None
+    protocol: str = JUDGE_PROTOCOL_LEGACY_V1
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -135,6 +139,7 @@ class EvaluationJudgeResult:
             "backend": self.backend,
             "model": self.model,
             "raw_response_present": bool(self.raw_response),
+            "protocol": self.protocol,
         }
 
 
@@ -193,11 +198,15 @@ class GeminiEvaluationJudge:
         api_key: str | None = None,
         temperature: float = 0.0,
         max_output_tokens: int = 768,
+        protocol: str = JUDGE_PROTOCOL_LEGACY_V1,
     ) -> None:
         self.model = model
         self.api_key = api_key
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
+        if protocol not in {JUDGE_PROTOCOL_LEGACY_V1, JUDGE_PROTOCOL_BLIND_V2}:
+            raise ValueError(f"Unsupported judge protocol: {protocol}")
+        self.protocol = protocol
 
     def _api_key(self) -> str:
         return get_primary_runtime_gemini_api_key("W6 Gemini evaluation judge", explicit_api_key=self.api_key)
@@ -222,7 +231,11 @@ class GeminiEvaluationJudge:
         except Exception as exc:
             raise RuntimeError("google-generativeai is required for W6 Gemini evaluation judge.") from exc
 
-        prompt = build_gemini_judge_prompt(item=item, state=state, config=config)
+        prompt = (
+            build_blind_gemini_judge_prompt(item=item, state=state)
+            if self.protocol == JUDGE_PROTOCOL_BLIND_V2
+            else build_gemini_judge_prompt(item=item, state=state, config=config)
+        )
         last_exc: Exception | None = None
         keys = self._api_keys()
         response: Any | None = None
@@ -259,12 +272,71 @@ class GeminiEvaluationJudge:
         return EvaluationJudgeResult(
             faithfulness=clamp_score(payload.get("faithfulness")),
             answer_relevancy=clamp_score(payload.get("answer_relevancy")),
-            context_recall=clamp_score(payload.get("context_recall")),
+            context_recall=(
+                None
+                if self.protocol == JUDGE_PROTOCOL_BLIND_V2
+                else clamp_score(payload.get("context_recall"))
+            ),
             reasons=reasons,
             backend=self.backend,
             model=self.model,
             raw_response=raw_text,
+            protocol=self.protocol,
         )
+
+
+def build_blind_gemini_judge_prompt(*, item: AblationDatasetItem, state: dict[str, Any]) -> str:
+    """Judge answer quality without exposing experimental-arm metadata.
+
+    The answer text itself cannot be made style-blind, but config, prompt,
+    chunking, retrieval, reranker and generator identities are deliberately
+    absent. Context recall is excluded because it is measured deterministically
+    from provenance anchors in this protocol.
+    """
+
+    answer = str(state.get("answer") or "")
+    source_context = build_source_context_for_judge(state, include_retrieval_metadata=False)
+    chart_context = compact_json(item.chart_data or state.get("chart_data") or {}, max_chars=4_000)
+    expected_summary = item.expected_answer_summary or ""
+    gold_answer = item.gold_answer or ""
+    return f"""
+You are an impartial evaluator for a Vietnamese Tá»­ Vi question-answering system.
+
+Return ONLY a valid JSON object with this exact shape:
+{{
+  "faithfulness": 0.0,
+  "answer_relevancy": 0.0,
+  "reasons": {{
+    "faithfulness": "short reason",
+    "answer_relevancy": "short reason"
+  }}
+}}
+
+Scoring rules:
+- faithfulness: 1 means every material claim is supported by CHART_CONTEXT and/or SOURCE_CONTEXT; 0 means unsupported or hallucinated.
+- answer_relevancy: 1 means the answer directly and completely answers QUESTION compared with EXPECTED_SUMMARY/GOLD_ANSWER; 0 means irrelevant.
+- Scores may be decimals between 0 and 1.
+- Do not infer or reward any experimental configuration.
+- Keep reasons concise.
+
+QUESTION:
+{item.query}
+
+ANSWER_TO_EVALUATE:
+{answer}
+
+EXPECTED_SUMMARY:
+{expected_summary}
+
+GOLD_ANSWER:
+{gold_answer}
+
+CHART_CONTEXT_JSON:
+{chart_context}
+
+SOURCE_CONTEXT:
+{source_context}
+""".strip()
 
 
 def build_gemini_judge_prompt(
@@ -338,7 +410,9 @@ RETRIEVED_SOURCE_CONTEXT:
 """.strip()
 
 
-def build_source_context_for_judge(state: dict[str, Any], *, max_chars: int = 5_000) -> str:
+def build_source_context_for_judge(
+    state: dict[str, Any], *, max_chars: int = 5_000, include_retrieval_metadata: bool = True
+) -> str:
     chunks = state.get("context_chunks") or []
     if not chunks:
         chunks = state.get("sources") or []
@@ -348,10 +422,11 @@ def build_source_context_for_judge(state: dict[str, Any], *, max_chars: int = 5_
         source_id = chunk.get("source_id") or (chunk.get("provenance") or {}).get("source_id")
         page = chunk.get("source_page") or chunk.get("page_book") or chunk.get("page_pdf")
         excerpt = chunk.get("excerpt") or chunk.get("text") or ""
-        paths = chunk.get("retrieval_paths") or chunk.get("retrieval_path") or []
-        blocks.append(
-            f"[{marker}] source_id={source_id}; page={page}; retrieval_paths={paths}\n{excerpt}"
-        )
+        metadata = f"source_id={source_id}; page={page}"
+        if include_retrieval_metadata:
+            paths = chunk.get("retrieval_paths") or chunk.get("retrieval_path") or []
+            metadata += f"; retrieval_paths={paths}"
+        blocks.append(f"[{marker}] {metadata}\n{excerpt}")
     text = "\n\n".join(blocks)
     if len(text) <= max_chars:
         return text
@@ -416,6 +491,7 @@ class EvaluationRunner:
     sleep_fn: Callable[[float], None] = time.sleep
     checkpoint_store: EvaluationCheckpointStore | None = None
     retry_failed: bool = False
+    gold_anchors_by_item: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
     def run(
         self,
@@ -541,6 +617,7 @@ class EvaluationRunner:
             "dataset_item_count": len(items),
             "config_count": len(config_results),
             "judge_backend": self.judge.backend,
+            "judge_protocol": getattr(self.judge, "protocol", JUDGE_PROTOCOL_LEGACY_V1),
             "metric_definitions": metric_definitions(self.judge.backend),
             "configs": config_results,
         }
@@ -602,6 +679,7 @@ class EvaluationRunner:
                     judge_result,
                     latency_ms=rag_latency_ms,
                     judge_latency_ms=judge_latency_ms,
+                    gold_anchors=self.gold_anchors_by_item.get(item.id),
                 )
                 result["attempt_count"] = attempt
                 result["attempt_errors"] = attempt_errors
@@ -628,6 +706,7 @@ def summarize_evaluation_item(
     *,
     latency_ms: float,
     judge_latency_ms: float | None = None,
+    gold_anchors: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     answer = state.get("answer") or ""
     sources = state.get("sources") or []
@@ -645,6 +724,18 @@ def summarize_evaluation_item(
     question_family = str((item.labels or {}).get("question_family") or "") or None
     generation_metadata = state.get("generation_metadata") or {}
     generation_latency = trace_node_latency_ms(state, "generation")
+    citation_evidence = (
+        score_citation_evidence(str(answer), list(context_chunks), gold_anchors)
+        if gold_anchors is not None and not chart_only
+        else {
+            "citation_evidence_precision": None,
+            "citation_evidence_recall": None,
+            "citation_evidence_f1": None,
+            "valid_citation_marker_count": 0,
+            "invalid_citation_markers": [],
+            "invalid_citation_marker_count": 0,
+        }
+    )
 
     return {
         "item_id": item.id,
@@ -674,6 +765,7 @@ def summarize_evaluation_item(
         "judge": judge_result.as_dict(),
         "graph_hit": graph_hit,
         "citation_coverage": citation_coverage,
+        **citation_evidence,
         "source_count": len(sources),
         "citation_marker_count": len(markers),
         "citation_marker_presence": bool(markers),
@@ -693,6 +785,8 @@ def summarize_evaluation_item(
         "gold_page_hit_rate": gold_page_hit_rate(sources, item.gold_context_spans),
         "gold_quote_overlap_avg": gold_quote_overlap_avg(sources, item.gold_context_spans),
         "trace_node_statuses": trace_node_statuses(state),
+        "frozen_retrieval_pair_id": state.get("frozen_retrieval_pair_id"),
+        "frozen_retrieval_bundle_sha256": state.get("frozen_retrieval_bundle_sha256"),
         "error": None,
     }
 
@@ -736,6 +830,12 @@ def summarize_evaluation_error(item: AblationDatasetItem, exc: Exception, *, lat
         "judge": {},
         "graph_hit": None,
         "citation_coverage": None,
+        "citation_evidence_precision": None,
+        "citation_evidence_recall": None,
+        "citation_evidence_f1": None,
+        "valid_citation_marker_count": 0,
+        "invalid_citation_markers": [],
+        "invalid_citation_marker_count": 0,
         "source_count": 0,
         "citation_marker_count": 0,
         "citation_marker_presence": False,
@@ -755,6 +855,8 @@ def summarize_evaluation_error(item: AblationDatasetItem, exc: Exception, *, lat
         "gold_page_hit_rate": None,
         "gold_quote_overlap_avg": None,
         "trace_node_statuses": [],
+        "frozen_retrieval_pair_id": None,
+        "frozen_retrieval_bundle_sha256": None,
         "error": f"{type(exc).__name__}: {exc}",
     }
 
@@ -879,6 +981,18 @@ def aggregate_evaluation_metrics(
         "chart_context_grounding_avg": average_defined([item.get("chart_context_grounding") for item in item_results]),
         "graph_hit_rate": rate_defined([item.get("graph_hit") for item in item_results]),
         "citation_coverage_rate": average_defined([item.get("citation_coverage") for item in item_results]),
+        "citation_evidence_precision_avg": average_defined(
+            [item.get("citation_evidence_precision") for item in item_results]
+        ),
+        "citation_evidence_recall_avg": average_defined(
+            [item.get("citation_evidence_recall") for item in item_results]
+        ),
+        "citation_evidence_f1_avg": average_defined(
+            [item.get("citation_evidence_f1") for item in item_results]
+        ),
+        "invalid_citation_marker_count": sum(
+            int(item.get("invalid_citation_marker_count") or 0) for item in item_results
+        ),
         "corpus_source_coverage_rate": round(
             sum(1 for item in corpus_items if item.get("source_count", 0) > 0) / corpus_denominator,
             4,
@@ -967,6 +1081,8 @@ def metric_definitions(judge_backend: str) -> dict[str, Any]:
         "context_recall": "Gemini judge score for corpus-grounded items; chart-only Direct items are excluded from this aggregate and reported as chart_context_grounding.",
         "graph_hit_rate": "Rate of non-chart-only items with graph candidates or graph-selected context.",
         "citation_coverage_rate": "Average citation/source coverage for non-chart-only corpus-grounded items; Direct chart-only items are excluded.",
+        "citation_evidence_f1_avg": "Rule-based harmonic mean of cited-chunk gold precision and cited gold-span recall using provenance anchors.",
+        "invalid_citation_marker_count": "Gate count of answer markers that do not map to a supplied context chunk.",
         "p95_latency_ms": "95th percentile end-to-end runner latency per item.",
         "retrieval_p95_ms": "95th percentile retrieval latency if node timing is present; null until W6-RAG-01 timing diagnostics are available.",
     }
@@ -1230,7 +1346,7 @@ def choose_generation_prompt_candidate(configs: list[dict[str, Any]]) -> dict[st
         quality = (
             float(metrics.get("faithfulness_avg") or 0) * 0.4
             + float(metrics.get("answer_relevancy_avg") or 0) * 0.3
-            + float(metrics.get("citation_coverage_rate") or 0) * 0.2
+            + float(metrics.get("citation_evidence_f1_avg") or 0) * 0.2
             + float(metrics.get("chart_context_grounding_avg") or 0) * 0.1
         )
         latency = float(metrics.get("p95_latency_ms") or 0)
@@ -1246,8 +1362,8 @@ def choose_generation_prompt_candidate(configs: list[dict[str, Any]]) -> dict[st
         "score": round(score(best), 4),
         "reasoning_vi": [
             "Đây là gợi ý sơ bộ cho W7-ABL-01 dựa trên partial run, không phải quyết định production cuối cùng.",
-            "Điểm ưu tiên Faithfulness, Answer Relevancy, Citation Coverage và Chart Context Grounding; p95 latency bị phạt nhẹ.",
-            f"Ứng viên hiện tại là prompt `{best.get('prompt_template_id')}` với model `{best.get('generation_model')}` qua config `{best.get('config_name')}`: faithfulness_avg={metrics.get('faithfulness_avg')}, answer_relevancy_avg={metrics.get('answer_relevancy_avg')}, citation_coverage_rate={metrics.get('citation_coverage_rate')}, p95_latency_ms={metrics.get('p95_latency_ms')}.",
+            "Điểm ưu tiên Faithfulness, Answer Relevancy, Citation Evidence F1 và Chart Context Grounding; p95 latency bị phạt nhẹ.",
+            f"Ứng viên hiện tại là prompt `{best.get('prompt_template_id')}` với model `{best.get('generation_model')}` qua config `{best.get('config_name')}`: faithfulness_avg={metrics.get('faithfulness_avg')}, answer_relevancy_avg={metrics.get('answer_relevancy_avg')}, citation_evidence_f1_avg={metrics.get('citation_evidence_f1_avg')}, p95_latency_ms={metrics.get('p95_latency_ms')}.",
             "W7-CONFIG-01 sẽ tổng hợp thêm evidence retrieval/chunking/latency trước khi lock default_production.yaml.",
         ],
     }
@@ -1293,7 +1409,7 @@ def build_generation_prompt_ablation_analysis(report: dict[str, Any]) -> dict[st
         "generation_models": sorted({str(config.get("generation_model")) for config in configs if config.get("generation_model")}),
         "ranking_by_faithfulness": rank_generation_prompts_by_metric(configs, "faithfulness_avg"),
         "ranking_by_answer_relevancy": rank_generation_prompts_by_metric(configs, "answer_relevancy_avg"),
-        "ranking_by_citation_coverage": rank_generation_prompts_by_metric(configs, "citation_coverage_rate"),
+        "ranking_by_citation_evidence_f1": rank_generation_prompts_by_metric(configs, "citation_evidence_f1_avg"),
         "ranking_by_p95_latency": rank_generation_prompts_by_metric(configs, "p95_latency_ms", higher_is_better=False),
         "preliminary_generation_candidate": choose_generation_prompt_candidate(configs),
     }
@@ -1317,6 +1433,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"- Dataset items: {report.get('dataset_item_count')}",
         f"- Configs: {report.get('config_count')}",
         f"- Judge backend: `{report.get('judge_backend')}`",
+        f"- Judge protocol: `{report.get('judge_protocol', JUDGE_PROTOCOL_LEGACY_V1)}`",
         f"- Started: {report.get('started_at')}",
         f"- Completed: {report.get('completed_at')}",
     ]
@@ -1365,7 +1482,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "> **Metric policy:** W6-EVAL-02 runs the RAG pipeline directly with the selected `ExperimentConfig`. `Context recall` is the Gemini-judged corpus-grounding score for non-Direct items; Direct/chart-only items are excluded from corpus retrieval/citation metrics and reported through `chart_context_grounding`.",
+            "> **Metric policy:** Sequential blind Judge v2 scores only Faithfulness and Answer Relevancy. Citation Evidence F1 is rule-based from cited chunks and gold-span provenance; AI-judged Context Recall is not a headline metric.",
         ]
     )
 
@@ -1374,24 +1491,22 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "",
             "## Overall metrics",
             "",
-            "| Config | Status | Items | Faithfulness | Answer relevancy | Context recall | Graph hit | Citation coverage | p95 latency ms | Retrieval p95 ms |",
-            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+            "| Config | Status | Items | Faithfulness | Answer relevancy | Citation Evidence F1 | Latency p95 ms | Invalid markers |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for config in report.get("configs") or []:
         metrics = config.get("metrics") or {}
         lines.append(
-            "| {name} | {status} | {items} | {faith} | {rel} | {recall} | {graph} | {cite} | {latency} | {retrieval} |".format(
+            "| {name} | {status} | {items} | {faith} | {rel} | {cite_f1} | {latency} | {invalid} |".format(
                 name=config.get("config_name"),
                 status=config.get("status"),
                 items=metrics.get("item_count"),
                 faith=metrics.get("faithfulness_avg"),
                 rel=metrics.get("answer_relevancy_avg"),
-                recall=metrics.get("context_recall_avg"),
-                graph=metrics.get("graph_hit_rate"),
-                cite=metrics.get("citation_coverage_rate"),
+                cite_f1=metrics.get("citation_evidence_f1_avg"),
                 latency=metrics.get("p95_latency_ms"),
-                retrieval=metrics.get("retrieval_p95_ms"),
+                invalid=metrics.get("invalid_citation_marker_count"),
             )
         )
 
@@ -1642,9 +1757,14 @@ def build_single_config_manifest(
     )
 
 
-def make_evaluation_judge(*, backend: str, model: str = DEFAULT_JUDGE_MODEL) -> EvaluationJudge:
+def make_evaluation_judge(
+    *,
+    backend: str,
+    model: str = DEFAULT_JUDGE_MODEL,
+    protocol: str = JUDGE_PROTOCOL_LEGACY_V1,
+) -> EvaluationJudge:
     if backend == "gemini":
-        return GeminiEvaluationJudge(model=model)
+        return GeminiEvaluationJudge(model=model, protocol=protocol)
     if backend == "static":
         return StaticEvaluationJudge()
     raise ValueError(f"Unsupported evaluation judge backend: {backend}")
@@ -1653,6 +1773,8 @@ def make_evaluation_judge(*, backend: str, model: str = DEFAULT_JUDGE_MODEL) -> 
 __all__ = [
     "DEFAULT_JUDGE_MODEL",
     "DEFAULT_W6_EVAL_OUTPUT_DIR",
+    "JUDGE_PROTOCOL_BLIND_V2",
+    "JUDGE_PROTOCOL_LEGACY_V1",
     "EvaluationJudge",
     "EvaluationJudgeResult",
     "EvaluationRunner",
@@ -1662,6 +1784,7 @@ __all__ = [
     "SupabaseExperimentRunStore",
     "aggregate_evaluation_metrics",
     "aggregate_grouped_metrics",
+    "build_blind_gemini_judge_prompt",
     "build_generation_prompt_ablation_analysis",
     "build_single_config_manifest",
     "load_ablation_manifest",

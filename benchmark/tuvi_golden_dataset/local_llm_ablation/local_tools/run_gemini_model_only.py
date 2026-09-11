@@ -42,7 +42,7 @@ def _load_latest_records(path: Path) -> dict[str, dict[str, Any]]:
 
 
 def run_gemini_model_only(config: dict[str, Any]) -> dict[str, Any]:
-    """Generate model-only predictions through Gemini API with key rotation and resume."""
+    """Generate predictions from one frozen bundle config through Gemini with resume."""
     repo_root = Path(config["repo_root"]).expanduser().resolve()
     bundle_dir = resolve_directory(config.get("bundle_dir"), marker="bundle_manifest.json")
     output_root = Path(config["output_root"]).expanduser().resolve()
@@ -57,9 +57,15 @@ def run_gemini_model_only(config: dict[str, Any]) -> dict[str, Any]:
     initial_key_offset = int(config.get("initial_key_offset", 0))
     minimum_key_count = int(config.get("minimum_key_count", 1))
     limit = config.get("limit")
+    selected_suite = str(config.get("suite") or "model_only")
+    selected_config_key = str(config.get("config_key") or "model_only::question_chart_direct")
+    output_label = safe_slug(str(config.get("output_label") or selected_config_key.split("::")[-1]))
+    expected_bundle_type = config.get("expected_bundle_type")
 
     manifest = json.loads((bundle_dir / "bundle_manifest.json").read_text(encoding="utf-8"))
-    if manifest.get("bundle_type") != "model_only_question_plus_raw_chart":
+    if expected_bundle_type and manifest.get("bundle_type") != expected_bundle_type:
+        raise RuntimeError(f"Expected bundle type {expected_bundle_type!r}, found {manifest.get('bundle_type')!r}")
+    if selected_suite == "model_only" and manifest.get("bundle_type") != "model_only_question_plus_raw_chart":
         raise RuntimeError(f"Expected model-only bundle, found {manifest.get('bundle_type')!r}")
     if manifest["files"]["cases"]["sha256"] != sha256_file(bundle_dir / "cases.jsonl"):
         raise RuntimeError("cases.jsonl checksum does not match bundle_manifest.json")
@@ -93,16 +99,16 @@ def run_gemini_model_only(config: dict[str, Any]) -> dict[str, Any]:
         row
         for row in iter_json_records(bundle_dir / "cases.jsonl")
         if row.get("status") == "completed"
-        and row.get("suite") == "model_only"
-        and row.get("config_key") == "model_only::question_chart_direct"
+        and row.get("suite") == selected_suite
+        and row.get("config_key") == selected_config_key
     ]
     cases.sort(key=lambda row: str(row["pair_id"]))
     if limit is not None:
         cases = cases[: int(limit)]
     if not cases:
-        raise RuntimeError("No model-only cases found")
+        raise RuntimeError(f"No cases found for suite={selected_suite!r}, config_key={selected_config_key!r}")
 
-    output_dir = output_root / model_key / "question-chart-direct" / "shard_00_of_01"
+    output_dir = output_root / model_key / output_label / "shard_00_of_01"
     output_dir.mkdir(parents=True, exist_ok=True)
     predictions_path = output_dir / "predictions_shard_00.jsonl"
     latest = _load_latest_records(predictions_path)
@@ -228,8 +234,8 @@ def run_gemini_model_only(config: dict[str, Any]) -> dict[str, Any]:
         "completed_at": utc_now(),
         "shard_id": 0,
         "num_shards": 1,
-        "selected_suites": ["model_only"],
-        "selected_config_keys": ["model_only::question_chart_direct"],
+        "selected_suites": [selected_suite],
+        "selected_config_keys": [selected_config_key],
         "assigned_pair_count": len(cases),
         "completed_pair_count": completed,
         "failed_pair_count": failed,
@@ -253,7 +259,7 @@ def run_gemini_model_only(config: dict[str, Any]) -> dict[str, Any]:
         "predictions_sha256": sha256_file(predictions_path),
     }
     atomic_write_json(output_dir / "shard_summary.json", summary)
-    archive_base = output_root / f"local_llm_predictions_{model_key}_question-chart-direct_00_of_01"
+    archive_base = output_root / f"local_llm_predictions_{model_key}_{output_label}_00_of_01"
     archive_path = Path(shutil.make_archive(str(archive_base), "zip", root_dir=output_dir))
     summary["archive_path"] = str(archive_path)
     print(json.dumps(summary, ensure_ascii=False, indent=2))

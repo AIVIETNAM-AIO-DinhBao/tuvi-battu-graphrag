@@ -519,6 +519,8 @@ def apply_reranking(
 ) -> list[dict[str, Any]]:
     fused_candidates = [dict(candidate) for candidate in state.get("fused_candidates") or []]
     if not config.reranker_enabled:
+        if config.reranker_config.cap_fused_candidates_when_disabled:
+            return fused_candidates[: config.reranker_config.top_k]
         return fused_candidates
     if not fused_candidates:
         return []

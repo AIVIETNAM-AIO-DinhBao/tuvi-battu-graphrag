@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import os
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock, Thread
@@ -38,7 +39,7 @@ from app.rag.state import RAGState
 
 ChartLoader = Callable[[str, str | None], dict[str, Any]]
 QueryEntityExtractor = Callable[[str, RuntimeEntityExtractionConfig], list[dict[str, Any]]]
-RERANK_TIMEOUT_SECONDS = 8.0
+RERANK_TIMEOUT_SECONDS = float(os.getenv("TUVI_RERANK_TIMEOUT_SECONDS", "8.0"))
 _RERANK_EXECUTION_LOCK = Lock()
 
 DRY_RUN_NODE_ORDER = [

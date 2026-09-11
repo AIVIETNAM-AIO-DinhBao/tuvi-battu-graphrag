@@ -208,6 +208,24 @@ def test_reranker_disabled_passes_through_fused_candidates() -> None:
     assert apply_reranking(state, config) == fused
 
 
+def test_reranker_disabled_can_share_the_same_candidate_budget_for_ablation() -> None:
+    config = config_with(
+        reranker_config={
+            "enabled": False,
+            "model": None,
+            "top_k": 2,
+            "cap_fused_candidates_when_disabled": True,
+        }
+    )
+    fused = [
+        candidate("dense", "a", 1, 0.9),
+        candidate("dense", "b", 2, 0.8),
+        candidate("dense", "c", 3, 0.7),
+    ]
+
+    assert [item["chunk_id"] for item in apply_reranking(ranking_state(fused_candidates=fused), config)] == ["a", "b"]
+
+
 def test_reranker_enabled_can_change_order_and_apply_top_k() -> None:
     payload = load_experiment_config().model_dump(mode="json")
     payload["reranker_config"] = {"enabled": True, "model": "unit-test-reranker", "top_k": 2}

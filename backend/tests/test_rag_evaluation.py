@@ -12,6 +12,7 @@ from app.rag.evaluation import (
     aggregate_evaluation_metrics,
     aggregate_grouped_metrics,
     build_ablation_analysis,
+    build_blind_gemini_judge_prompt,
     build_chunking_ablation_analysis,
     build_generation_prompt_ablation_analysis,
     build_single_config_manifest,
@@ -112,6 +113,31 @@ def test_extract_json_object_accepts_plain_and_fenced_json() -> None:
 
     assert payload["answer_relevancy"] == 0.75
     assert payload["context_recall"] == 1
+
+
+def test_blind_judge_prompt_omits_experiment_and_retrieval_identities() -> None:
+    manifest = load_ablation_manifest(ROOT_DIR / "configs" / "w4_ablation_smoke.yaml")
+    config = manifest.configs[0].build_config()
+    item = AblationDatasetItem(
+        id="blind-1",
+        chart_id="chart-1",
+        query="CÃ¢u há»i?",
+        chart_data={"chart_type": "TUVI"},
+        gold_answer="CÃ¢u tráº£ lá»i.",
+        expected_answer_summary="Tá»‘t.",
+        question_complexity="One-hop",
+    )
+    state = fake_state(item, config)
+    state["context_chunks"][0]["retrieval_paths"] = ["secret-retrieval-path"]
+
+    prompt = build_blind_gemini_judge_prompt(item=item, state=state)
+
+    assert config.name not in prompt
+    assert config.chunk_strategy_id not in prompt
+    assert "secret-retrieval-path" not in prompt
+    assert "context_recall" not in prompt
+    assert "faithfulness" in prompt
+    assert "answer_relevancy" in prompt
 
 
 def test_summarize_item_excludes_chart_only_from_corpus_metrics() -> None:

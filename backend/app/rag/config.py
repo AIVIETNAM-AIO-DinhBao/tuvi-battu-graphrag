@@ -79,6 +79,9 @@ class RerankerConfig(BaseModel):
     max_length: int = Field(default=512, ge=128, le=8192)
     local_files_only: bool = True
     local_model_path: Path | None = None
+    # Omit the false default from serialization so the frozen production hash
+    # remains unchanged; sequential ablation configs explicitly set it true.
+    cap_fused_candidates_when_disabled: bool = Field(default=False, exclude_if=lambda value: not value)
 
     @model_validator(mode="after")
     def validate_model_backed_reranker(self) -> "RerankerConfig":

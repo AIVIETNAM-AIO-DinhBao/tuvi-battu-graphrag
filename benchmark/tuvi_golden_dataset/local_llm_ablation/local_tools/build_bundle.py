@@ -111,6 +111,8 @@ def build_context_bundle(config: dict[str, Any]) -> dict[str, Any]:
     item_limit = config.get("item_limit")
     candidate_log_k = int(config.get("candidate_log_k") or 100)
     retry_failed = bool(config.get("retry_failed", True))
+    strict_no_fallback = bool(config.get("strict_no_fallback", False))
+    reranker_timeout_seconds = float(config.get("reranker_timeout_seconds") or 8.0)
 
     if not (repo_root / "backend" / "app").exists():
         raise FileNotFoundError(f"Invalid repo_root: {repo_root}")
@@ -136,9 +138,12 @@ def build_context_bundle(config: dict[str, Any]) -> dict[str, Any]:
         sys.path.insert(0, str(backend_dir))
 
     from app.rag.ablation import load_ablation_dataset, load_ablation_manifest
+    from app.rag import nodes as rag_nodes
     from app.rag.config import ExperimentConfig, config_hash
     from app.rag.generation import GenerationResult
     from app.rag.graph import run_rag_dry_run
+
+    rag_nodes.RERANK_TIMEOUT_SECONDS = reranker_timeout_seconds
 
     class CaptureGenerationClient:
         def __init__(self) -> None:
@@ -262,6 +267,12 @@ def build_context_bundle(config: dict[str, Any]) -> dict[str, Any]:
                                 retrieval_fallback_on_error=False,
                             )
                         )
+                        if strict_no_fallback:
+                            if state.get("retrieval_backend_unavailable"):
+                                raise RuntimeError("retrieval backend unavailable while building strict bundle")
+                            fallbacks = list((state.get("retrieval_diagnostics") or {}).get("fallbacks") or [])
+                            if fallbacks:
+                                raise RuntimeError(f"retrieval fallback while building strict bundle: {fallbacks}")
                         if not capture.prompt:
                             raise RuntimeError("Generation prompt was not captured")
                         record = {
@@ -320,6 +331,8 @@ def build_context_bundle(config: dict[str, Any]) -> dict[str, Any]:
         "selected_suites": selected_suites,
         "item_limit": item_limit,
         "candidate_log_k": candidate_log_k,
+        "strict_no_fallback": strict_no_fallback,
+        "reranker_timeout_seconds": reranker_timeout_seconds,
         "item_count": len(item_records),
         "config_count": len(config_records),
         "planned_pair_count": len(planned_pairs),

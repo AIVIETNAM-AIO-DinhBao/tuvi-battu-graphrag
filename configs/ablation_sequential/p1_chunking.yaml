@@ -1,0 +1,79 @@
+name: sequential_p1_chunking
+notes: "Sequential P1. Only chunk_strategy_id changes. Official execution uses scripts/run_retrieval_eval.py; generation and AI judge are not called."
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/sequential_ablation/results/P1_chunking
+configs:
+  - name: p1_fixed_512
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: sequential_p1_fixed_512
+      name: Sequential P1 - fixed 512
+      chunk_strategy_id: chunk_fixed_512
+      query_rewrite_enabled: false
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      fusion_path_weights:
+        graph: 1.0
+        dense: 1.0
+        sparse: 1.0
+      reranker_config:
+        enabled: false
+        top_k: 20
+        cap_fused_candidates_when_disabled: true
+      document_grading_enabled: true
+      prompt_template_id: tuvi_generation_structured_v3
+      generation_model: gemini-3.1-flash-lite-preview
+      context_assembly_strategy: balanced
+      cache_disabled: true
+
+  - name: p1_parent_child
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: sequential_p1_parent_child
+      name: Sequential P1 - parent child
+      chunk_strategy_id: chunk_structure_parent_child
+      query_rewrite_enabled: false
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      fusion_path_weights:
+        graph: 1.0
+        dense: 1.0
+        sparse: 1.0
+      reranker_config:
+        enabled: false
+        top_k: 20
+        cap_fused_candidates_when_disabled: true
+      document_grading_enabled: true
+      prompt_template_id: tuvi_generation_structured_v3
+      generation_model: gemini-3.1-flash-lite-preview
+      context_assembly_strategy: balanced
+      cache_disabled: true
+
+  - name: p1_semantic_bge_m3
+    base_config_path: configs/default_production.yaml
+    overrides:
+      experiment_id: sequential_p1_semantic_bge_m3
+      name: Sequential P1 - semantic BGE-M3
+      chunk_strategy_id: chunk_semantic_embedding_bge_m3
+      query_rewrite_enabled: false
+      graph_retrieval_enabled: false
+      dense_retrieval_enabled: true
+      sparse_retrieval_enabled: true
+      fusion_method: rrf
+      fusion_path_weights:
+        graph: 1.0
+        dense: 1.0
+        sparse: 1.0
+      reranker_config:
+        enabled: false
+        top_k: 20
+        cap_fused_candidates_when_disabled: true
+      document_grading_enabled: true
+      prompt_template_id: tuvi_generation_structured_v3
+      generation_model: gemini-3.1-flash-lite-preview
+      context_assembly_strategy: balanced
+      cache_disabled: true

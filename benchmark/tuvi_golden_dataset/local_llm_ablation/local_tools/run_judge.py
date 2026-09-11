@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -152,6 +153,38 @@ def safe_slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "judge-shard"
 
 
+def paired_faithfulness_bootstrap(
+    candidate_rows: list[dict[str, Any]],
+    control_rows: list[dict[str, Any]],
+    *,
+    samples: int = 10_000,
+    seed: int = 42,
+) -> dict[str, Any]:
+    candidate = {str(row["item_id"]): float(row["faithfulness"]) for row in candidate_rows}
+    control = {str(row["item_id"]): float(row["faithfulness"]) for row in control_rows}
+    item_ids = sorted(set(candidate) & set(control))
+    if len(item_ids) != 100:
+        raise ValueError(f"P6 paired bootstrap requires 100 shared items; found {len(item_ids)}")
+    observed = sum(candidate[key] - control[key] for key in item_ids) / len(item_ids)
+    rng = random.Random(seed)
+    deltas = []
+    for _ in range(samples):
+        sampled = [item_ids[rng.randrange(len(item_ids))] for _ in item_ids]
+        deltas.append(sum(candidate[key] - control[key] for key in sampled) / len(sampled))
+    deltas.sort()
+    lower = deltas[int(0.025 * (samples - 1))]
+    upper = deltas[int(0.975 * (samples - 1))]
+    outcome = "better" if lower > 0 else ("worse" if upper < 0 else "inconclusive")
+    return {
+        "paired_item_count": len(item_ids),
+        "samples": samples,
+        "seed": seed,
+        "paired_delta_observed": round(observed, 6),
+        "delta_ci95": [round(lower, 6), round(upper, 6)],
+        "outcome": outcome,
+    }
+
+
 def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
     bundle_dir = resolve_directory(config.get("bundle_dir"), marker="bundle_manifest.json")
     bundle_manifest = json.loads((bundle_dir / "bundle_manifest.json").read_text(encoding="utf-8"))
@@ -164,6 +197,8 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
     allow_incomplete = bool(config.get("allow_incomplete", False))
     retry_failed = bool(config.get("retry_failed", True))
     judge_model = str(config.get("judge_model") or "gemini-3.1-flash-lite-preview")
+    judge_protocol = str(config.get("judge_protocol") or "legacy-v1")
+    blind_seed = int(config.get("blind_seed", 42))
     retry_attempts = int(config.get("retry_attempts", 3))
     retry_base_seconds = float(config.get("retry_base_seconds", 2.0))
     initial_key_offset = int(config.get("initial_key_offset", 0))
@@ -242,6 +277,7 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         retrieval_latency_ms,
         summarize_evaluation_item,
     )
+    from app.rag.gold_evidence import load_gold_span_anchors
     from app.rag.gemini_keys import load_runtime_gemini_api_keys
 
     explicit_api_key = str(config.get("api_key") or "").strip()
@@ -252,7 +288,12 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
             "Set GEMINI_API_KEYS (comma-separated), GEMINI_API_KEY, or numbered GEMINI_API_KEY_N variables."
         )
     judge = RotatingGeminiJudge(
-        lambda key: GeminiEvaluationJudge(model=judge_model, api_key=key, temperature=0.0),
+        lambda key: GeminiEvaluationJudge(
+            model=judge_model,
+            api_key=key,
+            temperature=0.0,
+            protocol=judge_protocol,
+        ),
         api_keys,
         initial_offset=initial_key_offset,
     )
@@ -262,9 +303,26 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
     executed_pair_count = 0
     resumed_pair_count = 0
 
-    ordered_predictions = sorted(
-        completed_predictions.values(), key=lambda row: (str(row["model_id"]), str(row["pair_id"]))
+    if judge_protocol == "blind-v2":
+        ordered_predictions = sorted(
+            completed_predictions.values(),
+            key=lambda row: sha256_text(
+                f"{blind_seed}|{row['model_id']}|{row['pair_id']}"
+            ),
+        )
+    else:
+        ordered_predictions = sorted(
+            completed_predictions.values(), key=lambda row: (str(row["model_id"]), str(row["pair_id"]))
+        )
+    anchors_path_value = config.get("gold_anchors")
+    anchors_path = (
+        Path(anchors_path_value).resolve()
+        if anchors_path_value
+        else repo_root / "benchmark" / "tuvi_golden_dataset" / "sequential_ablation" / "gold_span_anchors.jsonl"
     )
+    if judge_protocol == "blind-v2" and not anchors_path.exists():
+        raise FileNotFoundError(f"blind-v2 requires gold anchors for Citation Evidence F1: {anchors_path}")
+    anchors_by_item = load_gold_span_anchors(anchors_path) if anchors_path.exists() else {}
     for index, prediction in enumerate(ordered_predictions, start=1):
         pair_id = str(prediction["pair_id"])
         model_id = str(prediction["model_id"])
@@ -274,6 +332,7 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
             str(prediction["model_revision"]),
             str(prediction["quantization"]),
             judge_model,
+            judge_protocol,
         )
         previous = latest.get(evaluation_id)
         if previous and (previous.get("status") == "completed" or not retry_failed):
@@ -316,6 +375,7 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
                 judge_result,
                 latency_ms=rag_latency_ms,
                 judge_latency_ms=judge_latency_ms,
+                gold_anchors=anchors_by_item.get(item.id),
             )
             result.update(
                 {
@@ -380,6 +440,7 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
             str(prediction["model_revision"]),
             str(prediction["quantization"]),
             judge_model,
+            judge_protocol,
         )
         for prediction in ordered_predictions
     }
@@ -411,6 +472,15 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    gemini_model_id = next((model_id for model_id in expected_model_ids if model_id.startswith("gemini-")), None)
+    paired_model_analysis: dict[str, Any] = {}
+    if gemini_model_id:
+        for model_id in sorted(expected_model_ids - {gemini_model_id}):
+            candidate_rows = [row for row in completed_results if row.get("model_id") == model_id]
+            control_rows = [row for row in completed_results if row.get("model_id") == gemini_model_id]
+            if candidate_rows and control_rows:
+                paired_model_analysis[model_id] = paired_faithfulness_bootstrap(candidate_rows, control_rows)
+
     limitations = [
         "Gemini is an LLM judge and may have model-family bias; model identity is excluded from the judge prompt.",
         "Generation latency is comparable only when runtime settings and hardware/API conditions are held constant.",
@@ -432,6 +502,8 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         "completed_at": utc_now(),
         "judge_backend": "gemini",
         "judge_model": judge_model,
+        "judge_protocol": judge_protocol,
+        "blind_seed": blind_seed if judge_protocol == "blind-v2" else None,
         "shard_name": shard_name,
         "selected_suites": sorted(selected_suites),
         "selected_config_keys": sorted(selected_config_keys),
@@ -450,6 +522,7 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         "prediction_files": [str(path) for path in prediction_files],
         "key_rotation": judge.diagnostics(),
         "config_results": config_results,
+        "paired_faithfulness_vs_gemini": paired_model_analysis,
         "limitations": limitations,
     }
     report_path = output_dir / "local_llm_evaluation_report.json"
@@ -469,6 +542,8 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         "answer_relevancy_avg",
         "context_recall_avg",
         "citation_coverage_rate",
+        "citation_evidence_f1_avg",
+        "invalid_citation_marker_count",
         "graph_hit_rate",
         "avg_gold_doc_coverage_rate",
         "avg_gold_page_hit_rate",
@@ -516,9 +591,14 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         metric_definitions=metric_definitions("gemini"),
         render_markdown_report=render_markdown_report,
         notes=(
-            "Local-LLM generation answers judged with the canonical GeminiEvaluationJudge, "
-            "build_gemini_judge_prompt, summarize_evaluation_item, and aggregate metric functions."
+            f"Local-LLM generation answers judged with GeminiEvaluationJudge protocol={judge_protocol}, "
+            "summarize_evaluation_item, provenance Citation Evidence F1, and aggregate metric functions."
         ),
+    )
+    legacy_report["judge_protocol"] = judge_protocol
+    atomic_write_json(output_dir / "evaluation_report.json", legacy_report)
+    (output_dir / "evaluation_report.md").write_text(
+        render_markdown_report(legacy_report), encoding="utf-8"
     )
     handoff_manifest = {
         "schema_version": JUDGE_SCHEMA_VERSION,
@@ -526,6 +606,7 @@ def run_gemini_judge(config: dict[str, Any]) -> dict[str, Any]:
         "created_at": completed_at,
         "shard_name": shard_name,
         "judge_model": judge_model,
+        "judge_protocol": judge_protocol,
         "selected_config_keys": sorted(selected_config_keys),
         "expected_model_ids": sorted(expected_model_ids),
         "judged_completed_count": len(completed_results),
