@@ -11,6 +11,8 @@
 - Recall@8 dùng đủ 722/722 span, kể cả 101 span `unmapped`, bằng cách so trực tiếp
   gold quote với final context cùng source family.
 - P1 đã hoàn tất 300/300 pairs, zero failure và khóa `p1_fixed_512`.
+- P2 đã hoàn tất 700/700 pairs, zero failure và khóa `p2_graph_dense_sparse`
+  (Graph+Dense+Sparse).
 - Không có phase smoke. Official command luôn chạy full-100; unit test và kiểm tra hash tĩnh vẫn được giữ.
 
 ## Bảy metric headline
@@ -195,6 +197,10 @@ P1 đã khóa winner `p1_fixed_512`:
 ```
 
 Kết quả P1: Recall@8 `0.558172`, Precision@8 `0.846626`, F1@8 `0.672784`.
+
+Kết quả P2: Graph+Dense+Sparse được khóa với Recall@8 `0.581717`, Precision@8
+`0.854400`, F1@8 `0.692171`. Graph+Sparse có Recall@8 cao hơn (`0.584488`) nhưng
+bị loại vì Precision@8 `0.803543` thấp hơn guardrail `0.826626`.
 
 ## 3. Sinh và chia phase P2–P5
 

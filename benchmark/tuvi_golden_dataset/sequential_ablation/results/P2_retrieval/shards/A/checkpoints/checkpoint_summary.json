@@ -1,0 +1,11 @@
+{
+  "current_config": "p2_graph_dense",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 269,
+  "expected_pair_count": 300,
+  "failed_pair_count": 0,
+  "processed_pair_count": 300,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 31,
+  "updated_at": "2026-09-12T01:04:47.548341Z"
+}

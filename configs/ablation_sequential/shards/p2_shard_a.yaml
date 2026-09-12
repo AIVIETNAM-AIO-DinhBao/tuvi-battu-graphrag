@@ -1,0 +1,30 @@
+name: sequential_p2_retrieval_shard_a
+notes: Only the categorical retrieval strategy changes. Two-person official shard
+  assigned to A.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/sequential_ablation/results/P2_retrieval/shards/A
+configs:
+- name: p2_graph
+  base_config_path: configs/ablation_sequential/locked_phase_1.yaml
+  overrides:
+    experiment_id: sequential_p2_graph
+    name: Sequential P2 - graph
+    graph_retrieval_enabled: true
+    dense_retrieval_enabled: false
+    sparse_retrieval_enabled: false
+- name: p2_dense
+  base_config_path: configs/ablation_sequential/locked_phase_1.yaml
+  overrides:
+    experiment_id: sequential_p2_dense
+    name: Sequential P2 - dense
+    graph_retrieval_enabled: false
+    dense_retrieval_enabled: true
+    sparse_retrieval_enabled: false
+- name: p2_graph_dense
+  base_config_path: configs/ablation_sequential/locked_phase_1.yaml
+  overrides:
+    experiment_id: sequential_p2_graph_dense
+    name: Sequential P2 - graph+dense
+    graph_retrieval_enabled: true
+    dense_retrieval_enabled: true
+    sparse_retrieval_enabled: false
