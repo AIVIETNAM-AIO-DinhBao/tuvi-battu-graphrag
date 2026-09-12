@@ -96,7 +96,7 @@ def parse_args() -> argparse.Namespace:
         "--gold-anchors",
         type=Path,
         default=None,
-        help="Validated provenance anchors used for Citation Evidence F1.",
+        help="Validated provenance anchors used for the deterministic evidence audit.",
     )
     parser.add_argument(
         "--offline-smoke",
@@ -161,7 +161,7 @@ def parse_args() -> argparse.Namespace:
     if args.judge_backend == "static" and not args.offline_smoke:
         parser.error("--judge-backend static is only allowed with --offline-smoke.")
     if args.judge_protocol == JUDGE_PROTOCOL_BLIND_V2 and not args.offline_smoke and args.gold_anchors is None:
-        parser.error("--judge-protocol blind-v2 requires --gold-anchors for Citation Evidence F1.")
+        parser.error("--judge-protocol blind-v2 requires --gold-anchors for the deterministic evidence audit.")
     return args
 
 

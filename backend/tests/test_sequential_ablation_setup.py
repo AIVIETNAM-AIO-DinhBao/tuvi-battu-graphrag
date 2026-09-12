@@ -59,10 +59,10 @@ def test_two_person_shards_cover_every_candidate_once() -> None:
         assert assigned_a | assigned_b == expected
 
 
-def test_p3_uses_the_registered_three_prompt_shortlist() -> None:
-    _, _, specs = phase_specs("p3", "configs/locked.yaml")
+def test_p5_uses_the_registered_three_prompt_shortlist() -> None:
+    _, _, specs = phase_specs("p5", "configs/locked.yaml")
 
-    assert [spec["name"] for spec in specs] == ["p3_prompt_1", "p3_prompt_2", "p3_prompt_3"]
+    assert [spec["name"] for spec in specs] == ["p5_prompt_1", "p5_prompt_2", "p5_prompt_3"]
     assert [spec["overrides"]["prompt_template_id"] for spec in specs] == [
         "tuvi_generation_v1",
         "tuvi_generation_grounded_v2",
@@ -137,26 +137,25 @@ def test_paired_bootstrap_uses_the_same_full_100_items() -> None:
     assert result["outcome"] == "better"
 
 
-def test_p3_decision_markdown_uses_generation_metrics() -> None:
+def test_p5_decision_markdown_uses_generation_metrics() -> None:
     markdown = render_markdown(
         {
-            "phase": "p3",
-            "recommended_winner": "p3_prompt_1",
-            "control": "p3_prompt_2",
+            "phase": "p5",
+            "recommended_winner": "p5_prompt_1",
+            "control": "p5_prompt_2",
             "primary_metric": "faithfulness_avg",
             "report_sha256": "test",
             "ranking": [
                 {
-                    "config_name": "p3_prompt_1",
+                    "config_name": "p5_prompt_1",
                     "primary_value": 0.9,
-                    "citation_evidence_f1": 0.4,
                     "answer_relevancy": 0.8,
                     "latency_p95_ms": 123.0,
                     "guardrail_passed": True,
                     "guardrail_note": "ok",
                 }
             ],
-            "bootstrap_challenger": "p3_prompt_2",
+            "bootstrap_challenger": "p5_prompt_2",
             "winner_vs_challenger_bootstrap": {
                 "performed": False,
                 "reason": "gap",
@@ -164,7 +163,6 @@ def test_p3_decision_markdown_uses_generation_metrics() -> None:
         }
     )
 
-    assert "Citation Evidence F1" in markdown
     assert "Answer Relevancy" in markdown
     assert "Latency p95 ms" in markdown
     assert "Precision@8" not in markdown
@@ -173,7 +171,7 @@ def test_p3_decision_markdown_uses_generation_metrics() -> None:
 def test_merged_generation_report_uses_generation_metrics() -> None:
     markdown = render_generation_markdown(
         {
-            "manifest_name": "sequential_p3_prompt",
+            "manifest_name": "sequential_p5_prompt",
             "status": "completed",
             "dataset_item_count": 100,
             "judge_backend": "gemini",
@@ -185,11 +183,10 @@ def test_merged_generation_report_uses_generation_metrics() -> None:
             },
             "configs": [
                 {
-                    "config_name": "p3_prompt_1",
+                    "config_name": "p5_prompt_1",
                     "metrics": {
                         "faithfulness_avg": 0.9,
                         "answer_relevancy_avg": 0.8,
-                        "citation_evidence_f1_avg": 0.03,
                         "p95_latency_ms": 123.0,
                         "invalid_citation_marker_count": 0,
                     },
@@ -199,7 +196,7 @@ def test_merged_generation_report_uses_generation_metrics() -> None:
     )
 
     assert "Sequential generation report" in markdown
-    assert "Citation Evidence F1" in markdown
+    assert "Citation Evidence F1" not in markdown
     assert "Latency p95 ms" in markdown
     assert "W6" not in markdown
 
@@ -218,15 +215,15 @@ def test_human_ticket_command_is_full_run_and_execution_policy_safe() -> None:
     assert "-Resume" not in command
 
 
-def test_p3_and_p5_tickets_require_shared_bundle_runners() -> None:
-    p3 = command_for(P1_MANIFEST, "out/p3", "p3", resume=False, bundle="shared/p3")
+def test_p4_and_p5_tickets_require_shared_bundle_runners() -> None:
+    p4 = command_for(P1_MANIFEST, "out/p4", "p4", resume=False, bundle="shared/p4")
     p5 = command_for(P1_MANIFEST, "out/p5", "p5", resume=False, bundle="shared/p5")
 
-    assert "run_p3_frozen_prompt_phase.ps1" in p3
-    assert "-FrozenBundle 'shared\\p3'" in p3
-    assert "run_p5_replay_phase.ps1" in p5
-    assert "-Bundle 'shared\\p5'" in p5
-    assert "CheckpointDir" not in p5
+    assert "run_p4_replay_phase.ps1" in p4
+    assert "-Bundle 'shared\\p4'" in p4
+    assert "CheckpointDir" not in p4
+    assert "run_p5_frozen_prompt_phase.ps1" in p5
+    assert "-FrozenBundle 'shared\\p5'" in p5
 
 
 def test_retrieval_markdown_keeps_only_compact_headline_metrics() -> None:
@@ -254,9 +251,9 @@ def test_retrieval_markdown_keeps_only_compact_headline_metrics() -> None:
         }
     )
 
-    assert "Recall@8" in markdown
-    assert "Precision@8" in markdown
-    assert "F1@8" in markdown
+    assert "Evidence Recall" in markdown
+    assert "Evidence Precision" in markdown
+    assert "Evidence F1" in markdown
     assert "Retrieval p95 ms" in markdown
     assert "Char R" not in markdown
     assert "Fused R" not in markdown

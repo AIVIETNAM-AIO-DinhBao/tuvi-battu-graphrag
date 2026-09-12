@@ -239,7 +239,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Anchor mapping coverage: `{report['anchor_summary'].get('mapping_coverage')}`",
         f"- Backend: `{RETRIEVAL_BACKEND}`",
         "",
-        "| Config | Status | Recall@8 | Precision@8 | F1@8 | Retrieval p95 ms | Failed |",
+        "| Config | Status | Evidence Recall | Evidence Precision | Evidence F1 | Retrieval p95 ms | Failed |",
         "|---|---|---:|---:|---:|---:|---:|",
     ]
     for config in report["configs"]:
@@ -258,7 +258,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "Recall@8 and Precision@8 use source-aligned multiset token overlap at tau=0.25. All annotated gold spans enter the recall denominator.",
+            "Evidence Recall and Evidence Precision use source-aligned multiset token overlap at tau=0.25 over the final selected context. All annotated gold spans enter the recall denominator.",
             "Exact-coordinate gold metrics remain in JSON as provenance diagnostics only.",
             "Generation and AI judging were not executed in this report.",
             "",
@@ -416,7 +416,7 @@ def main() -> int:
         "metric_definitions": {
             "recall_at_8": "Gold-span hit rate using same-source multiset token coverage >= 0.25; all annotated spans are included.",
             "precision_at_8": "Fraction of selected corpus chunks matching >= 0.25 of at least one same-source gold span's tokens.",
-            "f1_at_8": "Harmonic mean of aggregate Recall@8 and Precision@8.",
+            "f1_at_8": "Harmonic mean of aggregate Evidence Recall and Evidence Precision over the final selected context.",
         },
         "started_at": started_at,
         "completed_at": utc_now(),

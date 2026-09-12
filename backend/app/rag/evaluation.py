@@ -1344,10 +1344,8 @@ def choose_generation_prompt_candidate(configs: list[dict[str, Any]]) -> dict[st
     def score(config: dict[str, Any]) -> float:
         metrics = config.get("metrics") or {}
         quality = (
-            float(metrics.get("faithfulness_avg") or 0) * 0.4
-            + float(metrics.get("answer_relevancy_avg") or 0) * 0.3
-            + float(metrics.get("citation_evidence_f1_avg") or 0) * 0.2
-            + float(metrics.get("chart_context_grounding_avg") or 0) * 0.1
+            float(metrics.get("faithfulness_avg") or 0) * 0.6
+            + float(metrics.get("answer_relevancy_avg") or 0) * 0.4
         )
         latency = float(metrics.get("p95_latency_ms") or 0)
         latency_penalty = min(latency / 30_000, 0.2) if latency else 0.0
@@ -1362,8 +1360,8 @@ def choose_generation_prompt_candidate(configs: list[dict[str, Any]]) -> dict[st
         "score": round(score(best), 4),
         "reasoning_vi": [
             "Đây là gợi ý sơ bộ cho W7-ABL-01 dựa trên partial run, không phải quyết định production cuối cùng.",
-            "Điểm ưu tiên Faithfulness, Answer Relevancy, Citation Evidence F1 và Chart Context Grounding; p95 latency bị phạt nhẹ.",
-            f"Ứng viên hiện tại là prompt `{best.get('prompt_template_id')}` với model `{best.get('generation_model')}` qua config `{best.get('config_name')}`: faithfulness_avg={metrics.get('faithfulness_avg')}, answer_relevancy_avg={metrics.get('answer_relevancy_avg')}, citation_evidence_f1_avg={metrics.get('citation_evidence_f1_avg')}, p95_latency_ms={metrics.get('p95_latency_ms')}.",
+            "Điểm ưu tiên Faithfulness và Answer Relevancy; p95 latency bị phạt nhẹ.",
+            f"Ứng viên hiện tại là prompt `{best.get('prompt_template_id')}` với model `{best.get('generation_model')}` qua config `{best.get('config_name')}`: faithfulness_avg={metrics.get('faithfulness_avg')}, answer_relevancy_avg={metrics.get('answer_relevancy_avg')}, p95_latency_ms={metrics.get('p95_latency_ms')}.",
             "W7-CONFIG-01 sẽ tổng hợp thêm evidence retrieval/chunking/latency trước khi lock default_production.yaml.",
         ],
     }
@@ -1409,7 +1407,6 @@ def build_generation_prompt_ablation_analysis(report: dict[str, Any]) -> dict[st
         "generation_models": sorted({str(config.get("generation_model")) for config in configs if config.get("generation_model")}),
         "ranking_by_faithfulness": rank_generation_prompts_by_metric(configs, "faithfulness_avg"),
         "ranking_by_answer_relevancy": rank_generation_prompts_by_metric(configs, "answer_relevancy_avg"),
-        "ranking_by_citation_evidence_f1": rank_generation_prompts_by_metric(configs, "citation_evidence_f1_avg"),
         "ranking_by_p95_latency": rank_generation_prompts_by_metric(configs, "p95_latency_ms", higher_is_better=False),
         "preliminary_generation_candidate": choose_generation_prompt_candidate(configs),
     }
@@ -1482,7 +1479,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "> **Metric policy:** Sequential blind Judge v2 scores only Faithfulness and Answer Relevancy. Citation Evidence F1 is rule-based from cited chunks and gold-span provenance; AI-judged Context Recall is not a headline metric.",
+            "> **Metric policy:** Sequential blind Judge v2 scores Faithfulness and Answer Relevancy. AI-judged Context Recall is not a headline metric.",
         ]
     )
 
@@ -1491,20 +1488,19 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "",
             "## Overall metrics",
             "",
-            "| Config | Status | Items | Faithfulness | Answer relevancy | Citation Evidence F1 | Latency p95 ms | Invalid markers |",
-            "|---|---:|---:|---:|---:|---:|---:|---:|",
+            "| Config | Status | Items | Faithfulness | Answer relevancy | Latency p95 ms | Invalid markers |",
+            "|---|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for config in report.get("configs") or []:
         metrics = config.get("metrics") or {}
         lines.append(
-            "| {name} | {status} | {items} | {faith} | {rel} | {cite_f1} | {latency} | {invalid} |".format(
+            "| {name} | {status} | {items} | {faith} | {rel} | {latency} | {invalid} |".format(
                 name=config.get("config_name"),
                 status=config.get("status"),
                 items=metrics.get("item_count"),
                 faith=metrics.get("faithfulness_avg"),
                 rel=metrics.get("answer_relevancy_avg"),
-                cite_f1=metrics.get("citation_evidence_f1_avg"),
                 latency=metrics.get("p95_latency_ms"),
                 invalid=metrics.get("invalid_citation_marker_count"),
             )

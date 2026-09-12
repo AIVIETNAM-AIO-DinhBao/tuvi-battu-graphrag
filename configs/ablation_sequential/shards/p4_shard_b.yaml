@@ -1,14 +1,20 @@
-name: sequential_p4_reranker_shard_b
-notes: Only reranker.enabled changes; top_k is fixed at 20. Two-person official shard
-  assigned to B.
+name: sequential_p4_reranker_depth_shard_b
+notes: Only reranker.top_k changes; base must have reranker enabled. Two-person official
+  shard assigned to B.
 dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
-output_dir: benchmark/tuvi_golden_dataset/sequential_ablation/results/P4_reranker/shards/B
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P4_reranker_depth/shards/B
 configs:
-- name: p4_rerank_on
+- name: p4_retention_20
   base_config_path: configs/ablation_sequential/locked_phase_3.yaml
   overrides:
-    experiment_id: sequential_p4_rerank_on
-    name: Sequential P4 - reranker on
+    experiment_id: sequential_p4_retention_20
+    name: Sequential P4 - reranked candidate retention 20
     reranker_config:
-      enabled: true
       top_k: 20
+- name: p4_retention_40
+  base_config_path: configs/ablation_sequential/locked_phase_3.yaml
+  overrides:
+    experiment_id: sequential_p4_retention_40
+    name: Sequential P4 - reranked candidate retention 40
+    reranker_config:
+      top_k: 40

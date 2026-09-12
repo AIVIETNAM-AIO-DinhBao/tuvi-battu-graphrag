@@ -48,8 +48,8 @@ def command_for(
     bundle: str | None = None,
 ) -> str:
     wrapper = {
-        "p3": "run_p3_frozen_prompt_phase.ps1",
-        "p5": "run_p5_replay_phase.ps1",
+        "p4": "run_p4_replay_phase.ps1",
+        "p5": "run_p5_frozen_prompt_phase.ps1",
     }.get(phase, "run_retrieval_phase.ps1")
     suffix = " `\n  -Resume" if resume else ""
     manifest = repo_relative(manifest_path).replace("/", "\\")
@@ -59,12 +59,12 @@ def command_for(
         f"  -Manifest '{manifest}' `\n"
     )
     normalized_bundle = str(bundle or "").replace("/", "\\")
-    if phase == "p3":
+    if phase == "p5":
         command += f"  -FrozenBundle '{normalized_bundle}' `\n"
-    elif phase == "p5":
+    elif phase == "p4":
         command += f"  -Bundle '{normalized_bundle}' `\n"
     command += f"  -OutputDir '{output}'"
-    if phase != "p5":
+    if phase != "p4":
         command += f" `\n  -CheckpointDir '{output}\\checkpoints'{suffix}"
     return command
 
@@ -77,7 +77,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--deadline", default="TBD (Asia/Bangkok)")
     parser.add_argument("--neo4j-snapshot", default="TBD — A must fill before release")
-    parser.add_argument("--bundle", default=None, help="Required shared bundle path for P3/P5 tickets.")
+    parser.add_argument("--bundle", default=None, help="Required shared bundle path for P4/P5 tickets.")
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
@@ -89,10 +89,10 @@ def main() -> int:
     if output_path.exists() and not args.force:
         raise SystemExit(f"Refusing to overwrite {output_path}; use --force only before ticket release.")
     manifest = load_ablation_manifest(manifest_path)
-    if args.phase in {"p3", "p5"} and not args.bundle:
+    if args.phase in {"p4", "p5"} and not args.bundle:
         raise SystemExit(f"--bundle is required for {args.phase.upper()} tickets.")
     config_count = len(manifest.configs)
-    backend = "gemini blind-v2" if args.phase == "p3" else "rule-based-token-overlap-v2"
+    backend = "gemini blind-v2" if args.phase == "p5" else "rule-based-token-overlap-v2"
     bundle_path = resolve(Path(args.bundle)).resolve() if args.bundle else None
     bundle_manifest = bundle_path / "bundle_manifest.json" if bundle_path else None
     if bundle_manifest is not None and not bundle_manifest.exists():

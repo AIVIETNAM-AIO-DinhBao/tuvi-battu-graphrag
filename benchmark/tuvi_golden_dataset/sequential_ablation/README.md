@@ -1,5 +1,10 @@
 # Sequential ablation — runbook A/B
 
+> **Current sequence (authoritative):** P1 chunking → P2 retrieval → P3 reranker
+> on/off → P4 reranked candidate-retention depth → P5 final prompt → P6 generator
+> → P7 confirmation. The old pre-reranker P3 prompt run was discarded; see
+> [`REPHASE_MIGRATION.md`](REPHASE_MIGRATION.md).
+
 Đây là entrypoint vận hành cho chuỗi ablation tuần tự mới. Mỗi phase chỉ thay một factor, khóa winner rồi mới sinh manifest phase sau. Không dùng lại bảng factorial cũ để khóa winner.
 
 ## Trạng thái setup hiện tại
@@ -8,25 +13,23 @@
 - Có 722 gold spans: 621 exact anchors, 101 annotation không map được; mapping coverage `0.860111`.
 - 90/91 câu có gold corpus span còn ít nhất một exact anchor. Exact anchors chỉ
   dùng audit provenance; metric token-overlap vẫn chấm `TVQA-061`.
-- Recall@8 dùng đủ 722/722 span, kể cả 101 span `unmapped`, bằng cách so trực tiếp
-  gold quote với final context cùng source family.
+- Evidence Recall dùng đủ 722/722 span, kể cả 101 span `unmapped`, bằng cách so trực tiếp
+  gold quote với final selected context cùng source family.
 - P1 đã hoàn tất 300/300 pairs, zero failure và khóa `p1_fixed_512`.
 - P2 đã hoàn tất 700/700 pairs, zero failure và khóa `p2_graph_dense_sparse`
   (Graph+Dense+Sparse).
-- P3 đã hoàn tất frozen retrieval 100/100 và 300/300 generation + blind-judge
-  pairs, zero failure; khóa `p3_prompt_1` (template `tuvi_generation_v1`).
+- Prompt pre-reranker cũ đã bị loại bỏ; P5 là prompt comparison chính thức sau P4 k20.
 - Không có phase smoke. Official command luôn chạy full-100; unit test và kiểm tra hash tĩnh vẫn được giữ.
 
-## Bảy metric headline
+## Sáu metric headline
 
 | Metric | Dùng ở đâu |
 |---|---|
-| Recall@8 | Primary của P1/P2/P4/P5; source-aligned token overlap, `τ=0.25`. |
-| Precision@8 | Guardrail của P1/P2/P4/P5; cùng relevance rule với Recall@8. |
-| F1@8 | Cân bằng aggregate Recall@8 và Precision@8. |
-| Faithfulness | Primary của P3/P6. |
-| Answer Relevancy | Guardrail/secondary của P3/P6. |
-| Citation Evidence F1 | Guardrail của P3/P6; provenance overlap trên các chunk thực sự được cite. |
+| Evidence Recall | Primary của P1/P2/P3/P4; source-aligned token overlap trên final selected context, `τ=0.25`. |
+| Evidence Precision | Guardrail của P1/P2/P3/P4; cùng relevance rule với Evidence Recall. |
+| Evidence F1 | Cân bằng aggregate Evidence Recall và Evidence Precision. |
+| Faithfulness | Primary của P5/P6. |
+| Answer Relevancy | Guardrail/secondary của P5/P6. |
 | Latency p95 | Secondary/tie-break; chỉ so trực tiếp khi chạy cùng máy. |
 
 Context Recall của AI judge không thuộc Judge v2 và không vào bảng chính. Metric kỹ thuật khác vẫn được lưu trong JSON để truy lỗi nhưng không xuất hiện trong bảng quyết định. Completeness, zero fallback và zero invalid citation marker là gate hợp lệ, không phải metric.
@@ -36,9 +39,9 @@ suất token và chỉ so cùng source family. Với span `g`, chunk `c`:
 
 ```text
 overlap(g,c) = Σ_t min(count_g(t), count_c(t)) / |tokens(g)|
-Recall@8     = số span có max overlap >= 0.25 / tổng 722 span
-Precision@8  = số chunk relevant / tổng corpus context chunk
-F1@8         = 2 × Recall@8 × Precision@8 / (Recall@8 + Precision@8)
+Evidence Recall     = số span có max overlap >= 0.25 / tổng 722 span
+Evidence Precision  = số final-context chunk relevant / tổng corpus context chunk
+Evidence F1         = 2 × Evidence Recall × Evidence Precision / (Evidence Recall + Evidence Precision)
 ```
 
 CHART bị loại khỏi mẫu số Precision; item không có gold span bị loại khỏi ba
@@ -52,9 +55,9 @@ metric retrieval. Aggregate là micro-average. Không loại span theo
 | P0 anchor/scorer | Local của A | Không | Đọc release và corpus trong repo. |
 | P1 chunking | Local của A | Không bắt buộc | Cần Neo4j/fulltext/vector index; reranker off. |
 | P2 retrieval | Local A và B | Không bắt buộc | Cần Neo4j và cùng snapshot; chia manifest thành hai shard. |
-| P3 prompt | Local A và B | Không | A freeze retrieval 100 lần; A/B chỉ generation + blind judge trên cùng bundle. |
-| P4 reranker on/off | Local A và B | Hiện tại CPU | Reranker implementation chưa chuyển Transformers model/tensor lên CUDA. Kaggle không có Neo4j local. |
-| P5 reranker top-k | Local A và B | Hiện tại CPU | B rerank max pool 100 lần; A/B replay k10/k20/k40. |
+| P3 reranker on/off | Local A và B | Hiện tại CPU | Reranker implementation chưa chuyển Transformers model/tensor lên CUDA. Kaggle không có Neo4j local. |
+| P4 reranked retention | Local A và B | Hiện tại CPU | B rerank max pool 100 lần; A/B replay k10/k20/k40. |
+| P5 final prompt | Local A và B | Không | Cùng frozen k20 context; A/B chỉ generation + blind judge. |
 | P6 Gemini | Local A | Không | Chạy API trên frozen prompt/context bundle. |
 | P6 Qwen/Gemma | Kaggle A/B | Có | 4-bit inference; dùng notebook standalone và model dataset offline có sẵn quy trình. |
 | P6 judge | Local A | Không | Gộp ba prediction set, một judge protocol Gemini. |
@@ -101,7 +104,7 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
 ```
 
-A chuyển riêng các biến Neo4j/Gemini cần thiết cho B qua kênh bảo mật; không commit `.env` vào repo. P2/P3 không cần model reranker. Trước P4-B/P5-B mới cần A chuyển hoặc chuẩn bị thư mục `models/bge-reranker-v2-m3`, rồi kiểm tra:
+A chuyển riêng các biến Neo4j/Gemini cần thiết cho B qua kênh bảo mật; không commit `.env` vào repo. P2 không cần model reranker. Trước P3-B/P4-B cần A chuyển hoặc chuẩn bị thư mục `models/bge-reranker-v2-m3`, rồi kiểm tra:
 
 ```powershell
 Test-Path .\models\bge-reranker-v2-m3\model.safetensors
@@ -164,7 +167,7 @@ Validate sau khi đủ 300 pairs:
   -ExpectedConfigs 3 -ExpectedPairs 300 -Backend rule-based-gold-evidence-v1
 ```
 
-A chọn Recall@8 cao nhất trong candidate qua precision guardrail. Nếu hai candidate chênh dưới 0.01, chạy paired bootstrap; chỉ khi vẫn hòa mới replay hai candidate trên cùng máy để so latency.
+A chọn Evidence Recall cao nhất trong candidate qua Evidence Precision guardrail. Nếu hai candidate chênh dưới 0.01, chạy paired bootstrap; chỉ khi vẫn hòa mới replay hai candidate trên cùng máy để so latency.
 
 Với P1 đã chạy bằng scorer provenance v1, chấm hậu xử lý context đã lưu mà không
 chạy lại retrieval:
@@ -198,16 +201,15 @@ P1 đã khóa winner `p1_fixed_512`:
   --output configs\ablation_sequential\locked_phase_1.yaml
 ```
 
-Kết quả P1: Recall@8 `0.558172`, Precision@8 `0.846626`, F1@8 `0.672784`.
+Kết quả P1: Evidence Recall `0.558172`, Evidence Precision `0.846626`, Evidence F1 `0.672784`.
 
-Kết quả P2: Graph+Dense+Sparse được khóa với Recall@8 `0.581717`, Precision@8
-`0.854400`, F1@8 `0.692171`. Graph+Sparse có Recall@8 cao hơn (`0.584488`) nhưng
-bị loại vì Precision@8 `0.803543` thấp hơn guardrail `0.826626`.
+Kết quả P2: Graph+Dense+Sparse được khóa với Evidence Recall `0.581717`, Evidence Precision
+`0.854400`, Evidence F1 `0.692171`. Graph+Sparse có Evidence Recall cao hơn (`0.584488`) nhưng
+bị loại vì Evidence Precision `0.803543` thấp hơn guardrail `0.826626`.
 
-Kết quả P3: Prompt 1 (v1) được khóa với Faithfulness `0.9120`, Answer Relevancy
-`0.871`, Citation Evidence F1 `0.0296`, p95 generation `3376.01 ms`; Prompt 2
-(grounded-v2 control) đạt `0.9000` Faithfulness. P4 phải kế thừa
-`configs/ablation_sequential/locked_phase_3.yaml`.
+Kết quả P3: reranker on được khóa. Kết quả P4: retention `k=20` được khóa theo
+quy tắc tie-break đã đăng ký. P5 là so sánh prompt chính thức và đang dùng đúng
+frozen context từ lock P4.
 
 ## 3. Sinh và chia phase P2–P5
 
@@ -227,9 +229,9 @@ Script sinh full manifest canonical và hai shard. Phân công cố định:
 | Phase | Shard A | Shard B |
 |---|---|---|
 | P2 | Graph, Dense, Graph+Dense | Sparse, Graph+Sparse, Dense+Sparse, GDS |
-| P3 | Prompt 1 (v1), Prompt 2 (grounded-v2) | Prompt 3 (answer-first-v4) |
-| P4 | reranker off | reranker on, top-k=20 |
-| P5 | top-k=10 | top-k=20 và 40 |
+| P3 | reranker off | reranker on, top-k=20 |
+| P4 | replay k10 | build max-rerank bundle, replay k20 và k40 |
+| P5 | Prompt 1 (v1), Prompt 2 (grounded-v2) | Prompt 3 (answer-first-v4) |
 
 B có nhiều candidate hơn vì A còn merge, phân tích và phát hành lock.
 
@@ -248,10 +250,10 @@ A tạo ticket copy/paste sau khi điền snapshot/deadline, ví dụ shard B c�
 
 B chỉ cần pull đúng SHA trong ticket, kiểm tra snapshot rồi chạy nguyên lệnh. Tạo ticket A tương tự để registry của hai máy có cùng format.
 
-Khi tạo ticket P3/P5, A bắt buộc thêm `--bundle <SHARED_BUNDLE_PATH>`; ticket generator
+Khi tạo ticket P4/P5, A bắt buộc thêm `--bundle <SHARED_BUNDLE_PATH>`; ticket generator
 sẽ chọn đúng wrapper frozen/replay. Không phát ticket trước khi bundle hoàn tất và có checksum.
 
-### Chạy shard retrieval: P2 và P4
+### Chạy shard retrieval: P2 và P3
 
 A/B thay đúng đường dẫn ticket đã nhận:
 
@@ -264,40 +266,14 @@ A/B thay đúng đường dẫn ticket đã nhận:
 
 Resume bằng cách thêm `-Resume`.
 
-### P3: freeze retrieval một lần, rồi chạy prompt shards
+### P4: rerank max pool một lần rồi replay
 
-A build bundle từ **full P3 manifest** sau khi P2 đã khóa:
-
-```powershell
-.\.venv\Scripts\python.exe .\scripts\build_p3_frozen_retrieval.py `
-  --manifest configs\ablation_sequential\p3_prompt.yaml `
-  --output-dir benchmark\tuvi_golden_dataset\sequential_ablation\results\P3_prompt\frozen_retrieval
-```
-
-Gate: `p3_freeze_audit.json` phải ghi `retrieval_execution_count=100`. A gửi nguyên
-bundle và SHA-256 cho B. Mỗi người chạy shard của mình bằng cùng bundle:
+Chỉ làm vì P3 đã khóa `reranker.enabled=true`. B build bundle bằng full manifest:
 
 ```powershell
-.\scripts\sequential_ablation\run_p3_frozen_prompt_phase.ps1 `
-  -Manifest <SHARD_MANIFEST> `
-  -FrozenBundle benchmark\tuvi_golden_dataset\sequential_ablation\results\P3_prompt\frozen_retrieval `
-  -OutputDir <SHARD_OUTPUT_DIR> `
-  -CheckpointDir <SHARD_OUTPUT_DIR>\checkpoints
-```
-
-Resume bằng cách thêm `-Resume`. Runner chỉ gọi generation + citation trên frozen
-state, dùng blind Judge v2 và Citation Evidence F1. P3 phải dùng cùng bundle hash,
-Gemini generation ID và judge ID trên A/B. Không dùng `run_generation_phase.ps1`
-cho P3 vì lệnh đó chạy lại retrieval.
-
-### P5: rerank max pool một lần rồi replay
-
-Chỉ làm nếu P4 khóa `reranker.enabled=true`. B build bundle bằng full manifest:
-
-```powershell
-.\.venv\Scripts\python.exe .\scripts\build_p5_rerank_bundle.py `
-  --manifest configs\ablation_sequential\p5_top_k.yaml `
-  --output-dir benchmark\tuvi_golden_dataset\sequential_ablation\results\P5_top_k\max_rerank_bundle
+.\.venv\Scripts\python.exe .\scripts\build_p4_rerank_bundle.py `
+  --manifest configs\ablation_sequential\p4_reranker_depth.yaml `
+  --output-dir benchmark\tuvi_golden_dataset\sequential_ablation\results\P4_reranker_depth\max_rerank_bundle
 ```
 
 Gate: `bundle_manifest.json` phải ghi `reranker_execution_count=100`, `max_k=40`,
@@ -305,9 +281,9 @@ Gate: `bundle_manifest.json` phải ghi `reranker_execution_count=100`, `max_k=4
 k20+k40:
 
 ```powershell
-.\scripts\sequential_ablation\run_p5_replay_phase.ps1 `
+.\scripts\sequential_ablation\run_p4_replay_phase.ps1 `
   -Manifest <SHARD_MANIFEST> `
-  -Bundle benchmark\tuvi_golden_dataset\sequential_ablation\results\P5_top_k\max_rerank_bundle `
+  -Bundle benchmark\tuvi_golden_dataset\sequential_ablation\results\P4_reranker_depth\max_rerank_bundle `
   -OutputDir <SHARD_OUTPUT_DIR>
 ```
 
@@ -332,16 +308,31 @@ Các lệnh prepare tiếp theo:
 
 ```powershell
 # P3 sau locked_phase_2
-.\.venv\Scripts\python.exe .\scripts\prepare_sequential_phase.py --phase p3 --base configs\ablation_sequential\locked_phase_2.yaml --output configs\ablation_sequential\p3_prompt.yaml --output-dir benchmark/tuvi_golden_dataset/sequential_ablation/results/P3_prompt --two-person-shard-dir configs\ablation_sequential\shards
+.\.venv\Scripts\python.exe .\scripts\prepare_sequential_phase.py --phase p3 --base configs\ablation_sequential\locked_phase_2.yaml --output configs\ablation_sequential\p3_reranker.yaml --output-dir benchmark/tuvi_golden_dataset/sequential_ablation/results/P3_reranker --two-person-shard-dir configs\ablation_sequential\shards
 
 # P4 sau locked_phase_3
-.\.venv\Scripts\python.exe .\scripts\prepare_sequential_phase.py --phase p4 --base configs\ablation_sequential\locked_phase_3.yaml --output configs\ablation_sequential\p4_reranker.yaml --output-dir benchmark/tuvi_golden_dataset/sequential_ablation/results/P4_reranker --two-person-shard-dir configs\ablation_sequential\shards
+.\.venv\Scripts\python.exe .\scripts\prepare_sequential_phase.py --phase p4 --base configs\ablation_sequential\locked_phase_3.yaml --output configs\ablation_sequential\p4_reranker_depth.yaml --output-dir benchmark/tuvi_golden_dataset/sequential_ablation/results/P4_reranker_depth --two-person-shard-dir configs\ablation_sequential\shards
 
-# P5 chỉ khi P4 winner là reranker on
-.\.venv\Scripts\python.exe .\scripts\prepare_sequential_phase.py --phase p5 --base configs\ablation_sequential\locked_phase_4.yaml --output configs\ablation_sequential\p5_top_k.yaml --output-dir benchmark/tuvi_golden_dataset/sequential_ablation/results/P5_top_k --two-person-shard-dir configs\ablation_sequential\shards
+# P5 sau locked_phase_4
+.\.venv\Scripts\python.exe .\scripts\prepare_sequential_phase.py --phase p5 --base configs\ablation_sequential\locked_phase_4.yaml --output configs\ablation_sequential\p5_prompt.yaml --output-dir benchmark/tuvi_golden_dataset/sequential_ablation/results/P5_prompt_final --two-person-shard-dir configs\ablation_sequential\shards
 ```
 
-Nếu P4 chọn off: không chạy P5; copy `locked_phase_4.yaml` thành base logic cho P6 và ghi `P5_NA.md` trong results.
+P5 build frozen bundle từ lock P4, rồi chạy generation/judge trên hai shard:
+
+```powershell
+.\.venv\Scripts\python.exe .\scripts\build_p5_final_prompt_bundle.py `
+  --manifest configs\ablation_sequential\p5_prompt.yaml `
+  --output-dir benchmark\tuvi_golden_dataset\sequential_ablation\results\P5_prompt_final\frozen_context
+
+.\scripts\sequential_ablation\run_p5_frozen_prompt_phase.ps1 `
+  -Manifest <SHARD_MANIFEST> `
+  -FrozenBundle benchmark\tuvi_golden_dataset\sequential_ablation\results\P5_prompt_final\frozen_context `
+  -OutputDir <SHARD_OUTPUT_DIR> `
+  -CheckpointDir <SHARD_OUTPUT_DIR>\checkpoints
+```
+
+P5 chỉ gọi Gemini generation và blind Judge v2. Chọn theo Faithfulness; Answer
+Relevancy không được giảm quá `0.02` so với Prompt 2 và invalid marker phải bằng 0.
 
 ## 4. P6 Generator — local + Kaggle GPU
 
@@ -412,9 +403,9 @@ không thể bảo đảm, nên vẫn audit thủ công 20 item đã ẩn nhãn 
 - Đủ 100 item cho mỗi candidate, không duplicate/missing ID.
 - `failed_pair_count=0`, không retrieval/reranker fallback.
 - Config/dataset/anchor/code hashes đúng ticket.
-- Retrieval phase: chọn Recall@8 token-overlap theo Precision@8 guardrail đã đăng ký và báo F1@8.
-- P3/P6: chọn Faithfulness; Citation Evidence F1 và Answer Relevancy không được giảm
-  quá 0.02 so với control; invalid citation marker phải bằng 0.
+- Retrieval phase: chọn Evidence Recall token-overlap theo Evidence Precision guardrail đã đăng ký và báo Evidence F1.
+- P5/P6: chọn Faithfulness; Answer Relevancy không được giảm quá 0.02 so với
+  control; invalid citation marker phải bằng 0.
 - Decision draft luôn báo paired delta, bootstrap CI95 (10.000 mẫu, seed 42) và nhãn
   `better`, `worse` hoặc `inconclusive`.
 - A tạo `locked_phase_N.yaml`, `.lock.json`, `P{N}_DECISION.md` và artifact SHA manifest.
@@ -431,7 +422,7 @@ Artifact cũ cho thấy full RAG chạy local từng mất:
 | Retrieval shortlist | 300 pairs | khoảng 7,6 giờ |
 | Local-LLM Gemini judge | 600 pairs | khoảng 3,9 giờ |
 
-P1/P2/P4/P5 mới bỏ generation và judge nên dự kiến nhanh hơn, nhưng reranker CPU vẫn là rủi ro lớn. Với hai người, để hoàn tất ba ngày cần hai máy local chạy đồng thời từ P2, Kaggle GPU sẵn cho ngày 3 và dùng checkpoint qua đêm. P5 chỉ chạy cross-encoder 100 lần ở max pool rồi replay ba top-k, nhờ đó giảm đáng kể rủi ro quá 72 giờ; không được cắt dataset để ép kịp.
+P1–P4 chạy retrieval-only nên nhanh hơn full RAG, nhưng reranker CPU vẫn là rủi ro lớn. Với hai người, để hoàn tất ba ngày cần hai máy local chạy đồng thời từ P2, Kaggle GPU sẵn cho ngày 3 và dùng checkpoint qua đêm. P4 chỉ chạy cross-encoder 100 lần ở max pool rồi replay ba top-k; P5 reuse đúng k20 context nên không rerank lại.
 
 ## 8. File vận hành
 
@@ -448,9 +439,9 @@ scripts/prepare_p6_kaggle.py
 scripts/build_p6_context_bundle.py
 scripts/run_p6_gemini.py
 scripts/run_p6_judge.py
-scripts/build_p3_frozen_retrieval.py
-scripts/build_p5_rerank_bundle.py
-scripts/run_p5_replay_eval.py
+scripts/build_p4_rerank_bundle.py
+scripts/build_p5_final_prompt_bundle.py
+scripts/run_p4_replay_eval.py
 scripts/sequential_ablation/*.ps1
 benchmark/tuvi_golden_dataset/sequential_ablation/RUN_TICKET_TEMPLATE.md
 benchmark/tuvi_golden_dataset/sequential_ablation/RUN_REGISTRY.md

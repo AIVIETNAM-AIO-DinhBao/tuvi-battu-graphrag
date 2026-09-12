@@ -1,0 +1,38 @@
+{
+  "schema_version": "sequential-decision-draft-v1",
+  "phase": "p4",
+  "report": "D:\\UNI_STUDY\\Year3\\Semester3\\TextMining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\sequential_ablation\\results\\P4_reranker\\evaluation_report.json",
+  "report_sha256": "8e2d928b519ebe2d7c3dd63dc2a1f1f89a408185b346139ef589a1f8c283ad1d",
+  "control": "p4_rerank_off",
+  "primary_metric": "recall_at_8",
+  "recommended_winner": "p4_rerank_on",
+  "ranking": [
+    {
+      "config_name": "p4_rerank_on",
+      "primary_value": 0.623269,
+      "precision_at_8": 0.887023,
+      "f1_at_8": 0.732115,
+      "citation_evidence_f1": null,
+      "answer_relevancy": null,
+      "latency_p95_ms": null,
+      "guardrail_passed": true,
+      "guardrail_note": "precision=0.887023; floor=0.8344"
+    },
+    {
+      "config_name": "p4_rerank_off",
+      "primary_value": 0.581717,
+      "precision_at_8": 0.8544,
+      "f1_at_8": 0.692171,
+      "citation_evidence_f1": null,
+      "answer_relevancy": null,
+      "latency_p95_ms": null,
+      "guardrail_passed": true,
+      "guardrail_note": "precision=0.8544; floor=0.8344"
+    }
+  ],
+  "bootstrap_challenger": "p4_rerank_off",
+  "winner_vs_challenger_bootstrap": {
+    "performed": false,
+    "reason": "Top-two primary gap 0.041552 is not below 0.01."
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "current_config": "p4_rerank_off",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 100,
+  "expected_pair_count": 100,
+  "failed_pair_count": 0,
+  "processed_pair_count": 100,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 0,
+  "updated_at": "2026-09-12T04:14:09.069704Z"
+}

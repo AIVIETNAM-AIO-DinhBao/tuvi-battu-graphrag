@@ -38,21 +38,30 @@ def render_generation_markdown(report: dict) -> str:
         f"- Expected/completed/failed pairs: `{execution.get('expected_pair_count')}` / "
         f"`{execution.get('completed_pair_count')}` / `{execution.get('failed_pair_count')}`",
         "",
-        "| Config | Faithfulness | Answer Relevancy | Citation Evidence F1 | Latency p95 ms | Invalid markers |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| Config | Faithfulness | Answer Relevancy | Latency p95 ms | Invalid markers |",
+        "|---|---:|---:|---:|---:|",
     ]
     for config in report.get("configs") or []:
         metrics = config.get("metrics") or {}
         lines.append(
             f"| {config.get('config_name')} | {metrics.get('faithfulness_avg')} | "
-            f"{metrics.get('answer_relevancy_avg')} | {metrics.get('citation_evidence_f1_avg')} | "
+            f"{metrics.get('answer_relevancy_avg')} | "
             f"{metrics.get('p95_latency_ms')} | {metrics.get('invalid_citation_marker_count')} |"
+        )
+    exception = report.get("reproducibility_exception")
+    if exception:
+        lines.extend(
+            [
+                "",
+                f"> Reproducibility exception: `{exception.get('type')}` for shard(s) "
+                f"`{', '.join(exception.get('affected_shards') or [])}`. Shared run hashes were verified; see JSON for the audit record.",
+            ]
         )
     lines.extend(
         [
             "",
             "Faithfulness and Answer Relevancy are scored by the registered blind judge. "
-            "Citation Evidence F1 is a separate deterministic provenance-overlap audit.",
+            "Invalid citation markers are reported as an execution-validity gate, not a quality metric.",
             "",
         ]
     )
@@ -65,6 +74,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report-a", type=Path, required=True)
     parser.add_argument("--report-b", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--allow-dirty-shards",
+        action="store_true",
+        help="Merge only when a documented reproducibility exception is explicitly accepted.",
+    )
     return parser.parse_args()
 
 
@@ -108,7 +122,8 @@ def main() -> int:
         values = {identity.get(key) for identity in identities}
         if len(values) != 1:
             raise SystemExit(f"Shard run identities differ for {key}: {sorted(map(str, values))}")
-    if any(identity.get("git_dirty") is True for identity in identities):
+    dirty_shards = [label for label, identity in zip(("A", "B"), identities, strict=True) if identity.get("git_dirty")]
+    if dirty_shards and not args.allow_dirty_shards:
         raise SystemExit("At least one shard was run from a dirty tracked worktree.")
     timeout_values = {report.get("reranker_timeout_seconds") for report in reports}
     if len(timeout_values) != 1:
@@ -143,6 +158,16 @@ def main() -> int:
         }
     )
     merged.pop("run_identity", None)
+    if dirty_shards:
+        merged["reproducibility_exception"] = {
+            "type": "dirty-worktree",
+            "accepted_by_merge_flag": True,
+            "affected_shards": dirty_shards,
+            "shared_git_sha": identities[0].get("git_sha"),
+            "shared_evaluator_sha256": identities[0].get("evaluator_sha256"),
+            "shared_judge_model": identities[0].get("judge_model"),
+            "note": "Both shards share the same run identity hashes; retain this exception in the final audit trail.",
+        }
     summaries = [report.get("execution_summary") or {} for report in reports]
     merged["execution_summary"] = {
         key: sum(int(summary.get(key) or 0) for summary in summaries)

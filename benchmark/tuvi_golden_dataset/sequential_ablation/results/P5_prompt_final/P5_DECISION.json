@@ -1,0 +1,52 @@
+{
+  "schema_version": "sequential-decision-draft-v1",
+  "phase": "p5",
+  "report": "D:\\UNI_STUDY\\Year3\\Semester3\\TextMining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\sequential_ablation\\results\\P5_prompt_final\\evaluation_report.json",
+  "report_sha256": "0b96bf3b878e034a4bd56565cd75c6634aba44a95205a79c211b16c62aab42ec",
+  "control": "p5_prompt_2",
+  "primary_metric": "faithfulness_avg",
+  "recommended_winner": "p5_prompt_1",
+  "raw_primary_leader": "p5_prompt_1",
+  "selection_rule": "Highest primary metric among candidates that pass the pre-registered guardrail.",
+  "ranking": [
+    {
+      "config_name": "p5_prompt_1",
+      "primary_value": 0.926,
+      "precision_at_8": null,
+      "f1_at_8": null,
+      "citation_evidence_f1": 0.0313,
+      "answer_relevancy": 0.858,
+      "latency_p95_ms": 4649.16,
+      "guardrail_passed": true,
+      "guardrail_note": "invalid_markers=0; relevancy=0.858; relevancy_floor=0.815"
+    },
+    {
+      "config_name": "p5_prompt_2",
+      "primary_value": 0.913,
+      "precision_at_8": null,
+      "f1_at_8": null,
+      "citation_evidence_f1": 0.0334,
+      "answer_relevancy": 0.835,
+      "latency_p95_ms": 5410.09,
+      "guardrail_passed": true,
+      "guardrail_note": "invalid_markers=0; relevancy=0.835; relevancy_floor=0.815"
+    },
+    {
+      "config_name": "p5_prompt_3",
+      "primary_value": 0.886,
+      "precision_at_8": null,
+      "f1_at_8": null,
+      "citation_evidence_f1": 0.0352,
+      "answer_relevancy": 0.894,
+      "latency_p95_ms": 6064.77,
+      "guardrail_passed": true,
+      "guardrail_note": "invalid_markers=0; relevancy=0.894; relevancy_floor=0.815"
+    }
+  ],
+  "bootstrap_candidate": "p5_prompt_1",
+  "bootstrap_challenger": "p5_prompt_2",
+  "winner_vs_challenger_bootstrap": {
+    "performed": false,
+    "reason": "Top-two primary gap 0.013000 is not below 0.01."
+  }
+}

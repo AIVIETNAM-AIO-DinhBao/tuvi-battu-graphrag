@@ -1,0 +1,26 @@
+name: sequential_p4_reranker_depth
+notes: Re-indexed from the executed depth sweep; only reranker.top_k changes and base has reranker enabled.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P4_reranker_depth
+configs:
+- name: p4_retention_10
+  base_config_path: configs/ablation_sequential/locked_phase_3.yaml
+  overrides:
+    experiment_id: sequential_p4_retention_10
+    name: Sequential P4 - reranked candidate retention 10
+    reranker_config:
+      top_k: 10
+- name: p4_retention_20
+  base_config_path: configs/ablation_sequential/locked_phase_3.yaml
+  overrides:
+    experiment_id: sequential_p4_retention_20
+    name: Sequential P4 - reranked candidate retention 20
+    reranker_config:
+      top_k: 20
+- name: p4_retention_40
+  base_config_path: configs/ablation_sequential/locked_phase_3.yaml
+  overrides:
+    experiment_id: sequential_p4_retention_40
+    name: Sequential P4 - reranked candidate retention 40
+    reranker_config:
+      top_k: 40

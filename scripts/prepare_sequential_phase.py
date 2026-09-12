@@ -25,11 +25,11 @@ TWO_PERSON_ASSIGNMENTS = {
         "B": {"p2_sparse", "p2_graph_sparse", "p2_dense_sparse", "p2_graph_dense_sparse"},
     },
     "p3": {
-        "A": {"p3_prompt_1", "p3_prompt_2"},
-        "B": {"p3_prompt_3"},
+        "A": {"p3_rerank_off"},
+        "B": {"p3_rerank_on"},
     },
-    "p4": {"A": {"p4_rerank_off"}, "B": {"p4_rerank_on"}},
-    "p5": {"A": {"p5_top_k_10"}, "B": {"p5_top_k_20", "p5_top_k_40"}},
+    "p4": {"A": {"p4_retention_10"}, "B": {"p4_retention_20", "p4_retention_40"}},
+    "p5": {"A": {"p5_prompt_1", "p5_prompt_2"}, "B": {"p5_prompt_3"}},
 }
 
 
@@ -76,6 +76,36 @@ def phase_specs(phase: str, base: str) -> tuple[str, str, list[dict[str, Any]]]:
         ]
         return "sequential_p2_retrieval", "Only the categorical retrieval strategy changes.", specs
     if phase == "p3":
+        specs = [
+            candidate(
+                "p3_rerank_off",
+                base,
+                "sequential_p3_rerank_off",
+                "Sequential P3 - reranker off",
+                {"reranker_config": {"enabled": False, "top_k": 20}},
+            ),
+            candidate(
+                "p3_rerank_on",
+                base,
+                "sequential_p3_rerank_on",
+                "Sequential P3 - reranker on",
+                {"reranker_config": {"enabled": True, "top_k": 20}},
+            ),
+        ]
+        return "sequential_p3_reranker", "Only reranker.enabled changes; top_k is fixed at 20.", specs
+    if phase == "p4":
+        specs = [
+            candidate(
+                f"p4_retention_{top_k}",
+                base,
+                f"sequential_p4_retention_{top_k}",
+                f"Sequential P4 - reranked candidate retention {top_k}",
+                {"reranker_config": {"top_k": top_k}},
+            )
+            for top_k in (10, 20, 40)
+        ]
+        return "sequential_p4_reranker_depth", "Only reranker.top_k changes; base must have reranker enabled.", specs
+    if phase == "p5":
         prompts = [
             ("prompt_1", "tuvi_generation_v1", "Prompt 1 - concise baseline v1"),
             ("prompt_2", "tuvi_generation_grounded_v2", "Prompt 2 - grounded v2"),
@@ -83,49 +113,15 @@ def phase_specs(phase: str, base: str) -> tuple[str, str, list[dict[str, Any]]]:
         ]
         specs = [
             candidate(
-                f"p3_{name}",
+                f"p5_{name}",
                 base,
-                f"sequential_p3_{name}",
-                f"Sequential P3 - {label}",
+                f"sequential_p5_{name}",
+                f"Sequential P5 - {label}",
                 {"prompt_template_id": prompt_id},
             )
             for name, prompt_id, label in prompts
         ]
-        return (
-            "sequential_p3_prompt",
-            "Only prompt_template_id changes. Prompt 2 keeps grounded-v2; structured-v3 is excluded by the pre-registered three-prompt shortlist.",
-            specs,
-        )
-    if phase == "p4":
-        specs = [
-            candidate(
-                "p4_rerank_off",
-                base,
-                "sequential_p4_rerank_off",
-                "Sequential P4 - reranker off",
-                {"reranker_config": {"enabled": False, "top_k": 20}},
-            ),
-            candidate(
-                "p4_rerank_on",
-                base,
-                "sequential_p4_rerank_on",
-                "Sequential P4 - reranker on",
-                {"reranker_config": {"enabled": True, "top_k": 20}},
-            ),
-        ]
-        return "sequential_p4_reranker", "Only reranker.enabled changes; top_k is fixed at 20.", specs
-    if phase == "p5":
-        specs = [
-            candidate(
-                f"p5_top_k_{top_k}",
-                base,
-                f"sequential_p5_top_k_{top_k}",
-                f"Sequential P5 - reranker top-k {top_k}",
-                {"reranker_config": {"top_k": top_k}},
-            )
-            for top_k in (10, 20, 40)
-        ]
-        return "sequential_p5_reranker_depth", "Only reranker.top_k changes; base must have reranker enabled.", specs
+        return "sequential_p5_prompt", "Only prompt_template_id changes on the P4-locked final context.", specs
     if phase == "p6-context":
         specs = [
             candidate(
@@ -158,10 +154,10 @@ def main() -> int:
     if output_path.exists() and not args.force:
         raise SystemExit(f"Refusing to overwrite {output_path}; pass --force only after auditing the existing file.")
     base_config = load_experiment_config(base_path)
-    if args.phase in {"p2", "p3", "p4"} and base_config.reranker_enabled:
+    if args.phase in {"p2", "p3"} and base_config.reranker_enabled:
         raise SystemExit(f"{args.phase} requires a reranker-off locked base.")
-    if args.phase == "p5" and not base_config.reranker_enabled:
-        raise SystemExit("p5 is valid only when P4 locked reranker on.")
+    if args.phase in {"p4", "p5"} and not base_config.reranker_enabled:
+        raise SystemExit(f"{args.phase} is valid only when P3 locked reranker on.")
     name, notes, specs = phase_specs(args.phase, repo_relative(base_path))
     payload = {
         "name": name,

@@ -1,0 +1,12 @@
+name: sequential_p5_prompt_shard_b
+notes: Only prompt_template_id changes on the P4-locked final context. Two-person
+  official shard assigned to B.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P5_prompt_final/shards/B
+configs:
+- name: p5_prompt_3
+  base_config_path: configs/ablation_sequential/locked_phase_4.yaml
+  overrides:
+    experiment_id: sequential_p5_prompt_3
+    name: Sequential P5 - Prompt 3 - answer-first v4
+    prompt_template_id: tuvi_generation_answer_first_v4

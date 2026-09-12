@@ -1,0 +1,21 @@
+name: sequential_p3_reranker
+notes: Re-indexed from the executed reranker comparison; only reranker.enabled changes and top_k is fixed at 20.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/sequential_ablation/results/P3_reranker
+configs:
+- name: p3_rerank_off
+  base_config_path: configs/ablation_sequential/locked_phase_2.yaml
+  overrides:
+    experiment_id: sequential_p3_rerank_off
+    name: Sequential P3 - reranker off
+    reranker_config:
+      enabled: false
+      top_k: 20
+- name: p3_rerank_on
+  base_config_path: configs/ablation_sequential/locked_phase_2.yaml
+  overrides:
+    experiment_id: sequential_p3_rerank_on
+    name: Sequential P3 - reranker on
+    reranker_config:
+      enabled: true
+      top_k: 20

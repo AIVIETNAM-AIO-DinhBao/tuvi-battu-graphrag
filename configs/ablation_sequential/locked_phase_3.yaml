@@ -1,5 +1,5 @@
-experiment_id: sequential_p3_prompt_1
-name: Sequential P3 - Prompt 1 - concise baseline v1
+experiment_id: sequential_p4_rerank_on
+name: Sequential P4 - reranker on
 branch: gemini-call
 domain: TUVI
 source_ids:
@@ -68,7 +68,7 @@ fusion_path_weights:
   dense: 1.0
   sparse: 1.0
 reranker_config:
-  enabled: false
+  enabled: true
   model: BAAI/bge-reranker-v2-m3
   top_k: 20
   batch_size: 2

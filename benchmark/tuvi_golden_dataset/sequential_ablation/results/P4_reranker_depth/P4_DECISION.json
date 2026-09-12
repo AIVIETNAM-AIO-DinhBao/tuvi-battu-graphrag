@@ -1,0 +1,62 @@
+{
+  "schema_version": "sequential-decision-draft-v1",
+  "phase": "p5",
+  "report": "D:\\UNI_STUDY\\Year3\\Semester3\\TextMining\\tuvi-battu-graphrag\\benchmark\\tuvi_golden_dataset\\sequential_ablation\\results\\P5_top_k\\evaluation_report.json",
+  "report_sha256": "9e176caffb8a90edcfad727e03203a9bf319217e921989fce4a9c0fb4b1c80e4",
+  "control": "p5_top_k_20",
+  "primary_metric": "recall_at_8",
+  "recommended_winner": "p5_top_k_20",
+  "raw_primary_leader": "p5_top_k_40",
+  "selection_rule": "P5 pre-registered complexity tie-break: paired bootstrap was inconclusive, so select the smaller reranked candidate-retention depth.",
+  "ranking": [
+    {
+      "config_name": "p5_top_k_40",
+      "primary_value": 0.632964,
+      "precision_at_8": 0.878963,
+      "f1_at_8": 0.735951,
+      "citation_evidence_f1": null,
+      "answer_relevancy": null,
+      "latency_p95_ms": null,
+      "guardrail_passed": true,
+      "guardrail_note": "precision=0.878963; floor=0.867023"
+    },
+    {
+      "config_name": "p5_top_k_20",
+      "primary_value": 0.623269,
+      "precision_at_8": 0.887023,
+      "f1_at_8": 0.732115,
+      "citation_evidence_f1": null,
+      "answer_relevancy": null,
+      "latency_p95_ms": null,
+      "guardrail_passed": true,
+      "guardrail_note": "precision=0.887023; floor=0.867023"
+    },
+    {
+      "config_name": "p5_top_k_10",
+      "primary_value": 0.606648,
+      "precision_at_8": 0.900533,
+      "f1_at_8": 0.724938,
+      "citation_evidence_f1": null,
+      "answer_relevancy": null,
+      "latency_p95_ms": null,
+      "guardrail_passed": true,
+      "guardrail_note": "precision=0.900533; floor=0.867023"
+    }
+  ],
+  "bootstrap_candidate": "p5_top_k_40",
+  "bootstrap_challenger": "p5_top_k_20",
+  "winner_vs_challenger_bootstrap": {
+    "performed": true,
+    "paired_item_count": 100,
+    "samples": 10000,
+    "seed": 42,
+    "delta_mean": 0.009721,
+    "paired_delta_observed": 0.009695,
+    "delta_ci95": [
+      -0.006766,
+      0.026194
+    ],
+    "probability_delta_gt_zero": 0.8645,
+    "outcome": "inconclusive"
+  }
+}

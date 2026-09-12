@@ -1,0 +1,23 @@
+name: sequential_p5_prompt
+notes: Only prompt_template_id changes on the P4-locked final context.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P5_prompt_final
+configs:
+- name: p5_prompt_1
+  base_config_path: configs/ablation_sequential/locked_phase_4.yaml
+  overrides:
+    experiment_id: sequential_p5_prompt_1
+    name: Sequential P5 - Prompt 1 - concise baseline v1
+    prompt_template_id: tuvi_generation_v1
+- name: p5_prompt_2
+  base_config_path: configs/ablation_sequential/locked_phase_4.yaml
+  overrides:
+    experiment_id: sequential_p5_prompt_2
+    name: Sequential P5 - Prompt 2 - grounded v2
+    prompt_template_id: tuvi_generation_grounded_v2
+- name: p5_prompt_3
+  base_config_path: configs/ablation_sequential/locked_phase_4.yaml
+  overrides:
+    experiment_id: sequential_p5_prompt_3
+    name: Sequential P5 - Prompt 3 - answer-first v4
+    prompt_template_id: tuvi_generation_answer_first_v4

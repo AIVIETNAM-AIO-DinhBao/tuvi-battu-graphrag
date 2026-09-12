@@ -1,4 +1,4 @@
-"""Add the official token-overlap Recall@8/Precision@8/F1@8 to a retrieval report."""
+"""Add the official token-overlap Evidence Recall/Precision/F1 to a retrieval report."""
 
 from __future__ import annotations
 
@@ -47,9 +47,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Status: `{report['status']}`",
         f"- Threshold: `{rescore['threshold']}`",
         f"- Gold spans: `{rescore['gold_span_count']}/{rescore['expected_gold_span_count']}`",
-        "- Recall@8/Precision@8/F1@8 use source-aligned multiset token overlap.",
+        "- Evidence Recall/Evidence Precision/Evidence F1 use source-aligned multiset token overlap over the final selected context.",
         "",
-        "| Config | Recall@8 | Precision@8 | F1@8 | Hits | Relevant chunks | Retrieval p95 ms |",
+        "| Config | Evidence Recall | Evidence Precision | Evidence F1 | Hits | Relevant chunks | Retrieval p95 ms |",
         "|---|---:|---:|---:|---:|---:|---:|",
     ]
     for config in report["configs"]:
@@ -77,7 +77,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             "- A gold span is hit when a same-source chunk has overlap >= 0.25.",
             "- A corpus chunk is relevant when it satisfies that condition for at least one same-source gold span.",
             "- All annotated gold spans are included, regardless of coordinate mapping status; CHART chunks are excluded.",
-            "- F1@8 is the harmonic mean of the two micro-aggregates.",
+            "- Evidence F1 is the harmonic mean of the two micro-aggregates.",
             "",
         ]
     )
@@ -132,7 +132,7 @@ def main() -> int:
         **dict(rescored.get("metric_definitions") or {}),
         "recall_at_8": "Gold-span hit rate using same-source multiset token coverage >= 0.25; all spans included.",
         "precision_at_8": "Fraction of selected corpus chunks matching >= 0.25 of a same-source gold span's tokens.",
-        "f1_at_8": "Harmonic mean of aggregate Recall@8 and Precision@8.",
+        "f1_at_8": "Harmonic mean of aggregate Evidence Recall and Evidence Precision over the final selected context.",
     }
     source_backend = report.get("judge_backend")
     rescored["judge_backend"] = "rule-based-token-overlap-v2"

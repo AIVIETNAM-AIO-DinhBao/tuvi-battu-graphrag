@@ -1,0 +1,31 @@
+{
+  "completed_pair_count": 100,
+  "context_config": "p5_prompt_2",
+  "context_config_hash": "4b514bbe537c444b443766adeebec99e2668ec3186a24b996a106bdc12b0fb3a",
+  "failed_pair_count": 0,
+  "files": {
+    "cases": {
+      "name": "cases.jsonl",
+      "sha256": "58c065444685a3ce8a3c4d9dd4d8a3468cbbbdb32cf13e04af0349ed49355053"
+    },
+    "configs": {
+      "name": "configs.jsonl",
+      "sha256": "a86739d0ead672bc2e6bab2677cbf8829aaf2c7149ceb1ae830250dd87a4e90e"
+    },
+    "items": {
+      "name": "items.jsonl",
+      "sha256": "426744e32c3f911b4fa3f8fdef908e051eaccaeae37710a4025a5070a9016ad7"
+    }
+  },
+  "is_complete": true,
+  "planned_pair_count": 100,
+  "reranker_execution_count": 0,
+  "schema_version": "p5-final-prompt-context-v1",
+  "selected_suites": [
+    "p5_final_prompt"
+  ],
+  "source_manifest": "configs/ablation_sequential/p5_prompt.yaml",
+  "source_manifest_sha256": "06de78474f9b9c1f629f8da6ab6fd2afc638df7bffe5f6893fdaf749667b54d3",
+  "source_p4_bundle": "benchmark/tuvi_golden_dataset/sequential_ablation/results/P4_reranker_depth/max_rerank_bundle",
+  "source_p4_bundle_sha256": "4c3bdccaaa99fca5302666c2548b1b8b9beeb71ef5ef629a594905d0252c3392"
+}

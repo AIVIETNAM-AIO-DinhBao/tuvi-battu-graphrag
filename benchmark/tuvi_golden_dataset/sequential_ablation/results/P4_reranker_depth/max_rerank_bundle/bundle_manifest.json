@@ -1,0 +1,12 @@
+{
+  "builder_config": "p5_top_k_40",
+  "builder_config_hash": "a699778a97789a8b8a2bfa454a42475280bffbd630e59d4e69975c9a9eb1aec6",
+  "cases_sha256": "d2bb15a68e97a763bbf981100236a0c2e8ff82e3d75deeaefdb013115714a021",
+  "is_complete": true,
+  "item_count": 100,
+  "max_k": 40,
+  "reranker_execution_count": 100,
+  "schema_version": "p5-max-rerank-bundle-v1",
+  "source_manifest": "configs/ablation_sequential/p5_top_k.yaml",
+  "source_manifest_sha256": "b2bee54ae4e675e8d9ec12ec9e9abc80afefcf84ff3e8ae3a1deb5a42d9c957b"
+}

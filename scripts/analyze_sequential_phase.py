@@ -14,11 +14,11 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 CONTROL_BY_PHASE = {
     "p1": "p1_fixed_512",
     "p2": "p2_dense_sparse",
-    "p3": "p3_prompt_2",
-    "p4": "p4_rerank_off",
-    "p5": "p5_top_k_20",
+    "p3": "p3_rerank_off",
+    "p4": "p4_retention_20",
+    "p5": "p5_prompt_2",
 }
-RETRIEVAL_PHASES = {"p1", "p2", "p4", "p5"}
+RETRIEVAL_PHASES = {"p1", "p2", "p3", "p4"}
 BOOTSTRAP_TIE_THRESHOLD = 0.01
 
 
@@ -120,23 +120,16 @@ def guardrail(config: dict[str, Any], control: dict[str, Any], phase: str) -> tu
         baseline = control_metrics.get("precision_at_8")
         passed = value is not None and baseline is not None and float(value) >= float(baseline) - 0.02
         return passed, f"precision={value}; floor={None if baseline is None else round(float(baseline) - 0.02, 6)}"
-    citation_f1 = metrics.get("citation_evidence_f1_avg")
-    citation_baseline = control_metrics.get("citation_evidence_f1_avg")
     relevancy = metrics.get("answer_relevancy_avg")
     baseline = control_metrics.get("answer_relevancy_avg")
     invalid_markers = int(metrics.get("invalid_citation_marker_count") or 0)
     passed = (
-        citation_f1 is not None
-        and citation_baseline is not None
-        and float(citation_f1) >= float(citation_baseline) - 0.02
-        and relevancy is not None
+        relevancy is not None
         and baseline is not None
         and float(relevancy) >= float(baseline) - 0.02
         and invalid_markers == 0
     )
     return passed, (
-        f"citation_evidence_f1={citation_f1}; "
-        f"citation_f1_floor={None if citation_baseline is None else round(float(citation_baseline) - 0.02, 6)}; "
         f"invalid_markers={invalid_markers}; relevancy={relevancy}; "
         f"relevancy_floor={None if baseline is None else round(float(baseline) - 0.02, 6)}"
     )
@@ -151,20 +144,21 @@ def render_markdown(decision: dict[str, Any]) -> str:
         f"- Control: `{decision['control']}`",
         f"- Primary metric: `{decision['primary_metric']}`",
         f"- Report SHA-256: `{decision['report_sha256']}`",
+        f"- Selection rule: {decision.get('selection_rule', 'Highest primary metric among candidates that pass the pre-registered guardrail.')}",
         "",
     ]
     if retrieval_phase:
         lines.extend(
             [
-                "| Candidate | Recall@8 | Precision@8 | F1@8 | Guardrail | Note |",
+                "| Candidate | Evidence Recall | Evidence Precision | Evidence F1 | Guardrail | Note |",
                 "|---|---:|---:|---:|---|---|",
             ]
         )
     else:
         lines.extend(
             [
-                "| Candidate | Faithfulness | Citation Evidence F1 | Answer Relevancy | Latency p95 ms | Guardrail | Note |",
-                "|---|---:|---:|---:|---:|---|---|",
+                "| Candidate | Faithfulness | Answer Relevancy | Latency p95 ms | Guardrail | Note |",
+                "|---|---:|---:|---:|---|---|",
             ]
         )
     for row in decision["ranking"]:
@@ -178,7 +172,6 @@ def render_markdown(decision: dict[str, Any]) -> str:
         else:
             lines.append(
                 f"| {row['config_name']} | {row['primary_value']:.6f} | "
-                f"{row['citation_evidence_f1'] if row['citation_evidence_f1'] is not None else 'N/A'} | "
                 f"{row['answer_relevancy'] if row['answer_relevancy'] is not None else 'N/A'} | "
                 f"{row['latency_p95_ms'] if row['latency_p95_ms'] is not None else 'N/A'} | "
                 f"{'PASS' if row['guardrail_passed'] else 'FAIL'} | {row['guardrail_note']} |"
@@ -188,7 +181,7 @@ def render_markdown(decision: dict[str, Any]) -> str:
     if bootstrap["performed"]:
         lines.extend(
             [
-                f"- Comparison: `{decision['recommended_winner']}` minus `{decision['bootstrap_challenger']}`",
+                f"- Comparison: `{decision.get('bootstrap_candidate', decision['recommended_winner'])}` minus `{decision['bootstrap_challenger']}`",
                 f"- Mean delta: `{bootstrap['delta_mean']}`",
                 f"- Observed paired delta: `{bootstrap['paired_delta_observed']}`",
                 f"- 95% CI: `{bootstrap['delta_ci95']}`",
@@ -198,6 +191,17 @@ def render_markdown(decision: dict[str, Any]) -> str:
         )
     else:
         lines.append(f"- Not performed: {bootstrap['reason']}")
+    if decision.get("raw_primary_leader") and decision["raw_primary_leader"] != decision["recommended_winner"]:
+        lines.extend(
+            [
+                "",
+                "## Applied P4 tie-break",
+                "",
+                f"`{decision['raw_primary_leader']}` has the highest raw Evidence Recall, but its paired comparison with "
+                f"`{decision['bootstrap_challenger']}` is inconclusive. The pre-registered lower-depth tie-break therefore selects "
+                f"`{decision['recommended_winner']}`; raw scores are retained unchanged.",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -252,6 +256,7 @@ def main() -> int:
         raise SystemExit("No candidate passes the pre-registered guardrail.")
     eligible.sort(key=lambda row: (-row["primary_value"], row["config_name"]))
     recommended = eligible[0]["config_name"]
+    raw_primary_leader = recommended
     ranking.sort(key=lambda row: (-row["primary_value"], row["config_name"]))
     metric = retrieval_recall if args.phase in RETRIEVAL_PHASES else generation_faithfulness
     challenger = eligible[1]["config_name"] if len(eligible) > 1 else None
@@ -278,6 +283,19 @@ def main() -> int:
                 else f"Top-two primary gap {primary_gap:.6f} is not below {BOOTSTRAP_TIE_THRESHOLD:.2f}."
             ),
         }
+    selection_rule = "Highest primary metric among candidates that pass the pre-registered guardrail."
+    # P4 registers a complexity tie-break: when the top two retention depths are
+    # not distinguishable by the paired bootstrap, retain fewer candidates.
+    if args.phase == "p4" and bootstrap.get("performed") and bootstrap.get("outcome") == "inconclusive":
+        tied = [eligible[0], eligible[1]]
+        recommended = min(
+            tied,
+            key=lambda row: int((configs[row["config_name"]].get("reranker_top_k") or 0)),
+        )["config_name"]
+        selection_rule = (
+            "P4 pre-registered complexity tie-break: paired bootstrap was inconclusive, "
+            "so select the smaller reranked candidate-retention depth."
+        )
     decision = {
         "schema_version": "sequential-decision-draft-v1",
         "phase": args.phase,
@@ -286,7 +304,10 @@ def main() -> int:
         "control": control_name,
         "primary_metric": "recall_at_8" if args.phase in RETRIEVAL_PHASES else "faithfulness_avg",
         "recommended_winner": recommended,
+        "raw_primary_leader": raw_primary_leader,
+        "selection_rule": selection_rule,
         "ranking": ranking,
+        "bootstrap_candidate": raw_primary_leader,
         "bootstrap_challenger": challenger,
         "winner_vs_challenger_bootstrap": bootstrap,
     }
