@@ -1,0 +1,9 @@
+{
+  "bundle_manifest_sha256": "5c49eb6f3c0ab2e8e6723fdda1f15b9ef285c0e42f73fa575be4bf2a20a4e55f",
+  "control_used_to_build_retrieval": "p3_prompt_2",
+  "prompt_candidate_count": 3,
+  "protocol": "p3-frozen-retrieval-v1",
+  "retrieval_execution_count": 100,
+  "source_manifest": "configs/ablation_sequential/p3_prompt.yaml",
+  "source_manifest_sha256": "697737cc26ae45603fddecb1c322dfa4897f51119a4427e14d6067be8b8be6eb"
+}

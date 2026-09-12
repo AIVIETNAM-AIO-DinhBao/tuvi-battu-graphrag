@@ -1,0 +1,11 @@
+{
+  "config_hash": "0f0eb4b7d3f788ee5c8cf87c93af3c057a017e4422f4b6d879d467cb0dd8b58c",
+  "locked_at": "2026-09-12T03:48:13.010167+00:00",
+  "locked_config": "D:/UNI_STUDY/Year3/Semester3/TextMining/tuvi-battu-graphrag/configs/ablation_sequential/locked_phase_3.yaml",
+  "locked_config_sha256": "56b0be73911f617237fd4ded0eb054774a048fd6fe3f97127777f4851bb4b654",
+  "manifest": "D:/UNI_STUDY/Year3/Semester3/TextMining/tuvi-battu-graphrag/configs/ablation_sequential/p3_prompt.yaml",
+  "manifest_sha256": "697737cc26ae45603fddecb1c322dfa4897f51119a4427e14d6067be8b8be6eb",
+  "report": "D:/UNI_STUDY/Year3/Semester3/TextMining/tuvi-battu-graphrag/benchmark/tuvi_golden_dataset/sequential_ablation/results/P3_prompt/evaluation_report.json",
+  "report_sha256": "6f70bf6aafd9824f4b47e6aaec557bb4203aed7f5323aac756534fc5a2b3d904",
+  "winner": "p3_prompt_1"
+}

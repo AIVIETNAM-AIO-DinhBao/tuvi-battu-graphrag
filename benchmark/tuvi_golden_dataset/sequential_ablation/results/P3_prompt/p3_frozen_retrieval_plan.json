@@ -1,0 +1,23 @@
+{
+  "default_suites": [
+    "p3_frozen_retrieval"
+  ],
+  "models": {},
+  "schema_version": "p3-frozen-retrieval-plan-v1",
+  "suites": {
+    "p3_frozen_retrieval": {
+      "description": "One P2-locked retrieval/context state shared by every P3 prompt arm.",
+      "expected_config_count": 1,
+      "expected_item_count": 100,
+      "expected_retrieval_pair_count": 100,
+      "manifest_selections": [
+        {
+          "include_configs": [
+            "p3_prompt_2"
+          ],
+          "path": "configs/ablation_sequential/p3_prompt.yaml"
+        }
+      ]
+    }
+  }
+}

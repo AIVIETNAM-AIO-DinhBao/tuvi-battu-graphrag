@@ -143,6 +143,7 @@ def guardrail(config: dict[str, Any], control: dict[str, Any], phase: str) -> tu
 
 
 def render_markdown(decision: dict[str, Any]) -> str:
+    retrieval_phase = decision["phase"] in RETRIEVAL_PHASES
     lines = [
         f"# {decision['phase'].upper()} decision draft",
         "",
@@ -151,16 +152,37 @@ def render_markdown(decision: dict[str, Any]) -> str:
         f"- Primary metric: `{decision['primary_metric']}`",
         f"- Report SHA-256: `{decision['report_sha256']}`",
         "",
-        "| Candidate | Primary | Precision@8 | F1@8 | Guardrail | Note |",
-        "|---|---:|---:|---:|---|---|",
     ]
-    for row in decision["ranking"]:
-        lines.append(
-            f"| {row['config_name']} | {row['primary_value']:.6f} | "
-            f"{row['precision_at_8'] if row['precision_at_8'] is not None else 'N/A'} | "
-            f"{row['f1_at_8'] if row['f1_at_8'] is not None else 'N/A'} | "
-            f"{'PASS' if row['guardrail_passed'] else 'FAIL'} | {row['guardrail_note']} |"
+    if retrieval_phase:
+        lines.extend(
+            [
+                "| Candidate | Recall@8 | Precision@8 | F1@8 | Guardrail | Note |",
+                "|---|---:|---:|---:|---|---|",
+            ]
         )
+    else:
+        lines.extend(
+            [
+                "| Candidate | Faithfulness | Citation Evidence F1 | Answer Relevancy | Latency p95 ms | Guardrail | Note |",
+                "|---|---:|---:|---:|---:|---|---|",
+            ]
+        )
+    for row in decision["ranking"]:
+        if retrieval_phase:
+            lines.append(
+                f"| {row['config_name']} | {row['primary_value']:.6f} | "
+                f"{row['precision_at_8'] if row['precision_at_8'] is not None else 'N/A'} | "
+                f"{row['f1_at_8'] if row['f1_at_8'] is not None else 'N/A'} | "
+                f"{'PASS' if row['guardrail_passed'] else 'FAIL'} | {row['guardrail_note']} |"
+            )
+        else:
+            lines.append(
+                f"| {row['config_name']} | {row['primary_value']:.6f} | "
+                f"{row['citation_evidence_f1'] if row['citation_evidence_f1'] is not None else 'N/A'} | "
+                f"{row['answer_relevancy'] if row['answer_relevancy'] is not None else 'N/A'} | "
+                f"{row['latency_p95_ms'] if row['latency_p95_ms'] is not None else 'N/A'} | "
+                f"{'PASS' if row['guardrail_passed'] else 'FAIL'} | {row['guardrail_note']} |"
+            )
     bootstrap = decision["winner_vs_challenger_bootstrap"]
     lines.extend(["", "## Paired bootstrap", ""])
     if bootstrap["performed"]:
@@ -218,6 +240,9 @@ def main() -> int:
                 "primary_value": primary_value(config, args.phase),
                 "precision_at_8": (config.get("metrics") or {}).get("precision_at_8"),
                 "f1_at_8": (config.get("metrics") or {}).get("f1_at_8"),
+                "citation_evidence_f1": (config.get("metrics") or {}).get("citation_evidence_f1_avg"),
+                "answer_relevancy": (config.get("metrics") or {}).get("answer_relevancy_avg"),
+                "latency_p95_ms": (config.get("metrics") or {}).get("p95_latency_ms"),
                 "guardrail_passed": passed,
                 "guardrail_note": note,
             }

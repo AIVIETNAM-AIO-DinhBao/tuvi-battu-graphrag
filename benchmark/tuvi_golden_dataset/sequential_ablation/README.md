@@ -13,6 +13,8 @@
 - P1 đã hoàn tất 300/300 pairs, zero failure và khóa `p1_fixed_512`.
 - P2 đã hoàn tất 700/700 pairs, zero failure và khóa `p2_graph_dense_sparse`
   (Graph+Dense+Sparse).
+- P3 đã hoàn tất frozen retrieval 100/100 và 300/300 generation + blind-judge
+  pairs, zero failure; khóa `p3_prompt_1` (template `tuvi_generation_v1`).
 - Không có phase smoke. Official command luôn chạy full-100; unit test và kiểm tra hash tĩnh vẫn được giữ.
 
 ## Bảy metric headline
@@ -201,6 +203,11 @@ Kết quả P1: Recall@8 `0.558172`, Precision@8 `0.846626`, F1@8 `0.672784`.
 Kết quả P2: Graph+Dense+Sparse được khóa với Recall@8 `0.581717`, Precision@8
 `0.854400`, F1@8 `0.692171`. Graph+Sparse có Recall@8 cao hơn (`0.584488`) nhưng
 bị loại vì Precision@8 `0.803543` thấp hơn guardrail `0.826626`.
+
+Kết quả P3: Prompt 1 (v1) được khóa với Faithfulness `0.9120`, Answer Relevancy
+`0.871`, Citation Evidence F1 `0.0296`, p95 generation `3376.01 ms`; Prompt 2
+(grounded-v2 control) đạt `0.9000` Faithfulness. P4 phải kế thừa
+`configs/ablation_sequential/locked_phase_3.yaml`.
 
 ## 3. Sinh và chia phase P2–P5
 

@@ -6,9 +6,10 @@ from types import SimpleNamespace
 from app.rag.ablation import load_ablation_manifest
 from scripts.prepare_p6_kaggle import notebook_config
 from scripts.prepare_sequential_phase import TWO_PERSON_ASSIGNMENTS, phase_specs
-from scripts.analyze_sequential_phase import paired_bootstrap, retrieval_recall
+from scripts.analyze_sequential_phase import paired_bootstrap, render_markdown, retrieval_recall
 from scripts.create_ablation_ticket import command_for
 from scripts.check_sequential_preflight import config_isolation
+from scripts.merge_sequential_shards import render_generation_markdown
 from scripts import run_retrieval_eval
 
 
@@ -134,6 +135,73 @@ def test_paired_bootstrap_uses_the_same_full_100_items() -> None:
     assert result["paired_item_count"] == 100
     assert result["delta_ci95"][0] > 0
     assert result["outcome"] == "better"
+
+
+def test_p3_decision_markdown_uses_generation_metrics() -> None:
+    markdown = render_markdown(
+        {
+            "phase": "p3",
+            "recommended_winner": "p3_prompt_1",
+            "control": "p3_prompt_2",
+            "primary_metric": "faithfulness_avg",
+            "report_sha256": "test",
+            "ranking": [
+                {
+                    "config_name": "p3_prompt_1",
+                    "primary_value": 0.9,
+                    "citation_evidence_f1": 0.4,
+                    "answer_relevancy": 0.8,
+                    "latency_p95_ms": 123.0,
+                    "guardrail_passed": True,
+                    "guardrail_note": "ok",
+                }
+            ],
+            "bootstrap_challenger": "p3_prompt_2",
+            "winner_vs_challenger_bootstrap": {
+                "performed": False,
+                "reason": "gap",
+            },
+        }
+    )
+
+    assert "Citation Evidence F1" in markdown
+    assert "Answer Relevancy" in markdown
+    assert "Latency p95 ms" in markdown
+    assert "Precision@8" not in markdown
+
+
+def test_merged_generation_report_uses_generation_metrics() -> None:
+    markdown = render_generation_markdown(
+        {
+            "manifest_name": "sequential_p3_prompt",
+            "status": "completed",
+            "dataset_item_count": 100,
+            "judge_backend": "gemini",
+            "judge_protocol": "blind-v2",
+            "execution_summary": {
+                "expected_pair_count": 300,
+                "completed_pair_count": 300,
+                "failed_pair_count": 0,
+            },
+            "configs": [
+                {
+                    "config_name": "p3_prompt_1",
+                    "metrics": {
+                        "faithfulness_avg": 0.9,
+                        "answer_relevancy_avg": 0.8,
+                        "citation_evidence_f1_avg": 0.03,
+                        "p95_latency_ms": 123.0,
+                        "invalid_citation_marker_count": 0,
+                    },
+                }
+            ],
+        }
+    )
+
+    assert "Sequential generation report" in markdown
+    assert "Citation Evidence F1" in markdown
+    assert "Latency p95 ms" in markdown
+    assert "W6" not in markdown
 
 
 def test_human_ticket_command_is_full_run_and_execution_policy_safe() -> None:

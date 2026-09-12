@@ -16,7 +16,6 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app.rag.ablation import load_ablation_manifest  # noqa: E402
 from app.rag.config import config_hash  # noqa: E402
-from app.rag.evaluation import write_evaluation_reports  # noqa: E402
 from app.rag.evaluation_checkpoint import atomic_write_json, sha256_file  # noqa: E402
 
 from run_retrieval_eval import RETRIEVAL_BACKEND, render_markdown  # noqa: E402
@@ -24,6 +23,40 @@ from run_retrieval_eval import RETRIEVAL_BACKEND, render_markdown  # noqa: E402
 
 def resolve(path: Path) -> Path:
     return path if path.is_absolute() else ROOT_DIR / path
+
+
+def render_generation_markdown(report: dict) -> str:
+    """Render a compact, phase-neutral report for frozen generation phases."""
+
+    execution = report.get("execution_summary") or {}
+    lines = [
+        f"# Sequential generation report — {report.get('manifest_name')}",
+        "",
+        f"- Status: `{report.get('status')}`",
+        f"- Dataset items: `{report.get('dataset_item_count')}`",
+        f"- Judge backend/protocol: `{report.get('judge_backend')}` / `{report.get('judge_protocol')}`",
+        f"- Expected/completed/failed pairs: `{execution.get('expected_pair_count')}` / "
+        f"`{execution.get('completed_pair_count')}` / `{execution.get('failed_pair_count')}`",
+        "",
+        "| Config | Faithfulness | Answer Relevancy | Citation Evidence F1 | Latency p95 ms | Invalid markers |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
+    for config in report.get("configs") or []:
+        metrics = config.get("metrics") or {}
+        lines.append(
+            f"| {config.get('config_name')} | {metrics.get('faithfulness_avg')} | "
+            f"{metrics.get('answer_relevancy_avg')} | {metrics.get('citation_evidence_f1_avg')} | "
+            f"{metrics.get('p95_latency_ms')} | {metrics.get('invalid_citation_marker_count')} |"
+        )
+    lines.extend(
+        [
+            "",
+            "Faithfulness and Answer Relevancy are scored by the registered blind judge. "
+            "Citation Evidence F1 is a separate deterministic provenance-overlap audit.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,8 +165,8 @@ def main() -> int:
         markdown_path = output_dir / "evaluation_report.md"
         markdown_path.write_text(render_markdown(merged), encoding="utf-8", newline="\n")
     else:
-        write_evaluation_reports(merged, output_dir)
         markdown_path = output_dir / "evaluation_report.md"
+        markdown_path.write_text(render_generation_markdown(merged), encoding="utf-8", newline="\n")
     atomic_write_json(
         output_dir / "artifact_manifest_sha256.json",
         {
