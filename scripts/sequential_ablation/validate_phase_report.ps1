@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)][string]$ReportPath,
     [Parameter(Mandatory = $true)][int]$ExpectedConfigs,
     [Parameter(Mandatory = $true)][int]$ExpectedPairs,
-    [Parameter(Mandatory = $true)][ValidateSet('rule-based-gold-evidence-v1', 'gemini')][string]$Backend
+    [Parameter(Mandatory = $true)][ValidateSet('rule-based-gold-evidence-v1', 'rule-based-token-overlap-v2', 'gemini')][string]$Backend
 )
 
 $ErrorActionPreference = 'Stop'

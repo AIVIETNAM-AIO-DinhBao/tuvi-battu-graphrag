@@ -6,23 +6,40 @@
 
 - P0 mapper chạy trên release 100 câu và clean corpus runtime.
 - Có 722 gold spans: 621 exact anchors, 101 annotation không map được; mapping coverage `0.860111`.
-- 90/91 câu có gold corpus span còn ít nhất một exact anchor. `TVQA-061` không có anchor kiểm chứng được nên không vào trung bình rule-based.
-- Không fuzzy-match 101 span lỗi/paraphrase. Chúng được giữ trong file để audit nhưng không vào mẫu số precision/recall.
-- P1 manifest đã sẵn sàng tại `configs/ablation_sequential/p1_chunking.yaml`.
+- 90/91 câu có gold corpus span còn ít nhất một exact anchor. Exact anchors chỉ
+  dùng audit provenance; metric token-overlap vẫn chấm `TVQA-061`.
+- Recall@8 dùng đủ 722/722 span, kể cả 101 span `unmapped`, bằng cách so trực tiếp
+  gold quote với final context cùng source family.
+- P1 đã hoàn tất 300/300 pairs, zero failure và khóa `p1_fixed_512`.
 - Không có phase smoke. Official command luôn chạy full-100; unit test và kiểm tra hash tĩnh vẫn được giữ.
 
-## Sáu metric headline
+## Bảy metric headline
 
 | Metric | Dùng ở đâu |
 |---|---|
-| Gold-span Recall@8 | Primary của P1/P2/P4/P5. |
-| Gold-chunk Precision@8 | Guardrail của P1/P2/P4/P5. |
+| Recall@8 | Primary của P1/P2/P4/P5; source-aligned token overlap, `τ=0.25`. |
+| Precision@8 | Guardrail của P1/P2/P4/P5; cùng relevance rule với Recall@8. |
+| F1@8 | Cân bằng aggregate Recall@8 và Precision@8. |
 | Faithfulness | Primary của P3/P6. |
 | Answer Relevancy | Guardrail/secondary của P3/P6. |
 | Citation Evidence F1 | Guardrail của P3/P6; provenance overlap trên các chunk thực sự được cite. |
 | Latency p95 | Secondary/tie-break; chỉ so trực tiếp khi chạy cùng máy. |
 
 Context Recall của AI judge không thuộc Judge v2 và không vào bảng chính. Metric kỹ thuật khác vẫn được lưu trong JSON để truy lỗi nhưng không xuất hiện trong bảng quyết định. Completeness, zero fallback và zero invalid citation marker là gate hợp lệ, không phải metric.
+
+Định nghĩa retrieval: casefold, bỏ dấu Unicode/dấu câu, tách `\w+`, giữ tần
+suất token và chỉ so cùng source family. Với span `g`, chunk `c`:
+
+```text
+overlap(g,c) = Σ_t min(count_g(t), count_c(t)) / |tokens(g)|
+Recall@8     = số span có max overlap >= 0.25 / tổng 722 span
+Precision@8  = số chunk relevant / tổng corpus context chunk
+F1@8         = 2 × Recall@8 × Precision@8 / (Recall@8 + Precision@8)
+```
+
+CHART bị loại khỏi mẫu số Precision; item không có gold span bị loại khỏi ba
+metric retrieval. Aggregate là micro-average. Không loại span theo
+`mapping_status`.
 
 ## Chạy ở đâu?
 
@@ -145,28 +162,39 @@ Validate sau khi đủ 300 pairs:
 
 A chọn Recall@8 cao nhất trong candidate qua precision guardrail. Nếu hai candidate chênh dưới 0.01, chạy paired bootstrap; chỉ khi vẫn hòa mới replay hai candidate trên cùng máy để so latency.
 
+Với P1 đã chạy bằng scorer provenance v1, chấm hậu xử lý context đã lưu mà không
+chạy lại retrieval:
+
+```powershell
+.\.venv\Scripts\python.exe .\scripts\rescore_token_overlap_report.py `
+  --report benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\evaluation_report.json `
+  --dataset benchmark\tuvi_golden_dataset\release\tuviqa_v1_release.jsonl `
+  --output benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\evaluation_report_token_overlap.json `
+  --threshold 0.25 --expected-span-count 722
+```
+
 Tạo decision draft và paired bootstrap cố định seed trước khi khóa:
 
 ```powershell
 .\.venv\Scripts\python.exe .\scripts\analyze_sequential_phase.py `
   --phase p1 `
-  --report benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\evaluation_report.json `
-  --output benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\P1_DECISION_DRAFT.json
+  --report benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\evaluation_report_token_overlap.json `
+  --output benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\P1_DECISION.json
 ```
 
 Với P2–P5 dùng cùng lệnh và thay `--phase`, report, output tương ứng. Script chỉ đề xuất; A vẫn phải xem failure/hash/factor isolation rồi mới lock.
 
-Khóa winner, ví dụ nếu `p1_parent_child` thắng:
+P1 đã khóa winner `p1_fixed_512`:
 
 ```powershell
 .\.venv\Scripts\python.exe .\scripts\lock_sequential_phase.py `
   --manifest configs\ablation_sequential\p1_chunking.yaml `
-  --report benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\evaluation_report.json `
-  --winner p1_parent_child `
+  --report benchmark\tuvi_golden_dataset\sequential_ablation\results\P1_chunking\evaluation_report_token_overlap.json `
+  --winner p1_fixed_512 `
   --output configs\ablation_sequential\locked_phase_1.yaml
 ```
 
-Không copy ví dụ winner nếu report chọn candidate khác.
+Kết quả P1: Recall@8 `0.558172`, Precision@8 `0.846626`, F1@8 `0.672784`.
 
 ## 3. Sinh và chia phase P2–P5
 
@@ -371,7 +399,7 @@ không thể bảo đảm, nên vẫn audit thủ công 20 item đã ẩn nhãn 
 - Đủ 100 item cho mỗi candidate, không duplicate/missing ID.
 - `failed_pair_count=0`, không retrieval/reranker fallback.
 - Config/dataset/anchor/code hashes đúng ticket.
-- Retrieval phase: chọn Gold-span Recall@8 theo guardrail đã đăng ký.
+- Retrieval phase: chọn Recall@8 token-overlap theo Precision@8 guardrail đã đăng ký và báo F1@8.
 - P3/P6: chọn Faithfulness; Citation Evidence F1 và Answer Relevancy không được giảm
   quá 0.02 so với control; invalid citation marker phải bằng 0.
 - Decision draft luôn báo paired delta, bootstrap CI95 (10.000 mẫu, seed 42) và nhãn

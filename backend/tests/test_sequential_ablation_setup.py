@@ -100,7 +100,7 @@ def test_paired_bootstrap_uses_the_same_full_100_items() -> None:
         {
             "item_id": f"TVQA-{index:03d}",
             "status": "completed",
-            "gold_span_details": [{"covered": index % 2 == 0}],
+            "token_overlap_span_details": [{"hit": index % 2 == 0}],
         }
         for index in range(100)
     ]
@@ -108,7 +108,7 @@ def test_paired_bootstrap_uses_the_same_full_100_items() -> None:
         {
             "item_id": f"TVQA-{index:03d}",
             "status": "completed",
-            "gold_span_details": [{"covered": True}],
+            "token_overlap_span_details": [{"hit": True}],
         }
         for index in range(100)
     ]
@@ -162,8 +162,9 @@ def test_retrieval_markdown_keeps_only_compact_headline_metrics() -> None:
                     "config_name": "candidate",
                     "status": "completed",
                     "metrics": {
-                        "gold_span_recall_at_8": 0.8,
-                        "gold_chunk_precision_at_8": 0.7,
+                        "recall_at_8": 0.8,
+                        "precision_at_8": 0.7,
+                        "f1_at_8": 0.746667,
                         "retrieval_p95_ms": 123.0,
                         "failed_count": 0,
                         "character_recall": 0.9,
@@ -174,8 +175,9 @@ def test_retrieval_markdown_keeps_only_compact_headline_metrics() -> None:
         }
     )
 
-    assert "Gold-span Recall@8" in markdown
-    assert "Gold-chunk Precision@8" in markdown
+    assert "Recall@8" in markdown
+    assert "Precision@8" in markdown
+    assert "F1@8" in markdown
     assert "Retrieval p95 ms" in markdown
     assert "Char R" not in markdown
     assert "Fused R" not in markdown

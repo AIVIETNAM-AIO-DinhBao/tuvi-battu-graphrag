@@ -23,6 +23,7 @@ from app.rag.config import config_hash  # noqa: E402
 from app.rag.evaluation_checkpoint import atomic_write_json, sha256_file  # noqa: E402
 from app.rag.gold_evidence import aggregate_gold_evidence, load_gold_span_anchors, score_gold_evidence  # noqa: E402
 from app.rag.nodes import build_node_map  # noqa: E402
+from app.rag.token_overlap import aggregate_token_overlap, score_token_overlap  # noqa: E402
 from local_tools.common import load_jsonl_map  # noqa: E402
 
 
@@ -87,7 +88,9 @@ def main() -> int:
             state = nodes["context_assembly"](state)
             state = nodes["retrieval_diagnostics"](state)
             replay_ms = round((time.perf_counter() - replay_started) * 1000, 2)
-            scores = score_gold_evidence(list(state.get("context_chunks") or []), anchors.get(item.id, []))
+            context_chunks = list(state.get("context_chunks") or [])
+            scores = score_gold_evidence(context_chunks, anchors.get(item.id, []))
+            token_scores = score_token_overlap(context_chunks, list(item.gold_context_spans))
             if anchors.get(item.id) and scores["mapped_corpus_chunk_count"] != scores["corpus_chunk_count"]:
                 raise RuntimeError(f"{spec.name}/{item.id}: missing provenance after replay")
             results.append(
@@ -96,6 +99,13 @@ def main() -> int:
                     "item_id": item.id,
                     "chart_only": not bool(item.gold_context_spans),
                     "rule_metric_eligible": bool(anchors.get(item.id)),
+                    "gold_annotation_span_count": len(item.gold_context_spans),
+                    "token_overlap_threshold": token_scores["token_overlap_threshold"],
+                    "recall_at_8": token_scores["recall_at_8"],
+                    "precision_at_8": token_scores["precision_at_8"],
+                    "f1_at_8": token_scores["f1_at_8"],
+                    "token_overlap_span_details": token_scores["token_overlap_span_details"],
+                    "token_overlap_chunk_details": token_scores["token_overlap_chunk_details"],
                     **{key: value for key, value in scores.items() if key not in {"gold_span_details", "chunk_details"}},
                     "gold_span_details": scores["gold_span_details"],
                     "chunk_details": scores["chunk_details"],
@@ -108,6 +118,7 @@ def main() -> int:
                 }
             )
         metrics = aggregate_gold_evidence(results)
+        metrics.update(aggregate_token_overlap(results))
         latencies = [float(row["retrieval_latency_ms"]) for row in results]
         metrics["retrieval_p50_ms"] = percentile(latencies, 0.50)
         metrics["retrieval_p95_ms"] = percentile(latencies, 0.95)
@@ -131,7 +142,15 @@ def main() -> int:
         "dataset_path": str(manifest.dataset_path),
         "dataset_item_count": len(items),
         "config_count": len(config_reports),
-        "judge_backend": "rule-based-gold-evidence-v1",
+        "judge_backend": "rule-based-token-overlap-v2",
+        "metric_definitions": {
+            "normalization": "Unicode NFD + casefold + remove combining marks/punctuation + Unicode word tokens",
+            "matching": "same source family and gold-token multiset coverage >= 0.25",
+            "recall_at_8": "hit gold spans / all gold spans",
+            "precision_at_8": "relevant corpus context chunks / all corpus context chunks",
+            "f1_at_8": "harmonic mean of aggregate recall_at_8 and precision_at_8",
+            "gold_span_policy": "include every raw gold span regardless of anchor mapping status",
+        },
         "generation_executed": False,
         "reranker_execution_mode": "one-max-depth-build-then-deterministic-truncation",
         "bundle_manifest_sha256": sha256_file(bundle_dir / "bundle_manifest.json"),
@@ -155,14 +174,15 @@ def main() -> int:
         f"- Frozen max-depth reranker executions: `{bundle_meta['reranker_execution_count']}`",
         f"- Bundle SHA-256: `{report['bundle_manifest_sha256']}`",
         "",
-        "| Config | Recall@8 | Precision@8 | Retrieval p95 ms | Replays |",
-        "|---|---:|---:|---:|---:|",
+        "| Config | Recall@8 | Precision@8 | F1@8 | Retrieval p95 ms | Replays |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
     for row in config_reports:
         metric = row["metrics"]
         lines.append(
-            f"| {row['config_name']} | {metric['gold_span_recall_at_8']} | "
-            f"{metric['gold_chunk_precision_at_8']} | {metric['retrieval_p95_ms']} | {metric['replay_count']} |"
+            f"| {row['config_name']} | {metric['recall_at_8']} | "
+            f"{metric['precision_at_8']} | {metric['f1_at_8']} | "
+            f"{metric['retrieval_p95_ms']} | {metric['replay_count']} |"
         )
     markdown_path = output_dir / "evaluation_report.md"
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

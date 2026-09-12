@@ -19,6 +19,7 @@ CONTROL_BY_PHASE = {
     "p5": "p5_top_k_20",
 }
 RETRIEVAL_PHASES = {"p1", "p2", "p4", "p5"}
+BOOTSTRAP_TIE_THRESHOLD = 0.01
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,10 +48,10 @@ def completed_items(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def retrieval_recall(items: list[dict[str, Any]]) -> float:
-    details = [detail for item in items for detail in item.get("gold_span_details") or []]
+    details = [detail for item in items for detail in item.get("token_overlap_span_details") or []]
     if not details:
-        raise ValueError("No eligible gold-span details in bootstrap sample.")
-    return sum(bool(detail.get("covered")) for detail in details) / len(details)
+        raise ValueError("No token-overlap gold-span details in bootstrap sample.")
+    return sum(bool(detail.get("hit")) for detail in details) / len(details)
 
 
 def generation_faithfulness(items: list[dict[str, Any]]) -> float:
@@ -104,7 +105,7 @@ def paired_bootstrap(
 
 def primary_value(config: dict[str, Any], phase: str) -> float:
     metrics = config.get("metrics") or {}
-    key = "gold_span_recall_at_8" if phase in RETRIEVAL_PHASES else "faithfulness_avg"
+    key = "recall_at_8" if phase in RETRIEVAL_PHASES else "faithfulness_avg"
     value = metrics.get(key)
     if value is None:
         raise ValueError(f"{config.get('config_name')} is missing {key}.")
@@ -115,8 +116,8 @@ def guardrail(config: dict[str, Any], control: dict[str, Any], phase: str) -> tu
     metrics = config.get("metrics") or {}
     control_metrics = control.get("metrics") or {}
     if phase in RETRIEVAL_PHASES:
-        value = metrics.get("gold_chunk_precision_at_8")
-        baseline = control_metrics.get("gold_chunk_precision_at_8")
+        value = metrics.get("precision_at_8")
+        baseline = control_metrics.get("precision_at_8")
         passed = value is not None and baseline is not None and float(value) >= float(baseline) - 0.02
         return passed, f"precision={value}; floor={None if baseline is None else round(float(baseline) - 0.02, 6)}"
     citation_f1 = metrics.get("citation_evidence_f1_avg")
@@ -150,25 +151,33 @@ def render_markdown(decision: dict[str, Any]) -> str:
         f"- Primary metric: `{decision['primary_metric']}`",
         f"- Report SHA-256: `{decision['report_sha256']}`",
         "",
-        "| Candidate | Primary | Guardrail | Note |",
-        "|---|---:|---|---|",
+        "| Candidate | Primary | Precision@8 | F1@8 | Guardrail | Note |",
+        "|---|---:|---:|---:|---|---|",
     ]
     for row in decision["ranking"]:
         lines.append(
             f"| {row['config_name']} | {row['primary_value']:.6f} | "
+            f"{row['precision_at_8'] if row['precision_at_8'] is not None else 'N/A'} | "
+            f"{row['f1_at_8'] if row['f1_at_8'] is not None else 'N/A'} | "
             f"{'PASS' if row['guardrail_passed'] else 'FAIL'} | {row['guardrail_note']} |"
         )
-    bootstrap = decision["winner_vs_control_bootstrap"]
+    bootstrap = decision["winner_vs_challenger_bootstrap"]
+    lines.extend(["", "## Paired bootstrap", ""])
+    if bootstrap["performed"]:
+        lines.extend(
+            [
+                f"- Comparison: `{decision['recommended_winner']}` minus `{decision['bootstrap_challenger']}`",
+                f"- Mean delta: `{bootstrap['delta_mean']}`",
+                f"- Observed paired delta: `{bootstrap['paired_delta_observed']}`",
+                f"- 95% CI: `{bootstrap['delta_ci95']}`",
+                f"- P(delta > 0): `{bootstrap['probability_delta_gt_zero']}`",
+                f"- Outcome: **{bootstrap['outcome']}**",
+            ]
+        )
+    else:
+        lines.append(f"- Not performed: {bootstrap['reason']}")
     lines.extend(
         [
-            "",
-            "## Paired bootstrap: recommended winner minus control",
-            "",
-            f"- Mean delta: `{bootstrap['delta_mean']}`",
-            f"- Observed paired delta: `{bootstrap['paired_delta_observed']}`",
-            f"- 95% CI: `{bootstrap['delta_ci95']}`",
-            f"- P(delta > 0): `{bootstrap['probability_delta_gt_zero']}`",
-            f"- Outcome: **{bootstrap['outcome']}**",
             "",
             "This file is a deterministic draft. A must review failures, hashes and factor isolation before locking the winner.",
             "",
@@ -207,6 +216,8 @@ def main() -> int:
             {
                 "config_name": name,
                 "primary_value": primary_value(config, args.phase),
+                "precision_at_8": (config.get("metrics") or {}).get("precision_at_8"),
+                "f1_at_8": (config.get("metrics") or {}).get("f1_at_8"),
                 "guardrail_passed": passed,
                 "guardrail_note": note,
             }
@@ -218,23 +229,41 @@ def main() -> int:
     recommended = eligible[0]["config_name"]
     ranking.sort(key=lambda row: (-row["primary_value"], row["config_name"]))
     metric = retrieval_recall if args.phase in RETRIEVAL_PHASES else generation_faithfulness
-    bootstrap = paired_bootstrap(
-        configs[recommended],
-        control,
-        metric=metric,
-        samples=args.bootstrap_samples,
-        seed=args.seed,
+    challenger = eligible[1]["config_name"] if len(eligible) > 1 else None
+    primary_gap = (
+        eligible[0]["primary_value"] - eligible[1]["primary_value"] if challenger is not None else None
     )
+    if challenger is not None and primary_gap is not None and primary_gap < BOOTSTRAP_TIE_THRESHOLD:
+        bootstrap = {
+            "performed": True,
+            **paired_bootstrap(
+                configs[recommended],
+                configs[challenger],
+                metric=metric,
+                samples=args.bootstrap_samples,
+                seed=args.seed,
+            ),
+        }
+    else:
+        bootstrap = {
+            "performed": False,
+            "reason": (
+                "Only one candidate passed the guardrail."
+                if challenger is None
+                else f"Top-two primary gap {primary_gap:.6f} is not below {BOOTSTRAP_TIE_THRESHOLD:.2f}."
+            ),
+        }
     decision = {
         "schema_version": "sequential-decision-draft-v1",
         "phase": args.phase,
         "report": str(report_path),
         "report_sha256": sha256_file(report_path),
         "control": control_name,
-        "primary_metric": "gold_span_recall_at_8" if args.phase in RETRIEVAL_PHASES else "faithfulness_avg",
+        "primary_metric": "recall_at_8" if args.phase in RETRIEVAL_PHASES else "faithfulness_avg",
         "recommended_winner": recommended,
         "ranking": ranking,
-        "winner_vs_control_bootstrap": bootstrap,
+        "bootstrap_challenger": challenger,
+        "winner_vs_challenger_bootstrap": bootstrap,
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(decision, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")

@@ -33,12 +33,13 @@ from app.rag.gold_evidence import (  # noqa: E402
     load_gold_span_anchors,
     score_gold_evidence,
 )
+from app.rag.token_overlap import aggregate_token_overlap, score_token_overlap  # noqa: E402
 from app.rag import nodes as rag_nodes  # noqa: E402
 from app.rag.nodes import DRY_RUN_NODE_ORDER, build_node_map  # noqa: E402
 
 
 DEFAULT_ANCHORS = Path("benchmark/tuvi_golden_dataset/sequential_ablation/gold_span_anchors.jsonl")
-RETRIEVAL_BACKEND = "rule-based-gold-evidence-v1"
+RETRIEVAL_BACKEND = "rule-based-token-overlap-v2"
 SKIPPED_NODES = {"generation", "citation_map"}
 
 
@@ -142,6 +143,7 @@ def run_item(item: Any, config: Any, anchors: list[dict[str, Any]]) -> dict[str,
         raise RuntimeError(f"retrieval fallback detected: {fallbacks}")
     context_chunks = list(state.get("context_chunks") or [])
     final_scores = score_gold_evidence(context_chunks, anchors)
+    token_scores = score_token_overlap(context_chunks, list(item.gold_context_spans))
     if anchors and final_scores["mapped_corpus_chunk_count"] != final_scores["corpus_chunk_count"]:
         raise RuntimeError(
             "selected corpus context is missing doc/section/character provenance: "
@@ -158,6 +160,12 @@ def run_item(item: Any, config: Any, anchors: list[dict[str, Any]]) -> dict[str,
         "chart_only": chart_only,
         "rule_metric_eligible": bool(anchors),
         "gold_annotation_span_count": len(item.gold_context_spans),
+        "token_overlap_threshold": token_scores["token_overlap_threshold"],
+        "recall_at_8": token_scores["recall_at_8"],
+        "precision_at_8": token_scores["precision_at_8"],
+        "f1_at_8": token_scores["f1_at_8"],
+        "token_overlap_span_details": token_scores["token_overlap_span_details"],
+        "token_overlap_chunk_details": token_scores["token_overlap_chunk_details"],
         **{key: value for key, value in final_scores.items() if key not in {"gold_span_details", "chunk_details"}},
         "fused_gold_span_recall": fused_scores["gold_span_recall"],
         "gold_span_details": final_scores["gold_span_details"],
@@ -231,17 +239,18 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Anchor mapping coverage: `{report['anchor_summary'].get('mapping_coverage')}`",
         f"- Backend: `{RETRIEVAL_BACKEND}`",
         "",
-        "| Config | Status | Gold-span Recall@8 | Gold-chunk Precision@8 | Retrieval p95 ms | Failed |",
-        "|---|---|---:|---:|---:|---:|",
+        "| Config | Status | Recall@8 | Precision@8 | F1@8 | Retrieval p95 ms | Failed |",
+        "|---|---|---:|---:|---:|---:|---:|",
     ]
     for config in report["configs"]:
         metrics = config["metrics"]
         lines.append(
-            "| {name} | {status} | {recall} | {precision} | {p95} | {failed} |".format(
+            "| {name} | {status} | {recall} | {precision} | {f1} | {p95} | {failed} |".format(
                 name=config["config_name"],
                 status=config["status"],
-                recall=metrics.get("gold_span_recall_at_8"),
-                precision=metrics.get("gold_chunk_precision_at_8"),
+                recall=metrics.get("recall_at_8"),
+                precision=metrics.get("precision_at_8"),
+                f1=metrics.get("f1_at_8"),
                 p95=metrics.get("retrieval_p95_ms"),
                 failed=metrics.get("failed_count"),
             )
@@ -249,7 +258,8 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "Only exact/manual-approved anchors enter retrieval metric denominators. Unmapped annotations are reported separately.",
+            "Recall@8 and Precision@8 use source-aligned multiset token overlap at tau=0.25. All annotated gold spans enter the recall denominator.",
+            "Exact-coordinate gold metrics remain in JSON as provenance diagnostics only.",
             "Generation and AI judging were not executed in this report.",
             "",
         ]
@@ -298,6 +308,7 @@ def main() -> int:
             {
                 "runner": sha256_file(Path(__file__)),
                 "scorer": sha256_file(BACKEND_DIR / "app" / "rag" / "gold_evidence.py"),
+                "token_overlap_scorer": sha256_file(BACKEND_DIR / "app" / "rag" / "token_overlap.py"),
             }
         ),
         selected_item_ids=[item.id for item in items],
@@ -358,6 +369,7 @@ def main() -> int:
             if args.fail_fast and result.get("status") != "completed":
                 raise RuntimeError(result.get("error") or f"Retrieval failed for {item.id}")
         metrics = aggregate_gold_evidence(item_results)
+        metrics.update(aggregate_token_overlap(item_results))
         metrics["fused_gold_span_recall"] = (
             round(
                 sum(float(row["fused_gold_span_recall"]) for row in item_results if row.get("fused_gold_span_recall") is not None)
@@ -401,6 +413,11 @@ def main() -> int:
         "generation_executed": False,
         "reranker_timeout_seconds": args.reranker_timeout_seconds,
         "anchor_summary": anchor_summary,
+        "metric_definitions": {
+            "recall_at_8": "Gold-span hit rate using same-source multiset token coverage >= 0.25; all annotated spans are included.",
+            "precision_at_8": "Fraction of selected corpus chunks matching >= 0.25 of at least one same-source gold span's tokens.",
+            "f1_at_8": "Harmonic mean of aggregate Recall@8 and Precision@8.",
+        },
         "started_at": started_at,
         "completed_at": utc_now(),
         "status": "completed" if failed_pairs == 0 else "partial",

@@ -1,0 +1,13 @@
+{
+  "anchors": "9db1797693026471b6c2f813107d872c405da10cb2d13f3ff48270dc1a3d28be",
+  "dataset": "90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c",
+  "evaluation_checkpoint.json": "770272481a70fd922f5b427e83d092141273846fdbebd2ceaabf65387afa101d",
+  "evaluation_report.json": "3a0dfe9906342b3302d06d583d20d28abb783d13b16b990635ddcabcba879401",
+  "evaluation_report.md": "a2ad54cf678842ccbb5bd7ab1878333a1f46d16ebb2425bf4f067558bcf6bc07",
+  "evaluation_report_token_overlap.json": "f2d3747e3fadfa74582cacec687ed12d7f498e9ffb7fb7dda3c1492b94889970",
+  "evaluation_report_token_overlap.md": "4855dbec9c31085ac53e5956c4b12599088994f2b6860cbb28fc965871914fd0",
+  "P1_DECISION.json": "d948dc9f1c68525106cceb79eca4de4543d48eb5c5d9fc6736584b21b109b9c8",
+  "P1_DECISION.md": "60091994573859ac2ef39a89e7fab8cfed44fc011d395b713b4775dabc1059c3",
+  "locked_phase_1.yaml": "1d9077c1504757e2e4dcb4c30619147ec591f24a4514cd6322e3d04561a559cb",
+  "locked_phase_1.lock.json": "85169984a16e0c8c5023e28e7939bb720712049ade426728e9a4f50b1c82cff9"
+}

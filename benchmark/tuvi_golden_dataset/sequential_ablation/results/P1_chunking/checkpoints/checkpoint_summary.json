@@ -1,0 +1,11 @@
+{
+  "current_config": "p1_semantic_bge_m3",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 22,
+  "expected_pair_count": 300,
+  "failed_pair_count": 0,
+  "processed_pair_count": 300,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 278,
+  "updated_at": "2026-09-12T00:22:28.621441Z"
+}

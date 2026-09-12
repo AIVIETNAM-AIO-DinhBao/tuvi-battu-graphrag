@@ -92,7 +92,7 @@ def main() -> int:
     if args.phase in {"p3", "p5"} and not args.bundle:
         raise SystemExit(f"--bundle is required for {args.phase.upper()} tickets.")
     config_count = len(manifest.configs)
-    backend = "gemini blind-v2" if args.phase == "p3" else "rule-based-gold-evidence-v1"
+    backend = "gemini blind-v2" if args.phase == "p3" else "rule-based-token-overlap-v2"
     bundle_path = resolve(Path(args.bundle)).resolve() if args.bundle else None
     bundle_manifest = bundle_path / "bundle_manifest.json" if bundle_path else None
     if bundle_manifest is not None and not bundle_manifest.exists():

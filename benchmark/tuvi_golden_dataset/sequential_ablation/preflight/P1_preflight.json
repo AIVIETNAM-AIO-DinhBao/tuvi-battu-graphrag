@@ -1,0 +1,118 @@
+{
+  "anchor_summary_sha256": "94a371b94484217b449eefb779e4040f3dfadb03f09b702f7fb5f12e5b7c2fc0",
+  "created_at": "2026-09-12T00:17:39.981438+00:00",
+  "dataset_sha256": "90376a87cec29cc22e93dc71b41e054ed2f0183bc515a52aa461fecd43cc008c",
+  "gates": {
+    "all_12_source_strategy_pairs_embedded": true,
+    "anchor_dataset_hash_matches": true,
+    "anchors_ready": true,
+    "dataset_is_full_100": true,
+    "manifest_has_three_configs": true,
+    "only_chunk_strategy_varies": true,
+    "required_indexes_online": true
+  },
+  "manifest": "D:/UNI_STUDY/Year3/Semester3/TextMining/tuvi-battu-graphrag/configs/ablation_sequential/p1_chunking.yaml",
+  "manifest_sha256": "058018a9e4f022682ab5b2bab445b49fb648552c1a7a21f72e093b31e2e2949e",
+  "neo4j_indexes": [
+    {
+      "name": "chunkFulltext",
+      "passed": true,
+      "state": "ONLINE",
+      "type": "FULLTEXT"
+    },
+    {
+      "name": "chunkVectorBgeM3",
+      "passed": true,
+      "state": "ONLINE",
+      "type": "VECTOR"
+    }
+  ],
+  "neo4j_pair_counts": [
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "embedded_chunk_count": 347,
+      "passed": true,
+      "retrieval_chunk_count": 347,
+      "source_id": "TVKL"
+    },
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "embedded_chunk_count": 266,
+      "passed": true,
+      "retrieval_chunk_count": 266,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "embedded_chunk_count": 287,
+      "passed": true,
+      "retrieval_chunk_count": 287,
+      "source_id": "TVHS"
+    },
+    {
+      "chunk_strategy_id": "chunk_fixed_512",
+      "embedded_chunk_count": 258,
+      "passed": true,
+      "retrieval_chunk_count": 258,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "embedded_chunk_count": 983,
+      "passed": true,
+      "retrieval_chunk_count": 983,
+      "source_id": "TVKL"
+    },
+    {
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "embedded_chunk_count": 844,
+      "passed": true,
+      "retrieval_chunk_count": 844,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "embedded_chunk_count": 849,
+      "passed": true,
+      "retrieval_chunk_count": 849,
+      "source_id": "TVHS"
+    },
+    {
+      "chunk_strategy_id": "chunk_structure_parent_child",
+      "embedded_chunk_count": 666,
+      "passed": true,
+      "retrieval_chunk_count": 666,
+      "source_id": "TVGM"
+    },
+    {
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "embedded_chunk_count": 511,
+      "passed": true,
+      "retrieval_chunk_count": 511,
+      "source_id": "TVKL"
+    },
+    {
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "embedded_chunk_count": 363,
+      "passed": true,
+      "retrieval_chunk_count": 363,
+      "source_id": "TVNL"
+    },
+    {
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "embedded_chunk_count": 439,
+      "passed": true,
+      "retrieval_chunk_count": 439,
+      "source_id": "TVHS"
+    },
+    {
+      "chunk_strategy_id": "chunk_semantic_embedding_bge_m3",
+      "embedded_chunk_count": 377,
+      "passed": true,
+      "retrieval_chunk_count": 377,
+      "source_id": "TVGM"
+    }
+  ],
+  "ready": true,
+  "schema_version": "sequential-preflight-v1"
+}
