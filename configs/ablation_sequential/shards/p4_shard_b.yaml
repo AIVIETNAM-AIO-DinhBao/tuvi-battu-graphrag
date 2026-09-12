@@ -1,0 +1,14 @@
+name: sequential_p4_reranker_shard_b
+notes: Only reranker.enabled changes; top_k is fixed at 20. Two-person official shard
+  assigned to B.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark/tuvi_golden_dataset/sequential_ablation/results/P4_reranker/shards/B
+configs:
+- name: p4_rerank_on
+  base_config_path: configs/ablation_sequential/locked_phase_3.yaml
+  overrides:
+    experiment_id: sequential_p4_rerank_on
+    name: Sequential P4 - reranker on
+    reranker_config:
+      enabled: true
+      top_k: 20
