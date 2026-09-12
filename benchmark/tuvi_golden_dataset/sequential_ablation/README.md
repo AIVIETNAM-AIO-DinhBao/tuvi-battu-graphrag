@@ -220,7 +220,7 @@ Script sinh full manifest canonical và hai shard. Phân công cố định:
 | Phase | Shard A | Shard B |
 |---|---|---|
 | P2 | Graph, Dense, Graph+Dense | Sparse, Graph+Sparse, Dense+Sparse, GDS |
-| P3 | prompt v1, structured-v3 | grounded-v2, answer-first-v4 |
+| P3 | Prompt 1 (v1), Prompt 2 (grounded-v2) | Prompt 3 (answer-first-v4) |
 | P4 | reranker off | reranker on, top-k=20 |
 | P5 | top-k=10 | top-k=20 và 40 |
 

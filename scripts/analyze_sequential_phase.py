@@ -14,7 +14,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 CONTROL_BY_PHASE = {
     "p1": "p1_fixed_512",
     "p2": "p2_dense_sparse",
-    "p3": "p3_structured_v3",
+    "p3": "p3_prompt_2",
     "p4": "p4_rerank_off",
     "p5": "p5_top_k_20",
 }

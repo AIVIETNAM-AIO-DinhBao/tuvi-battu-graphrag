@@ -25,8 +25,8 @@ TWO_PERSON_ASSIGNMENTS = {
         "B": {"p2_sparse", "p2_graph_sparse", "p2_dense_sparse", "p2_graph_dense_sparse"},
     },
     "p3": {
-        "A": {"p3_v1", "p3_structured_v3"},
-        "B": {"p3_grounded_v2", "p3_answer_first_v4"},
+        "A": {"p3_prompt_1", "p3_prompt_2"},
+        "B": {"p3_prompt_3"},
     },
     "p4": {"A": {"p4_rerank_off"}, "B": {"p4_rerank_on"}},
     "p5": {"A": {"p5_top_k_10"}, "B": {"p5_top_k_20", "p5_top_k_40"}},
@@ -77,22 +77,25 @@ def phase_specs(phase: str, base: str) -> tuple[str, str, list[dict[str, Any]]]:
         return "sequential_p2_retrieval", "Only the categorical retrieval strategy changes.", specs
     if phase == "p3":
         prompts = [
-            ("v1", "tuvi_generation_v1"),
-            ("grounded_v2", "tuvi_generation_grounded_v2"),
-            ("structured_v3", "tuvi_generation_structured_v3"),
-            ("answer_first_v4", "tuvi_generation_answer_first_v4"),
+            ("prompt_1", "tuvi_generation_v1", "Prompt 1 - concise baseline v1"),
+            ("prompt_2", "tuvi_generation_grounded_v2", "Prompt 2 - grounded v2"),
+            ("prompt_3", "tuvi_generation_answer_first_v4", "Prompt 3 - answer-first v4"),
         ]
         specs = [
             candidate(
                 f"p3_{name}",
                 base,
                 f"sequential_p3_{name}",
-                f"Sequential P3 - {name}",
+                f"Sequential P3 - {label}",
                 {"prompt_template_id": prompt_id},
             )
-            for name, prompt_id in prompts
+            for name, prompt_id, label in prompts
         ]
-        return "sequential_p3_prompt", "Only prompt_template_id changes; run with Gemini generation and judge.", specs
+        return (
+            "sequential_p3_prompt",
+            "Only prompt_template_id changes. Prompt 2 keeps grounded-v2; structured-v3 is excluded by the pre-registered three-prompt shortlist.",
+            specs,
+        )
     if phase == "p4":
         specs = [
             candidate(

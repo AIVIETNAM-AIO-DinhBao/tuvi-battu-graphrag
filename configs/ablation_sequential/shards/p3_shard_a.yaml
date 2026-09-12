@@ -1,0 +1,19 @@
+name: sequential_p3_prompt_shard_a
+notes: Only prompt_template_id changes. Prompt 2 keeps grounded-v2; structured-v3
+  is excluded by the pre-registered three-prompt shortlist. Two-person official shard
+  assigned to A.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P3_prompt/shards/A
+configs:
+- name: p3_prompt_1
+  base_config_path: configs/ablation_sequential/locked_phase_2.yaml
+  overrides:
+    experiment_id: sequential_p3_prompt_1
+    name: Sequential P3 - Prompt 1 - concise baseline v1
+    prompt_template_id: tuvi_generation_v1
+- name: p3_prompt_2
+  base_config_path: configs/ablation_sequential/locked_phase_2.yaml
+  overrides:
+    experiment_id: sequential_p3_prompt_2
+    name: Sequential P3 - Prompt 2 - grounded v2
+    prompt_template_id: tuvi_generation_grounded_v2

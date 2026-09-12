@@ -58,6 +58,17 @@ def test_two_person_shards_cover_every_candidate_once() -> None:
         assert assigned_a | assigned_b == expected
 
 
+def test_p3_uses_the_registered_three_prompt_shortlist() -> None:
+    _, _, specs = phase_specs("p3", "configs/locked.yaml")
+
+    assert [spec["name"] for spec in specs] == ["p3_prompt_1", "p3_prompt_2", "p3_prompt_3"]
+    assert [spec["overrides"]["prompt_template_id"] for spec in specs] == [
+        "tuvi_generation_v1",
+        "tuvi_generation_grounded_v2",
+        "tuvi_generation_answer_first_v4",
+    ]
+
+
 def test_p6_notebooks_are_preconfigured_for_official_run() -> None:
     source = "".join(notebook_config("gemma3_4b", "sequential_final_1::p6_frozen_context"))
 

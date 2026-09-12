@@ -39,7 +39,7 @@ def main() -> int:
     manifest = load_ablation_manifest(manifest_path)
     if len(manifest.configs) < 2:
         raise SystemExit("P3 manifest must contain multiple prompt candidates.")
-    control = next((spec for spec in manifest.configs if spec.name == "p3_structured_v3"), manifest.configs[0])
+    control = next((spec for spec in manifest.configs if spec.name == "p3_prompt_2"), manifest.configs[0])
     plan_path = output_dir.parent / "p3_frozen_retrieval_plan.json"
     manifest_rel = manifest_path.relative_to(ROOT_DIR).as_posix()
     plan = {
