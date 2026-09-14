@@ -1,0 +1,11 @@
+{
+  "current_config": "gemma3_4b__p6_prompt3_frozen_context",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 300,
+  "expected_pair_count": 300,
+  "failed_pair_count": 0,
+  "processed_pair_count": 300,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 0,
+  "updated_at": "2026-09-14T09:40:51.916000+00:00"
+}

@@ -1,0 +1,49 @@
+{
+  "assigned_pair_count": 100,
+  "bundle_cases_sha256": "ed163a826e13487492f197908f3946c8266a75793db2cea873be373f3f8fa426",
+  "completed_at": "2026-09-14T07:59:34.846991+00:00",
+  "completed_pair_count": 100,
+  "failed_pair_count": 0,
+  "is_complete": true,
+  "key_rotation": {
+    "failure_counts": {
+      "key_1": 0,
+      "key_2": 0,
+      "key_3": 0,
+      "key_4": 0
+    },
+    "initial_offset": 0,
+    "key_count": 4,
+    "success_counts": {
+      "key_1": 25,
+      "key_2": 25,
+      "key_3": 25,
+      "key_4": 25
+    },
+    "usage_counts": {
+      "key_1": 25,
+      "key_2": 25,
+      "key_3": 25,
+      "key_4": 25
+    }
+  },
+  "loader": "gemini_api",
+  "max_output_tokens": 1024,
+  "model_id": "gemini-3.1-flash-lite-preview",
+  "model_key": "gemini31_flash_lite",
+  "model_revision": "provider-managed",
+  "num_shards": 1,
+  "predictions_file": "predictions_shard_00.jsonl",
+  "predictions_sha256": "c39af26836e54604f3de09490c525bfdbac3f1df6d17f5a7e384eef466a83c84",
+  "quantization": "api",
+  "schema_version": "local-llm-predictions-v2",
+  "selected_config_keys": [
+    "sequential_final_1::p6_prompt3_frozen_context"
+  ],
+  "selected_suites": [
+    "sequential_final_1"
+  ],
+  "shard_id": 0,
+  "started_at": "2026-09-14T07:55:09.285433+00:00",
+  "temperature": 0.0
+}

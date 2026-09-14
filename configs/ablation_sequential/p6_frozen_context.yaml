@@ -1,0 +1,10 @@
+name: sequential_p6_frozen_context
+notes: One locked retrieval config used to build the model-neutral P6 bundle.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P6_context
+configs:
+- name: p6_frozen_context
+  base_config_path: configs/ablation_sequential/locked_phase_5.yaml
+  overrides:
+    experiment_id: sequential_p6_frozen_context
+    name: Sequential P6 - frozen final retrieval context

@@ -1,6 +1,6 @@
 {
   "config_hash": "218e3e899ccebdadd3e4e02e726b5edc4f18658107c5ca437c42e87c68ee0f88",
-  "locked_at": "2026-09-12T14:39:05.425724+00:00",
+  "locked_at": "2026-09-14T07:50:39.629592+00:00",
   "locked_config": "D:/UNI_STUDY/Year3/Semester3/TextMining/tuvi-battu-graphrag/configs/ablation_sequential/locked_phase_5.yaml",
   "locked_config_sha256": "ef17c769aa2cf1f60fa6f2a0f30230edeced5c6b21dfcf3be7c4a99f4b3a67cd",
   "manifest": "D:/UNI_STUDY/Year3/Semester3/TextMining/tuvi-battu-graphrag/configs/ablation_sequential/p5_prompt.yaml",

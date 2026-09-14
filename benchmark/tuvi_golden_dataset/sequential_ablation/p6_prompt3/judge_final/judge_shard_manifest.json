@@ -1,0 +1,54 @@
+{
+  "artifact_type": "gemini_judge_shard",
+  "created_at": "2026-09-14T09:40:51.916000+00:00",
+  "expected_model_ids": [
+    "Qwen/Qwen2.5-7B-Instruct",
+    "gemini-3.1-flash-lite-preview",
+    "google/gemma-3-4b-it"
+  ],
+  "files": {
+    "checkpoints/checkpoint_summary.json": "fc3dc4b1a0c73265606d58cd01d321b9ebb7daaee40eef0f316fe386a85b16f3",
+    "checkpoints/evaluation_checkpoint.json": "d459b608ff8439ea21c2e4ea28a02906b65d4a5b219b04f110daabfe1cdb46d6",
+    "evaluation_report.json": "a93a4fe73871d1c89aca9e15682338a45338f6b7df566dc8988523d394af4b49",
+    "evaluation_report.md": "feaddcc204d66fee44eb3ef3eede343355c60a9c93ded5e4a1371f849bd37105",
+    "judged_items.jsonl": "01f064eac4433c6ffd362e20ede630f1cee0d537975a1116b83501b5a622b8c1",
+    "local_llm_evaluation_report.json": "3dbd111e346f7a2308f3b5945f03df49cda12611629ac75c36ceb37d4633deb7",
+    "local_llm_metrics.csv": "634037ebc12db418c750f4541ced654d5580d1f52d56534e2223d0ec156b8fa1"
+  },
+  "is_complete": true,
+  "judge_model": "gemini-3.1-flash-lite-preview",
+  "judge_protocol": "blind-v2",
+  "judged_completed_count": 300,
+  "judged_failed_count": 0,
+  "key_rotation": {
+    "failure_counts": {
+      "key_1": 0,
+      "key_2": 1,
+      "key_3": 0,
+      "key_4": 0
+    },
+    "initial_offset": 0,
+    "key_count": 4,
+    "last_error_types": {
+      "key_2": "RuntimeError"
+    },
+    "request_count": 300,
+    "success_counts": {
+      "key_1": 75,
+      "key_2": 74,
+      "key_3": 76,
+      "key_4": 75
+    },
+    "usage_counts": {
+      "key_1": 75,
+      "key_2": 75,
+      "key_3": 76,
+      "key_4": 75
+    }
+  },
+  "schema_version": "local-llm-gemini-judge-v2",
+  "selected_config_keys": [
+    "sequential_final_1::p6_prompt3_frozen_context"
+  ],
+  "shard_name": "sequential-p6-final"
+}

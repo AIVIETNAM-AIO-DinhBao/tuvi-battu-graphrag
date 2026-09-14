@@ -1,0 +1,51 @@
+{
+  "candidate_log_k": 100,
+  "completed_pair_count": 100,
+  "config_count": 1,
+  "created_at": "2026-09-12T17:37:44.166754+00:00",
+  "exact_chunk_metric_note": "The release dataset has no gold_chunk_ids. Candidate IDs are logged for audit, but exact chunk hit cannot be reported until gold spans are mapped separately for every chunking strategy.",
+  "executed_this_run": 100,
+  "failed_pair_count": 0,
+  "failed_this_run": 0,
+  "files": {
+    "cases": {
+      "name": "cases.jsonl",
+      "sha256": "4c70bb73c734ffcd623c709100ecda639990a3610bf3d75c045470ebd01e8dc0"
+    },
+    "configs": {
+      "name": "configs.jsonl",
+      "sha256": "7a215017aa15cb8822402aed94dec78a82b668f4cb697a00af83ed6647a85843"
+    },
+    "items": {
+      "name": "items.jsonl",
+      "sha256": "db45f5ad98a4c38c023ae2dc4f9ba5a6303116f054d3389d9434aaf3dc871fc8"
+    }
+  },
+  "generation_targets": {
+    "gemma3_4b": {
+      "default_quantization": "4bit",
+      "gated": true,
+      "loader": "gemma3_conditional",
+      "model_id": "google/gemma-3-4b-it"
+    },
+    "qwen25_7b": {
+      "default_quantization": "4bit",
+      "gated": false,
+      "loader": "causal_lm",
+      "model_id": "Qwen/Qwen2.5-7B-Instruct"
+    }
+  },
+  "is_complete": true,
+  "item_count": 100,
+  "item_limit": null,
+  "planned_pair_count": 100,
+  "repo_root_name": "tuvi-battu-graphrag",
+  "reranker_timeout_seconds": 600.0,
+  "schema_version": "model-agnostic-context-bundle-v2",
+  "selected_suites": [
+    "sequential_final_1"
+  ],
+  "skipped_this_run": 0,
+  "started_at": "2026-09-12T14:52:34.446453+00:00",
+  "strict_no_fallback": true
+}

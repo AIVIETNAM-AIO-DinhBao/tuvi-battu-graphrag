@@ -336,6 +336,14 @@ Relevancy không được giảm quá `0.02` so với Prompt 2 và invalid marke
 
 ## 4. P6 Generator — local + Kaggle GPU
 
+> **Current execution design.** P5 is locked to its Faithfulness winner,
+> Prompt 1 (`v1`). P6 reports a 3-model × 2-shortlisted-prompt matrix: existing
+> `p6_kaggle/` is Prompt 1 and `p6_prompt3/` adds Prompt 3
+> (`tuvi_generation_answer_first_v4`), the highest-Relevancy P5 candidate.
+> Do not overwrite the original directory. Prompt 3 re-renders over the same
+> already frozen retrieval states, so it does not call Neo4j or rerank again; see
+> `report/ablation/P6_PROMPT3_ALL_MODEL_RERUN.md`.
+
 ### 4.1 A tạo manifest một-config và asset P6
 
 Giả sử config retrieval cuối là `locked_phase_5.yaml`:

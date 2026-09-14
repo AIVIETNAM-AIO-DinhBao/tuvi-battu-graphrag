@@ -1,10 +1,11 @@
-# P5 decision draft
+# P5 decision
 
-- Recommended winner: `p5_prompt_1`
+- Recommended winner: `p5_prompt_1` (`tuvi_generation_v1`)
 - Control: `p5_prompt_2`
 - Primary metric: `faithfulness_avg`
 - Report SHA-256: `0b96bf3b878e034a4bd56565cd75c6634aba44a95205a79c211b16c62aab42ec`
-- Selection rule: Highest primary metric among candidates that pass the pre-registered guardrail.
+- Selection rule: highest Faithfulness among candidates that pass the Answer
+  Relevancy/validity guardrail.
 
 | Candidate | Faithfulness | Answer Relevancy | Latency p95 ms | Guardrail | Note |
 |---|---:|---:|---:|---|---|
@@ -16,4 +17,9 @@
 
 - Not performed: Top-two primary gap 0.013000 is not below 0.01.
 
-This file is a deterministic draft. A must review failures, hashes and factor isolation before locking the winner.
+## P6 prompt-sensitivity matrix
+
+P6 additionally runs `p5_prompt_3` (`tuvi_generation_answer_first_v4`) for
+each generator because it has the highest Answer Relevancy (`0.894`). This is
+a planned **model × shortlisted-prompt matrix**, not a replacement for the P5
+winner: P5 remains locked to Prompt 1 by its pre-registered Faithfulness rule.

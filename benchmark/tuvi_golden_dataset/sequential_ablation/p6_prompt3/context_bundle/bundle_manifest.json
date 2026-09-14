@@ -1,0 +1,31 @@
+{
+  "archive": "benchmark/tuvi_golden_dataset/sequential_ablation/p6_prompt3/p6_prompt3_context_bundle.zip",
+  "completed_pair_count": 100,
+  "factor_isolation": "Only prompt_template_id changes; copied retrieval states and final_context verbatim.",
+  "failed_pair_count": 0,
+  "files": {
+    "cases": {
+      "name": "cases.jsonl",
+      "sha256": "ed163a826e13487492f197908f3946c8266a75793db2cea873be373f3f8fa426"
+    },
+    "configs": {
+      "name": "configs.jsonl",
+      "sha256": "2fff2873e01e9305c96df0556923e444bf037768ead346ddafeb4b9f7d51a2a7"
+    },
+    "items": {
+      "name": "items.jsonl",
+      "sha256": "db45f5ad98a4c38c023ae2dc4f9ba5a6303116f054d3389d9434aaf3dc871fc8"
+    }
+  },
+  "is_complete": true,
+  "planned_pair_count": 100,
+  "prompt_template_id": "tuvi_generation_answer_first_v4",
+  "schema_version": "model-agnostic-context-bundle-v2-prompt-rerender",
+  "selected_suites": [
+    "sequential_final_1"
+  ],
+  "source_bundle": "benchmark/tuvi_golden_dataset/sequential_ablation/p6_kaggle/context_bundle",
+  "source_bundle_manifest_sha256": "e3e4db602f74570193a7306f45235dc4e94fcf97e5efec66f0cafaa7ab628647",
+  "source_cases_sha256": "4c70bb73c734ffcd623c709100ecda639990a3610bf3d75c045470ebd01e8dc0",
+  "source_manifest": "configs/ablation_sequential/p6_prompt3_frozen_context.yaml"
+}

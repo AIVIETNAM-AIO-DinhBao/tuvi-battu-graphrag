@@ -38,7 +38,7 @@ def main() -> int:
             "model_key": "gemini31_flash_lite",
             "suite": handoff["suite"],
             "config_key": handoff["config_key"],
-            "output_label": "p6-frozen-context",
+            "output_label": handoff["config_name"],
             "temperature": 0.0,
             "max_output_tokens": 1024,
             "request_timeout_seconds": 20,

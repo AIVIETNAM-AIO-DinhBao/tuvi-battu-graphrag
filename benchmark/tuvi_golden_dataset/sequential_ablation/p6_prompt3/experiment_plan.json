@@ -1,0 +1,56 @@
+{
+  "schema_version": "local-llm-ablation-plan-v2",
+  "study_id": "sequential_final_generator_ablation",
+  "default_suites": [
+    "sequential_final_1"
+  ],
+  "models": {
+    "qwen25_7b": {
+      "model_id": "Qwen/Qwen2.5-7B-Instruct",
+      "loader": "causal_lm",
+      "gated": false,
+      "default_quantization": "4bit"
+    },
+    "gemma3_4b": {
+      "model_id": "google/gemma-3-4b-it",
+      "loader": "gemma3_conditional",
+      "gated": true,
+      "default_quantization": "4bit"
+    }
+  },
+  "suites": {
+    "sequential_final_1": {
+      "description": "One locked retrieval/context configuration shared by all P6 generators.",
+      "selection_rationale": "P1-P5 winner; only generation model changes in P6.",
+      "manifest_selections": [
+        {
+          "path": "configs/ablation_sequential/p6_prompt3_frozen_context.yaml",
+          "include_configs": [
+            "p6_prompt3_frozen_context"
+          ]
+        }
+      ],
+      "expected_config_count": 1,
+      "expected_item_count": 100,
+      "expected_retrieval_pair_count": 100
+    }
+  },
+  "official_matrix": {
+    "retrieval_pair_count": 100,
+    "generation_model_count": 3,
+    "generation_pair_count": 300,
+    "gemini_judge_pair_count": 300
+  },
+  "team": {
+    "A": [
+      "build frozen bundle locally",
+      "run Gemini API candidate",
+      "run Qwen Kaggle",
+      "judge/merge"
+    ],
+    "B": [
+      "run the preconfigured Gemma Kaggle notebook",
+      "return prediction ZIP"
+    ]
+  }
+}

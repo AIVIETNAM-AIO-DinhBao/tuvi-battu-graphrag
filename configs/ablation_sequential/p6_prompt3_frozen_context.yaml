@@ -1,0 +1,14 @@
+name: sequential_p6_prompt3_frozen_context
+notes: >-
+  P6 model × shortlisted-prompt matrix. Retrieval/context is copied
+  byte-for-byte from the completed P6 Prompt 1 frozen bundle; only the
+  answer-first Prompt 3 rendering changes.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P6_prompt3_context
+configs:
+  - name: p6_prompt3_frozen_context
+    base_config_path: configs/ablation_sequential/locked_phase_5.yaml
+    overrides:
+      experiment_id: sequential_p6_prompt3_frozen_context
+      name: Sequential P6 - Prompt 3 frozen retrieval context
+      prompt_template_id: tuvi_generation_answer_first_v4

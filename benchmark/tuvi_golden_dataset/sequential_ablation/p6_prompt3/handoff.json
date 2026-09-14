@@ -1,0 +1,10 @@
+{
+  "suite": "sequential_final_1",
+  "config_name": "p6_prompt3_frozen_context",
+  "config_key": "sequential_final_1::p6_prompt3_frozen_context",
+  "manifest": "configs/ablation_sequential/p6_prompt3_frozen_context.yaml",
+  "notebooks": {
+    "A": "P6_qwen25_7b_official_kaggle.ipynb",
+    "B": "P6_gemma3_4b_official_kaggle.ipynb"
+  }
+}

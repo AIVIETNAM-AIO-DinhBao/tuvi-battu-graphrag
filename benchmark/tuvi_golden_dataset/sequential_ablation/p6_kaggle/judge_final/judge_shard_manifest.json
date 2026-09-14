@@ -1,0 +1,55 @@
+{
+  "artifact_type": "gemini_judge_shard",
+  "created_at": "2026-09-13T04:38:52.976475+00:00",
+  "expected_model_ids": [
+    "Qwen/Qwen2.5-7B-Instruct",
+    "gemini-3.1-flash-lite-preview",
+    "google/gemma-3-4b-it"
+  ],
+  "files": {
+    "checkpoints/checkpoint_summary.json": "d5d77b6c7ff75c52c89237fd01fcabed1c8c808b0fe2dc2cdebe4383f2255fd6",
+    "checkpoints/evaluation_checkpoint.json": "9d57b2df62012adc181828a2cca06e4f84dae1eb0ce64d0c26330428fed0c5d9",
+    "evaluation_report.json": "11a3aaabc712a42b67ef2961dea9d6cacf3340f9dbdb239128e7431ec99a617a",
+    "evaluation_report.md": "f8051a64d630551a140f8910f48fea8e674654490a3a3a4feea94fe3c8a2c2c6",
+    "judged_items.jsonl": "14b08068295e6d00d51a0483c3c915cef8a11db6b19894912a0362008e1d417a",
+    "local_llm_evaluation_report.json": "63f5934066490561f3cab82fb43aba51fd938b29ac13b7691e6facd12457167d",
+    "local_llm_metrics.csv": "84a56991993ae0d4c0fd8eb6811e15c675d08b39b3ab9ca11635e4b2df643eed"
+  },
+  "is_complete": true,
+  "judge_model": "gemini-3.1-flash-lite-preview",
+  "judge_protocol": "blind-v2",
+  "judged_completed_count": 300,
+  "judged_failed_count": 0,
+  "key_rotation": {
+    "failure_counts": {
+      "key_1": 75,
+      "key_2": 13,
+      "key_3": 0,
+      "key_4": 0
+    },
+    "initial_offset": 0,
+    "key_count": 4,
+    "last_error_types": {
+      "key_1": "RuntimeError",
+      "key_2": "RuntimeError"
+    },
+    "request_count": 300,
+    "success_counts": {
+      "key_1": 0,
+      "key_2": 137,
+      "key_3": 88,
+      "key_4": 75
+    },
+    "usage_counts": {
+      "key_1": 75,
+      "key_2": 150,
+      "key_3": 88,
+      "key_4": 75
+    }
+  },
+  "schema_version": "local-llm-gemini-judge-v2",
+  "selected_config_keys": [
+    "sequential_final_1::p6_frozen_context"
+  ],
+  "shard_name": "sequential-p6-final"
+}
