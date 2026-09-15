@@ -1,0 +1,11 @@
+{
+  "current_config": "p7_final_gemini_prompt1",
+  "current_item": "TVQA-100",
+  "executed_pair_count": 11,
+  "expected_pair_count": 100,
+  "failed_pair_count": 0,
+  "processed_pair_count": 100,
+  "remaining_pair_count": 0,
+  "resumed_pair_count": 89,
+  "updated_at": "2026-09-15T02:30:04.614751Z"
+}

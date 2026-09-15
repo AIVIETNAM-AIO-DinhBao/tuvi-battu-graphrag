@@ -406,6 +406,20 @@ không thể bảo đảm, nên vẫn audit thủ công 20 item đã ẩn nhãn 
 - Nếu Qwen/Gemma thắng: backend hiện chưa tích hợp local generator vào live RAG. P7 phải lặp lại frozen-context generation bằng notebook official của model thắng, sau đó judge local; báo rõ đây là confirmation trên frozen context, không phải live serving integration.
 - P7 chỉ xác nhận completeness/reproducibility trên cùng 100 câu, không phải held-out generalization.
 
+Gemini Prompt 1 là winner hiện tại. Manifest đã được chuẩn bị tại
+`configs/ablation_sequential/p7_confirmation.yaml`; chạy live confirmation:
+
+```powershell
+.\scripts\sequential_ablation\run_generation_phase.ps1 `
+  -Manifest configs\ablation_sequential\p7_confirmation.yaml `
+  -OutputDir benchmark\tuvi_golden_dataset\sequential_ablation\results\P7_confirmation `
+  -CheckpointDir benchmark\tuvi_golden_dataset\sequential_ablation\results\P7_confirmation\checkpoints
+```
+
+Nếu terminal bị ngắt, chạy lại đúng lệnh trên với thêm `-Resume`. Gate là 100/100
+completed, zero failed/fallback, blind Judge v2, và config hash khớp
+`locked_phase_5.yaml` ngoài `experiment_id`/`name` provenance của P7.
+
 ## 6. Khi nào một phase được khóa?
 
 - Đủ 100 item cho mỗi candidate, không duplicate/missing ID.

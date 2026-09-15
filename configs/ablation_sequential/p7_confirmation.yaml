@@ -1,0 +1,14 @@
+name: sequential_p7_confirmation
+notes: >-
+  Confirmation only: replay the locked P1--P6 winner live over all 100 TuViQA
+  items. This is not a new selection phase and must not change any factor.
+dataset_path: benchmark/tuvi_golden_dataset/release/tuviqa_v1_release.jsonl
+output_dir: benchmark\tuvi_golden_dataset\sequential_ablation\results\P7_confirmation
+configs:
+  - name: p7_final_gemini_prompt1
+    base_config_path: configs/ablation_sequential/locked_phase_5.yaml
+    overrides:
+      experiment_id: sequential_p7_final_gemini_prompt1
+      name: Sequential P7 - live confirmation - Gemini Prompt 1
+      generation_model: gemini-3.1-flash-lite-preview
+      prompt_template_id: tuvi_generation_v1
